@@ -1,8 +1,11 @@
 import { id } from './id';
-
+import TextInputSidePanelComponent from './TextInputSidePanelComponent.tsx';
 /**
  * You can remove any of the following modules if you don't need them.
  */
+
+
+
 export default {
   /**
    * Only required property. Should be a unique value across all extensions.
@@ -23,7 +26,23 @@ export default {
    * iconName, iconLabel, label, component} object. Example of a panel module
    * is the StudyBrowserPanel that is provided by the default extension in OHIF.
    */
-  getPanelModule: ({ servicesManager, commandsManager, extensionManager }) => {},
+  getPanelModule: ({ servicesManager, commandsManager, extensionManager }) => {
+
+    return [
+      {
+        name:'text-input-side-panel',
+        iconName: 'icon-transferring',
+        iconLabel: 'Text Input',
+        label: 'Text Input',
+        component: TextInputSidePanelComponent.bind(null, {
+          commandsManager,
+          extensionManager,
+          servicesManager,
+        }),
+      }
+    ]
+
+  },
   /**
    * ViewportModule should provide a list of viewports that will be available in OHIF
    * for Modes to consume and use in the viewports. Each viewport is defined by
