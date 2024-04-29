@@ -129,6 +129,7 @@ function ViewerLayout({
                 side="left"
                 activeTabIndex={leftPanelClosedState ? null : 0}
                 servicesManager={servicesManager}
+                expandedWidth={400}
               />
             </ErrorBoundary>
           ) : null}
