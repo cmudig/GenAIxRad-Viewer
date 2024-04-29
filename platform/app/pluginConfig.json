@@ -83,10 +83,6 @@
       "packageName": "@ohif/mode-basic-dev-mode",
       "default": false,
       "version": "3.0.0"
-    },
-    {
-      "packageName": "generative-ai-mode",
-      "version": "0.0.1"
     }
   ],
   "public": [
