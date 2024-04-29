@@ -1,27 +1,10 @@
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
 <div align="center">
-  <h1>OHIF Medical Imaging Viewer</h1>
-  <p><strong>The OHIF Viewer</strong> is a zero-footprint medical image viewer
+  <h1>A Generative AI Extension for the OHIF Viewer</h1>
+  <p>This Repository contains the <strong>OHIF Viewer</strong> with an <strong>Generative AI </strong> extension, that enables the user to input a text and ganerates a CT scan of the chest. The OHIF Viewer is a zero-footprint medical image viewer
 provided by the <a href="https://ohif.org/">Open Health Imaging Foundation (OHIF)</a>. It is a configurable and extensible progressive web application with out-of-the-box support for image archives which support <a href="https://www.dicomstandard.org/using/dicomweb/">DICOMweb</a>.</p>
 </div>
-
-
-<div align="center">
-  <a href="https://docs.ohif.org/"><strong>Read The Docs</strong></a>
-</div>
-<div align="center">
-  <a href="https://viewer.ohif.org/">Live Demo</a> |
-  <a href="https://ui.ohif.org/">Component Library</a>
-</div>
-<div align="center">
-  📰 <a href="https://ohif.org/news/"><strong>Join OHIF Newsletter</strong></a> 📰
-</div>
-<div align="center">
-  📰 <a href="https://ohif.org/news/"><strong>Join OHIF Newsletter</strong></a> 📰
-</div>
-
-
 
 <hr />
 
@@ -41,98 +24,13 @@ provided by the <a href="https://ohif.org/">Open Health Imaging Foundation (OHIF
 
 |     |  | |
 | :-: | :---  | :--- |
-| <img src="https://github.com/OHIF/Viewers/blob/master/platform/docs/docs/assets/img/demo-measurements.webp?raw=true" alt="Measurement tracking" width="350"/> | Measurement Tracking | [Demo](https://viewer.ohif.org/viewer?StudyInstanceUIDs=1.3.6.1.4.1.25403.345050719074.3824.20170125095438.5) |
-| <img src="https://github.com/OHIF/Viewers/blob/master/platform/docs/docs/assets/img/demo-segmentation.webp?raw=true" alt="Segmentations" width="350"/> | Labelmap Segmentations  | [Demo](https://viewer.ohif.org/viewer?StudyInstanceUIDs=1.3.12.2.1107.5.2.32.35162.30000015050317233592200000046) |
-| <img src="https://github.com/OHIF/Viewers/blob/master/platform/docs/docs/assets/img/demo-ptct.webp?raw=true" alt="Hanging Protocols" width="350"/> | Fusion and Custom Hanging protocols  | [Demo](https://viewer.ohif.org/tmtv?StudyInstanceUIDs=1.3.6.1.4.1.14519.5.2.1.7009.2403.334240657131972136850343327463) |
-| <img src="https://github.com/OHIF/Viewers/blob/master/platform/docs/docs/assets/img/demo-volume-rendering.webp?raw=true" alt="Volume Rendering" width="350"/> | Volume Rendering  | [Demo](https://viewer.ohif.org/viewer?StudyInstanceUIDs=1.3.6.1.4.1.25403.345050719074.3824.20170125095438.5&hangingprotocolId=mprAnd3DVolumeViewport) |
-| <img src="https://github.com/OHIF/Viewers/blob/master/platform/docs/docs/assets/img/demo-pdf.webp?raw=true" alt="PDF" width="350"/> | PDF  | [Demo](https://viewer.ohif.org/viewer?StudyInstanceUIDs=2.25.317377619501274872606137091638706705333) |
-| <img src="https://github.com/OHIF/Viewers/blob/master/platform/docs/docs/assets/img/demo-rtstruct.webp?raw=true" alt="RTSTRUCT" width="350"/> | RT STRUCT  | [Demo](https://viewer.ohif.org/viewer?StudyInstanceUIDs=1.3.6.1.4.1.5962.99.1.2968617883.1314880426.1493322302363.3.0) |
-| <img src="https://github.com/OHIF/Viewers/blob/master/platform/docs/docs/assets/img/demo-4d.webp?raw=true" alt="4D" width="350"/> | 4D  | [Demo](https://viewer.ohif.org/dynamic-volume?StudyInstanceUIDs=2.25.232704420736447710317909004159492840763) |
-| <img src="https://github.com/OHIF/Viewers/blob/master/platform/docs/docs/assets/img/demo-video.webp?raw=true" alt="VIDEO" width="350"/> | Video  | [Demo](https://viewer.ohif.org/viewer?StudyInstanceUIDs=2.25.96975534054447904995905761963464388233) |
-| <img src="https://github.com/OHIF/Viewers/blob/master/platform/docs/docs/assets/img/microscopy.webp?raw=true" alt="microscopy" width="350"/> | Slide Microscopy  | [Demo](https://viewer.ohif.org/microscopy?StudyInstanceUIDs=2.25.141277760791347900862109212450152067508) |
+| <img src="https://github.com/OHIF/Viewers/blob/master/platform/docs/docs/assets/img/demo-measurements.webp?raw=true" alt="TODO: add demo" width="350"/> | TODO | [Demo](https://viewer.ohif.org/viewer?StudyInstanceUIDs=1.3.6.1.4.1.25403.345050719074.3824.20170125095438.5) |
 
 
-## About
 
-The OHIF Medical Imaging Viewer is for viewing medical images. It can retrieve
-and load images from most sources and formats; render sets in 2D, 3D, and
-reconstructed representations; allows for the manipulation, annotation, and
-serialization of observations; supports internationalization, OpenID Connect,
-offline use, hotkeys, and many more features.
-
-Almost everything offers some degree of customization and configuration. If it
-doesn't support something you need, we accept pull requests and have an ever
-improving Extension System.
-
-## Why Choose Us
-
-### Community & Experience
-
-The OHIF Viewer is a collaborative effort that has served as the basis for many
-active, production, and FDA Cleared medical imaging viewers. It benefits from
-our extensive community's collective experience, and from the sponsored
-contributions of individuals, research groups, and commercial organizations.
-
-### Built to Adapt
-
-After more than 8-years of integrating with many companies and organizations,
-The OHIF Viewer has been rebuilt from the ground up to better address the
-varying workflow and configuration needs of its many users. All of the Viewer's
-core features are built using it's own extension system. The same extensibility
-that allows us to offer:
-
-- 2D and 3D medical image viewing
-- Multiplanar Reconstruction (MPR)
-- Maximum Intensity Project (MIP)
-- Whole slide microscopy viewing
-- PDF and Dicom Structured Report rendering
-- Segmentation rendering as labelmaps and contours
-- User Access Control (UAC)
-- Context specific toolbar and side panel content
-- and many others
-
-Can be leveraged by you to customize the viewer for your workflow, and to add
-any new functionality you may need (and wish to maintain privately without
-forking).
-
-### Support
-
-- [Report a Bug 🐛](https://github.com/OHIF/Viewers/issues/new?assignees=&labels=Community%3A+Report+%3Abug%3A%2CAwaiting+Reproduction&projects=&template=bug-report.yml&title=%5BBug%5D+)
-- [Request a Feature 🚀](https://github.com/OHIF/Viewers/issues/new?assignees=&labels=Community%3A+Request+%3Ahand%3A&projects=&template=feature-request.yml&title=%5BFeature+Request%5D+)
-- [Ask a Question 🤗](community.ohif.org)
-- [Slack Channel](https://join.slack.com/t/cornerstonejs/shared_invite/zt-1r8xb2zau-dOxlD6jit3TN0Uwf928w9Q)
-
-For commercial support, academic collaborations, and answers to common
-questions; please use [Get Support](https://ohif.org/get-support/) to contact
-us.
 
 
 ## Developing
-
-### Branches
-
-#### `master` branch - The latest dev (beta) release
-
-- `master` - The latest dev release
-
-This is typically where the latest development happens. Code that is in the master branch has passed code reviews and automated tests, but it may not be deemed ready for production. This branch usually contains the most recent changes and features being worked on by the development team. It's often the starting point for creating feature branches (where new features are developed) and hotfix branches (for urgent fixes).
-
-Each package is tagged with beta version numbers, and published to npm such as `@ohif/ui@3.6.0-beta.1`
-
-### `release` branch - The latest stable release
-
-This branch represents the latest stable version of the project that is considered ready for production. The code in this branch should be fully tested and vetted for release. Once the code in the master branch reaches a state where it's stable and ready to be released to users,
-we do a comprehensive code review and QA testing. Once the code is approved,
-we merge it into the release branch and tag a new release.
-
-Each package is tagged with version numbers, and published to npm such as `@ohif/ui@3.5.0`
-
-Note: `master` is always ahead of `release` branch. We publish both docker builds for beta and stable releases.
-
-Here is a schematic representation of our development workflow:
-
-![Alt text](platform/docs/docs/assets/img/github-readme-branches.png)
-
 
 
 
@@ -145,26 +43,11 @@ Here is a schematic representation of our development workflow:
   - `yarn config set workspaces-experimental true`
 
 ### Getting Started
+1. Clone this repository
+   - `git clone https://github.com/TomWartm/Viewers.git`
+2. Navigate to the cloned project's directory
+3. `yarn install` to restore dependencies and link projects
 
-1. [Fork this repository][how-to-fork]
-2. [Clone your forked repository][how-to-clone]
-   - `git clone https://github.com/YOUR-USERNAME/Viewers.git`
-3. Navigate to the cloned project's directory
-4. Add this repo as a `remote` named `upstream`
-   - `git remote add upstream https://github.com/OHIF/Viewers.git`
-5. `yarn install` to restore dependencies and link projects
-
-#### To Develop
-
-_From this repository's root directory:_
-
-```bash
-# Enable Yarn Workspaces
-yarn config set workspaces-experimental true
-
-# Restore dependencies
-yarn install
-```
 
 ## Commands
 
@@ -177,6 +60,7 @@ also supports a number of commands that can be found in their respective
 | **Develop**                  |                                                               |
 | `dev` or `start`             | Default development experience for Viewer                     |
 | `test:unit`                  | Jest multi-project test runner; overall coverage              |
+| `run dev:orthanc`            | Runs the viewer with Orthnac backend                          |
 | **Deploy**                   |                                                               |
 | `build`\*                    | Builds production output for our PWA Viewer                   |  |
 
@@ -204,12 +88,14 @@ you'll see the following:
 │   ├── dicom-pdf # PDF rendering
 │   ├── dicom-video # DICOM RESTful Services
 │   ├── measurement-tracking # Longitudinal measurement tracking
+|   ├── text-input-extension # generative ML model promting
 │   ├── tmtv # Total Metabolic Tumor Volume (TMTV) calculation
 |
 
 │
 ├── modes                    #
 │   ├── _example             # Skeleton of example mode
+│   ├── generative-ai       # generative ML model promting
 │   ├── basic-dev-mode       # Basic development mode
 │   ├── longitudinal         # Longitudinal mode (measurement tracking)
 │   ├── tmtv       # Total Metabolic Tumor Volume (TMTV) calculation mode
@@ -244,31 +130,7 @@ To acknowledge the OHIF Viewer in an academic publication, please cite
 > Open-Access on Pubmed Central:
 > https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7259879/
 
-or, for v1, please cite:
 
-> _LesionTracker: Extensible Open-Source Zero-Footprint Web Viewer for Cancer
-> Imaging Research and Clinical Trials_
->
-> Trinity Urban, Erik Ziegler, Rob Lewis, Chris Hafey, Cheryl Sadow, Annick D.
-> Van den Abbeele and Gordon J. Harris
->
-> _Cancer Research_, November 1 2017 (77) (21) e119-e122 DOI:
-> [10.1158/0008-5472.CAN-17-0334](https://www.doi.org/10.1158/0008-5472.CAN-17-0334)
-
-**Note:** If you use or find this repository helpful, please take the time to
-star this repository on GitHub. This is an easy way for us to assess adoption
-and it can help us obtain future funding for the project.
-
-This work is supported primarily by the National Institutes of Health, National
-Cancer Institute, Informatics Technology for Cancer Research (ITCR) program,
-under a
-[grant to Dr. Gordon Harris at Massachusetts General Hospital (U24 CA199460)](https://projectreporter.nih.gov/project_info_description.cfm?aid=8971104).
-
-[NCI Imaging Data Commons (IDC) project](https://imaging.datacommons.cancer.gov/) supported the development of new features and bug fixes marked with ["IDC:priority"](https://github.com/OHIF/Viewers/issues?q=is%3Aissue+is%3Aopen+label%3AIDC%3Apriority),
-["IDC:candidate"](https://github.com/OHIF/Viewers/issues?q=is%3Aissue+is%3Aopen+label%3AIDC%3Acandidate) or ["IDC:collaboration"](https://github.com/OHIF/Viewers/issues?q=is%3Aissue+is%3Aopen+label%3AIDC%3Acollaboration). NCI Imaging Data Commons is supported by contract number 19X037Q from
-Leidos Biomedical Research under Task Order HHSN26100071 from NCI. [IDC Viewer](https://learn.canceridc.dev/portal/visualization) is a customized version of the OHIF Viewer.
-
-This project is tested with BrowserStack. Thank you for supporting open-source!
 
 ## License
 
@@ -337,4 +199,3 @@ MIT © [OHIF](https://github.com/OHIF)
 [vtk-npm]: https://www.npmjs.com/package/@ohif/extension-vtk
 <!-- prettier-ignore-end -->
 
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FOHIF%2FViewers.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FOHIF%2FViewers?ref=badge_large)
