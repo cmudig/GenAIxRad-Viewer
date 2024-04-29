@@ -69,6 +69,10 @@ module.exports = (env, argv) => {
         // Hoisted Yarn Workspace Modules
         path.resolve(__dirname, '../../../node_modules'),
         SRC_DIR,
+        path.resolve(
+          __dirname,
+          'C:/Users/mot99/Dokumente/GitHub/Viewers/modes/generative-ai-mode/node_modules'
+        ),
       ],
     },
     plugins: [
