@@ -73,6 +73,10 @@ module.exports = (env, argv) => {
           __dirname,
           'C:/Users/mot99/Dokumente/GitHub/Viewers/modes/generative-ai-mode/node_modules'
         ),
+        path.resolve(
+          __dirname,
+          'C:/Users/mot99/Dokumente/GitHub/Viewers/extensions/text-input-extension/node_modules'
+        ),
       ],
     },
     plugins: [

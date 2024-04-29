@@ -56,6 +56,10 @@
       "packageName": "@ohif/extension-cornerstone-dicom-rt",
       "default": false,
       "version": "3.0.0"
+    },
+    {
+      "packageName": "text-input-extension",
+      "version": "0.0.1"
     }
   ],
   "modes": [
