@@ -1,5 +1,6 @@
 import { hotkeys } from '@ohif/core';
-import { initToolGroups, toolbarButtons } from '@ohif/mode-longitudinal';
+import initToolGroups from '@ohif/mode-segmentation/src/initToolGroups';
+import toolbarButtons from '@ohif/mode-segmentation/src/toolbarButtons';
 import { id } from './id';
 
 const ohif = {
@@ -50,16 +51,19 @@ function modeFactory({ modeConfiguration }) {
       initToolGroups(extensionManager, toolGroupService, commandsManager);
 
       toolbarService.addButtons(toolbarButtons);
+
+      
       toolbarService.createButtonSection('primary', [
-        'MeasurementTools',
-        'Zoom',
         'WindowLevel',
         'Pan',
+        'Zoom',
+        'TrackballRotate',
         'Capture',
         'Layout',
         'Crosshairs',
         'MoreTools',
       ]);
+      toolbarService.createButtonSection('segmentationToolbox', ['BrushTools', 'Shapes']);
     },
     onModeExit: ({ servicesManager }) => {
       const {
