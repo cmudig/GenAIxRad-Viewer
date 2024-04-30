@@ -73,6 +73,16 @@ const toolbarButtons: Button[] = [
     },
   },
   {
+    id: 'RectangleROI',
+    uiType: 'ohif.radioGroup',
+    props: {
+      icon: 'tool-rectangle',
+      label: 'Rectangle',
+      commands: setToolActiveToolbar,
+      evaluate: 'evaluate.cornerstoneTool',
+    },
+  },
+  {
     id: 'Layout',
     uiType: 'ohif.layoutSelector',
     props: {
