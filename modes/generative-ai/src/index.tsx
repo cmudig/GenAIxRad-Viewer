@@ -55,6 +55,7 @@ function modeFactory({ modeConfiguration }) {
       
       toolbarService.createButtonSection('primary', [
         'WindowLevel',
+        'RectangleROI',
         'Pan',
         'Zoom',
         'TrackballRotate',
