@@ -78,7 +78,8 @@ function createTools(utilityModule) {
       { toolName: toolNames.RectangleROI },
       { toolName: toolNames.UltrasoundDirectional },
     ],
-    disabled: [{ toolName: toolNames.ReferenceLines }, { toolName: toolNames.AdvancedMagnify }],
+    enabled: [{ toolName: toolNames.ImageOverlayViewer }, { toolName: toolNames.ReferenceLines }],
+    disabled: [{ toolName: toolNames.AdvancedMagnify }],
   };
 }
 
@@ -107,7 +108,8 @@ function initMPRToolGroup(extensionManager, toolGroupService, commandsManager) {
         },
       },
     },
-    { toolName: utilityModule.exports.toolNames.ReferenceLines }
+    { toolName: utilityModule.exports.toolNames.ReferenceLines },
+    //{ toolName: 'RectangleOverlayViewer'} // uncomment to enable this tool for MPR view (not possible to reference so far)
   );
   toolGroupService.createToolGroupAndAddTools('mpr', tools);
 }
@@ -139,8 +141,25 @@ function initVolume3DToolGroup(extensionManager, toolGroupService) {
   toolGroupService.createToolGroupAndAddTools('volume3d', tools);
 }
 
+function initAIToolGroup(extensionManager, toolGroupService, commandsManager) {
+  const utilityModule = extensionManager.getModuleEntry(
+    '@ohif/extension-cornerstone.utilityModule.tools'
+  );
+
+
+  const { toolNames, Enums } = utilityModule.exports;
+  
+  const tools ={ enabled: [{ toolName: 'RectangleOverlayViewer'}]
+  };
+
+  // add rectangle overlay tool to the default tool group
+  toolGroupService.addToolsToToolGroup('default', tools);
+
+}
+
 function initToolGroups(extensionManager, toolGroupService, commandsManager) {
   initDefaultToolGroup(extensionManager, toolGroupService, commandsManager, 'default');
+  initAIToolGroup(extensionManager, toolGroupService, commandsManager);
   initMPRToolGroup(extensionManager, toolGroupService, commandsManager);
   initVolume3DToolGroup(extensionManager, toolGroupService);
 }

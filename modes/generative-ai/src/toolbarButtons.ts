@@ -73,6 +73,17 @@ const toolbarButtons: Button[] = [
     },
   },
   {
+    id: 'RectangleOverlayViewer',
+    uiType: 'ohif.radioGroup',
+    props: {
+      icon: 'toggle-dicom-overlay',
+      label: 'Rectangle Overlay Viewer',
+      commands: 'toggleEnabledDisabledToolbar',
+      evaluate: 'evaluate.cornerstoneTool.toggle',
+    },
+  },
+
+  {
     id: 'RectangleROI',
     uiType: 'ohif.radioGroup',
     props: {
