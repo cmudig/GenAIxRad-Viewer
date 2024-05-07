@@ -40,6 +40,7 @@ import {
 
 import CalibrationLineTool from './tools/CalibrationLineTool';
 import ImageOverlayViewerTool from './tools/ImageOverlayViewerTool';
+import RectangleOverlayViewerTool from '../../text-input-extension/src/tools/RectangleOverlayViewerTool';
 
 export default function initCornerstoneTools(configuration = {}) {
   CrosshairsTool.isAnnotation = false;
@@ -83,6 +84,7 @@ export default function initCornerstoneTools(configuration = {}) {
   addTool(SplineROITool);
   addTool(LivewireContourTool);
   addTool(OrientationMarkerTool);
+  addTool(RectangleOverlayViewerTool); // TODO: this should be moved to the text-input-extension
 
   // Modify annotation tools to use dashed lines on SR
   const annotationStyle = {

@@ -1,7 +1,13 @@
-import { hotkeys } from '@ohif/core';
+import { hotkeys} from '@ohif/core';
+import {metaData} from '@cornerstonejs/core';
+import {addTool} from '@cornerstonejs/tools';
 import initToolGroups from './initToolGroups';
 import toolbarButtons from './toolbarButtons';
+import segmentationButtons from './segmentationButtons';
+import initMetaData from './initMetaData';
 import { id } from './id';
+
+import RectangleOverlayViewerTool from '../../../extensions/text-input-extension/src/tools/RectangleOverlayViewerTool';
 
 const ohif = {
   layout: '@ohif/extension-default.layoutTemplateModule.viewerLayout',
@@ -14,7 +20,12 @@ const ohif = {
 const cornerstone = {
   viewport: '@ohif/extension-cornerstone.viewportModule.cornerstone',
 };
-
+const segmentation = {
+  panel: '@ohif/extension-cornerstone-dicom-seg.panelModule.panelSegmentation',
+  panelTool: '@ohif/extension-cornerstone-dicom-seg.panelModule.panelSegmentationWithTools',
+  sopClassHandler: '@ohif/extension-cornerstone-dicom-seg.sopClassHandlerModule.dicom-seg',
+  viewport: '@ohif/extension-cornerstone-dicom-seg.viewportModule.dicom-seg',
+};
 /**
  * Just two dependencies to be able to render a viewport with panels in order
  * to make sure that the mode is working.
@@ -22,6 +33,7 @@ const cornerstone = {
 const extensionDependencies = {
   '@ohif/extension-default': '^3.0.0',
   '@ohif/extension-cornerstone': '^3.0.0',
+  '@ohif/extension-cornerstone-dicom-seg': '^3.0.0',
   'text-input-extension': '^1.0.0',
 };
 
@@ -51,21 +63,27 @@ function modeFactory({ modeConfiguration }) {
       initToolGroups(extensionManager, toolGroupService, commandsManager);
 
       toolbarService.addButtons(toolbarButtons);
+      toolbarService.addButtons(segmentationButtons);
 
-      
       toolbarService.createButtonSection('primary', [
         'WindowLevel',
+        'RectangleOverlayViewer',
         'RectangleROI',
         'Pan',
         'Zoom',
         'TrackballRotate',
-        'Capture',
+        //'Capture',
         'Layout',
         'Crosshairs',
-        'MoreTools',
+        'MoreTools',        
       ]);
       toolbarService.createButtonSection('segmentationToolbox', ['BrushTools', 'Shapes']);
-    },
+    
+
+    // provide meta Data for rectangle overlay
+    initMetaData();
+    
+  },
     onModeExit: ({ servicesManager }) => {
       const {
         toolGroupService,
@@ -115,7 +133,7 @@ function modeFactory({ modeConfiguration }) {
             id: ohif.layout,
             props: {
               leftPanels: ['text-input-extension.panelModule.text-input-side-panel', ohif.leftPanel],
-              rightPanels: [],
+              rightPanels: [], //segmentation.panelTool
               viewports: [
                 {
                   namespace: cornerstone.viewport,
@@ -132,7 +150,7 @@ function modeFactory({ modeConfiguration }) {
     /** HangingProtocol used by the mode */
     // hangingProtocol: [''],
     /** SopClassHandlers used by the mode */
-    sopClassHandlers: [ohif.sopClassHandler],
+    sopClassHandlers: [ohif.sopClassHandler, segmentation.sopClassHandler],
     /** hotkeys for mode */
     hotkeys: [...hotkeys.defaults.hotkeyBindings],
   };

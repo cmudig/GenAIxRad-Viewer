@@ -12,7 +12,10 @@ function TextInputSidePanelComponent({ commandsManager, extensionManager, servic
     return (
            
         <div className="ohif-scrollbar invisible-scrollbar flex flex-col">
-            <TextArea/>
+            <TextArea 
+                servicesManager={servicesManager}
+                commandsManager={commandsManager}
+                />
 
             <WrappedPreviewStudyBrowser 
                 commandsManager={commandsManager}
