@@ -26,9 +26,9 @@ class RectangleOverlayViewerTool extends AnnotationDisplayTool {
   onSetToolDisabled = (): void => {};
 
   protected getReferencedImageId(viewport: IStackViewport | IVolumeViewport): string {
-    // if (viewport instanceof VolumeViewport) {
-    //   return;
-    // }
+    if (viewport instanceof VolumeViewport) {
+      return;
+    }
 
     const targetId = this.getTargetId(viewport);
     return targetId.split('imageId:')[1];
@@ -37,10 +37,8 @@ class RectangleOverlayViewerTool extends AnnotationDisplayTool {
   renderAnnotation = (enabledElement, svgDrawingHelper) => {
     
     const { viewport } = enabledElement;
-    
     const imageId = this.getReferencedImageId(viewport);
-    // const targetImageId = viewport.getFrameOfReferenceUID();
-    // console.log("Start Rectangle: ", imageId,targetImageId, viewport);
+
     if (!imageId) {
       return;
     }
@@ -50,7 +48,6 @@ class RectangleOverlayViewerTool extends AnnotationDisplayTool {
 
     // TODO: check interface of rectMetadata
     if (rectMetadata) {
-      console.log("rectMetadata: ", rectMetadata)
       this._renderRectangles(enabledElement, svgDrawingHelper, rectMetadata);
 
     }
@@ -65,8 +62,8 @@ class RectangleOverlayViewerTool extends AnnotationDisplayTool {
 
 
     for(const rectangle of rectangles){
-      const metaData = rectangle.attributes
-      console.log("Rectangle: ",metaData)
+      const metaData = rectangle.attributes;
+      
       const x = metaData.x; // center of rectangle x-coord
       const y = metaData.y; // center of rectangle y-coord
       const width = metaData.width; // width of rectangle
@@ -91,7 +88,7 @@ class RectangleOverlayViewerTool extends AnnotationDisplayTool {
           y: overlayTopLeftOnCanvas[1],
           fill: `rgba(${color.join(',')})`, // Convert color array to CSS rgba string
           'stroke-width': 2,
-          stroke: 'black', // Optional, for better visibility
+          stroke: 'black',
       };
 
       // Create or update the rectangle element in the SVG
@@ -99,7 +96,6 @@ class RectangleOverlayViewerTool extends AnnotationDisplayTool {
       if (rectElement) {
           drawing.setAttributesIfNecessary(rectAttributes, rectElement);
           svgDrawingHelper.setNodeTouched(rectId);
-          console.log("there already exists a node: ", rectId);
       } else {
           const rectElement = document.createElementNS(svgns, 'rect');
           drawing.setNewAttributesIfValid(rectAttributes, rectElement);
@@ -108,7 +104,8 @@ class RectangleOverlayViewerTool extends AnnotationDisplayTool {
     };
   }
   
-
+  
+  
   
 
   
