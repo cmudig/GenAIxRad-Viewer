@@ -28,7 +28,12 @@ import { useAppConfig } from '@state';
 
 import { LutPresentation, PositionPresentation } from '../types/Presentation';
 
+import CustomScrollbar from './CustomScrollbar';
+
+
+
 const STACK = 'stack';
+
 
 /**
  * Caches the jump to measurement operation, so that if display set is shown,
@@ -417,30 +422,40 @@ const OHIFCornerstoneViewport = React.memo(props => {
 
   return (
     <React.Fragment>
-      <div className="viewport-wrapper">
-        <ReactResizeDetector
-          onResize={onResize}
-          targetRef={elementRef.current}
-        />
-        <div
-          className="cornerstone-viewport-element"
-          style={{ height: '100%', width: '100%' }}
-          onContextMenu={e => e.preventDefault()}
-          onMouseDown={e => e.preventDefault()}
-          ref={elementRef}
-        ></div>
-        <CornerstoneOverlays
+      <div className="viewport-and-scrollbar-container">
+        <div className="viewport-wrapper" style={{ width: 'calc(100% - 20px)' }}>
+          <ReactResizeDetector
+            onResize={onResize}
+            targetRef={elementRef.current}
+          />
+          <div
+            className="cornerstone-viewport-element"
+            style={{ height: '90%', width: '90%' }}
+            onContextMenu={e => e.preventDefault()}
+            onMouseDown={e => e.preventDefault()}
+            ref={elementRef}
+          > 
+            
+          </div>
+          <CornerstoneOverlays
+            viewportId={viewportId}
+            toolBarService={toolbarService}
+            element={elementRef.current}
+            scrollbarHeight={scrollbarHeight}
+            servicesManager={servicesManager}
+          />
+          <CinePlayer
+            enabledVPElement={enabledVPElement}
+            viewportId={viewportId}
+            servicesManager={servicesManager}
+          />
+          
+        </div>
+        <CustomScrollbar 
+          servicesManager={servicesManager}
           viewportId={viewportId}
-          toolBarService={toolbarService}
           element={elementRef.current}
-          scrollbarHeight={scrollbarHeight}
-          servicesManager={servicesManager}
-        />
-        <CinePlayer
-          enabledVPElement={enabledVPElement}
-          viewportId={viewportId}
-          servicesManager={servicesManager}
-        />
+          />
       </div>
       {/* top offset of 24px to account for ViewportActionCorners. */}
       <div className="absolute top-[24px] w-full">

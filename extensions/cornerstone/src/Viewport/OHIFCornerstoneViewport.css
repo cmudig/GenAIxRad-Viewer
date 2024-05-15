@@ -1,19 +1,12 @@
-.viewport-wrapper {
-  width: 100%;
-  height: 100%; /* MUST have `height` to prevent resize infinite loop */
-  position: relative;
-}
-
-.cornerstone-viewport-element {
-  width: 100%;
+/* OHIFCornerstoneViewport.css */
+.viewport-and-scrollbar-container {
+  display: flex;
   height: 100%;
-  position: relative;
-  background-color: black;
-
-  /* Prevent the blue outline in Chrome when a viewport is selected */
-  outline: 0 !important;
-
-  /* Prevents the entire page from getting larger
-     when the magnify tool is near the sides/corners of the page */
-  overflow: hidden;
+  align-items: stretch; /* Ensures the scrollbar aligns with the height of the viewport */
 }
+
+.viewport-wrapper {
+  flex-grow: 1; /* Ensures the viewport takes up the remaining space */
+  position: relative; /* For positioning of overlay elements */
+}
+

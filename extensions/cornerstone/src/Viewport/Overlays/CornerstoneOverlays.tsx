@@ -13,7 +13,7 @@ function CornerstoneOverlays(props) {
     numberOfSlices: 0,
   });
   const [viewportData, setViewportData] = useState(null);
-
+  console.log("CornerstoneOverlays, scrollbarHeight",scrollbarHeight);
   useEffect(() => {
     const { unsubscribe } = cornerstoneViewportService.subscribe(
       cornerstoneViewportService.EVENTS.VIEWPORT_DATA_CHANGED,
