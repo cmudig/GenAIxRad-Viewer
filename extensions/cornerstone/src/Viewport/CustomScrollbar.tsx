@@ -9,9 +9,9 @@ const CustomScrollbar = (props) => {
 
   const { cornerstoneViewportService} = servicesManager.services;
   const [content, setContent] = useState([]); //TODO: rename this variable
-  const [height, setHeight] = useState(0); 
+  const [height, setHeight] = useState(0);
 
-  
+
   // subscribe to the viewport data change
   const [viewportData, setViewportData] = useState(null);
   useEffect(() => {
@@ -38,23 +38,22 @@ const CustomScrollbar = (props) => {
     }
 
     const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
-    console.log("viewport", viewport);
     if (!viewport) {
       return;
     }
 
     //CustomScrollbar is only implemented for StackViewport
-    if (viewport instanceof StackViewport) { 
+    if (viewport instanceof StackViewport) {
       // get current image stack id
       const csImageId = viewport.csImage.imageId.split('/instances/')[0];
-      
-      // recieve metadata of this image stack metadata 
+
+      // recieve metadata of this image stack metadata
       const metadata = metaData.get('ScrollbarElements', csImageId);
       const sliceIdxs = metadata.map(i => i.slice);
-      
+
       // get number of slices
       const numberOfSlices = viewport.imageIds.length;
-      
+
       // set highlighted to true if the index is in the list of sliceIdxs
       setContent(
         Array.from({ length: numberOfSlices }, (_, i) => ({
@@ -63,8 +62,8 @@ const CustomScrollbar = (props) => {
       );
     }
 
-    
-    
+
+
   }, [viewportId, viewportData]);
 
 
