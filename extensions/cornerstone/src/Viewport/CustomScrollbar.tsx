@@ -49,17 +49,20 @@ const CustomScrollbar = (props) => {
 
       // recieve metadata of this image stack metadata
       const metadata = metaData.get('ScrollbarElements', csImageId);
-      const sliceIdxs = metadata.map(i => i.slice);
+      if (metadata){
+        const sliceIdxs = metadata.map(i => i.slice);
 
-      // get number of slices
-      const numberOfSlices = viewport.imageIds.length;
+        // get number of slices
+        const numberOfSlices = viewport.imageIds.length;
 
-      // set highlighted to true if the index is in the list of sliceIdxs
-      setContent(
-        Array.from({ length: numberOfSlices }, (_, i) => ({
-          "highlighted": sliceIdxs.includes(i),
-        }))
-      );
+        // set highlighted to true if the index is in the list of sliceIdxs
+        setContent(
+          Array.from({ length: numberOfSlices }, (_, i) => ({
+            "highlighted": sliceIdxs.includes(i),
+          }))
+        );
+      }
+      
     }
 
 
