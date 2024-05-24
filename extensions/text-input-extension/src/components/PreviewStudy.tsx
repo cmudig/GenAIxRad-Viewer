@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 
@@ -18,6 +18,7 @@ const getTrackedSeries = displaySets => {
 
   return trackedSeries;
 };
+
 
 const PreviewStudy = ({
   tabs,
@@ -41,8 +42,8 @@ const PreviewStudy = ({
         const isExpanded = expandedStudyInstanceUIDs.includes(studyInstanceUid);
         return (
           <React.Fragment key={studyInstanceUid}>
-            {/* 
-            
+            {/*
+
             // TODO: remove this part if not needed
             
             <StudyItem
@@ -57,7 +58,7 @@ const PreviewStudy = ({
               }}
               data-cy="thumbnail-list"
             /> */}
-            {isExpanded && displaySets && (
+              
               <ThumbnailList
                 thumbnails={displaySets}
                 activeDisplaySetInstanceUIDs={activeDisplaySetInstanceUIDs}
@@ -65,7 +66,7 @@ const PreviewStudy = ({
                 onThumbnailDoubleClick={onDoubleClickThumbnail}
                 onClickUntrack={onClickUntrack}
               />
-            )}
+
           </React.Fragment>
         );
       }
@@ -74,16 +75,16 @@ const PreviewStudy = ({
 
   return (
     <React.Fragment>
-      {/* 
+      {
       // removed Buttons for preview selection for now.
       //TODO: remove uncommented part and its function if they are relly not needed
-      
+
       <div
         className="w-100 border-secondary-light bg-primary-dark flex h-16 flex-row items-center justify-center border-b p-4"
         data-cy={'studyBrowser-panel'}
       >
-        
-        
+
+
         <LegacyButtonGroup
           variant="outlined"
           color="secondary"
@@ -118,7 +119,7 @@ const PreviewStudy = ({
             );
           })}
         </LegacyButtonGroup>
-      </div> */}
+      </div> }
       <div className="ohif-scrollbar invisible-scrollbar flex flex-1 flex-col overflow-auto">
         {getTabContent()}
       </div>
