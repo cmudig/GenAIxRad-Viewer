@@ -29,7 +29,7 @@ function PreviewStudyBrowser({
   const { StudyInstanceUIDs } = useImageViewer();
   const [{ activeViewportId, viewports, isHangingProtocolLayout }, viewportGridService] =
     useViewportGrid();
-  const [activeTabName, setActiveTabName] = useState('primary');
+  const [activeTabName, setActiveTabName] = useState('recent');
   const [expandedStudyInstanceUIDs, setExpandedStudyInstanceUIDs] = useState([
     ...StudyInstanceUIDs,
   ]);
@@ -82,8 +82,15 @@ function PreviewStudyBrowser({
       } catch (error) {
         console.warn(error);
       }
-
       const mappedStudies = _mapDataSourceStudies(qidoStudiesForPatient);
+      
+
+      // add all studies to expanded studies
+      mappedStudies.forEach(study => {
+        _handleStudyClick(study.StudyInstanceUID);
+        console.log("clicked", study.StudyInstanceUID);
+      });
+
       const actuallyMappedStudies = mappedStudies.map(qidoStudy => {
         return {
           studyInstanceUid: qidoStudy.StudyInstanceUID,
@@ -340,25 +347,28 @@ function _getComponentType(ds) {
  * @returns tabs - The prop object expected by the StudyBrowser component
  */
 function _createStudyBrowserTabs(primaryStudyInstanceUIDs, studyDisplayList, displaySets) {
+  // filters for AI in modality
   const primaryStudies = [];
-  const recentStudies = [];
+  const generatedStudies = [];
   const allStudies = [];
-
+  
   studyDisplayList.forEach(study => {
     const displaySetsForStudy = displaySets.filter(
       ds => ds.StudyInstanceUID === study.studyInstanceUid
     );
+    
     const tabStudy = Object.assign({}, study, {
       displaySets: displaySetsForStudy,
     });
-
-    if (primaryStudyInstanceUIDs.includes(study.studyInstanceUid)) {
-      primaryStudies.push(tabStudy);
+    
+    if (study.modalities.includes("AI")) {
+      generatedStudies.push(tabStudy);
     } else {
-      // TODO: Filter allStudies to dates within one year of current date
-      recentStudies.push(tabStudy);
-      allStudies.push(tabStudy);
+      primaryStudies.push(tabStudy);
+      
+      
     }
+    allStudies.push(tabStudy);
   });
 
   const tabs = [
@@ -369,8 +379,8 @@ function _createStudyBrowserTabs(primaryStudyInstanceUIDs, studyDisplayList, dis
     },
     {
       name: 'recent',
-      label: 'Recent',
-      studies: recentStudies,
+      label: 'AI Generated',
+      studies: generatedStudies,
     },
     {
       name: 'all',
@@ -378,6 +388,6 @@ function _createStudyBrowserTabs(primaryStudyInstanceUIDs, studyDisplayList, dis
       studies: allStudies,
     },
   ];
-
+  console.log("Tabs: ", tabs);
   return tabs;
 }
