@@ -374,7 +374,7 @@ function _createStudyBrowserTabs(primaryStudyInstanceUIDs, studyDisplayList, dis
   const tabs = [
     {
       name: 'primary',
-      label: 'Primary',
+      label: 'Original',
       studies: primaryStudies,
     },
     {
