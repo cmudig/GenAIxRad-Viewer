@@ -423,7 +423,7 @@ const OHIFCornerstoneViewport = React.memo(props => {
   return (
     <React.Fragment>
       <div className="viewport-and-scrollbar-container">
-        <div className="viewport-wrapper" style={{ width: 'calc(100% - 20px)' }}>
+        <div className="viewport-wrapper" style={{ width: 'calc(100% - 10px)', height:'100%' }}>
           <ReactResizeDetector
             onResize={onResize}
             targetRef={elementRef.current}
@@ -434,7 +434,7 @@ const OHIFCornerstoneViewport = React.memo(props => {
             onContextMenu={e => e.preventDefault()}
             onMouseDown={e => e.preventDefault()}
             ref={elementRef}
-          > 
+          >
             
           </div>
           <CornerstoneOverlays
@@ -451,12 +451,16 @@ const OHIFCornerstoneViewport = React.memo(props => {
           />
           
         </div>
-        <CustomScrollbar 
-          servicesManager={servicesManager}
-          viewportId={viewportId}
-          element={elementRef.current}
-          />
+        <div className="scrollbar-wrapper" style={{ width: '10px', height:'100%' }}>
+            <CustomScrollbar 
+                servicesManager={servicesManager}
+                viewportId={viewportId}
+                element={elementRef.current}
+              />
+          </div>
+          
       </div>
+
       {/* top offset of 24px to account for ViewportActionCorners. */}
       <div className="absolute top-[24px] w-full">
         {viewportDialogState.viewportId === viewportId && (
