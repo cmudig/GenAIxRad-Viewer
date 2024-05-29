@@ -1,12 +1,17 @@
 /* OHIFCornerstoneViewport.css */
 .viewport-and-scrollbar-container {
-  display: flex;
+  width: 100%;
   height: 100%;
   align-items: stretch; /* Ensures the scrollbar aligns with the height of the viewport */
+  display: flex;
+  justify-content: space-between;
 }
-
 .viewport-wrapper {
-  flex-grow: 1; /* Ensures the viewport takes up the remaining space */
   position: relative; /* For positioning of overlay elements */
 }
+
+.scrollbar-wrapper {
+  position: relative; /* For positioning of overlay elements */
+}
+
 

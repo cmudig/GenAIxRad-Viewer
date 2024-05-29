@@ -1,9 +1,3 @@
-/* src/App.css */
-.app {
-    display: flex;
-    height: 100vh;
-  }
-  
   .content {
     overflow-y: scroll;
     height: 100%;
@@ -17,7 +11,7 @@
   
   /* src/CustomScrollbar.css */
   .custom-scrollbar {
-    width: 10px;
+    width:'100%';
     background: #000000;
     height: calc(100% - 150px); /* Adjust based on the margins */
     display: flex;
