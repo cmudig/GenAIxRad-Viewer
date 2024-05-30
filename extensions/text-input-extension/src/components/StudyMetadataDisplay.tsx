@@ -12,7 +12,7 @@ const StudyMetadataDisplay = ({
     <div className="group mb-8 flex flex-1 cursor-pointer select-none flex-col px-3 outline-none"
           onClick={onClick}
           onDoubleClick={onDoubleClick}>
-      <span className="text-primary-main font-bold">{'Text for Image Generation'}</span>
+      <span className="text-primary-main font-bold">{'Text of Image Generation'}</span>
       <div className="break-words text-base text-white">
         {impressions ? impressions : ''}
       </div>
