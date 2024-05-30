@@ -1,5 +1,7 @@
 import {classes} from '@ohif/core';
+import studyMetadata from '../../../data/init_metadata.json';
 const { MetadataProvider } = classes;
+
 
 //TODO: add Interface for MetadataHere
 // slice: important only for scrollbar
@@ -117,6 +119,13 @@ const metaData = [
   },
 ]
 
+function addStudyMetadata(){
+  // Iterate studyMetadata and store it in MetadataProvider
+  for (const [key, value] of Object.entries(studyMetadata)) {
+    MetadataProvider.addCustomMetadata(key, 'studyMetadata', value);
+  }
+  
+}
 
 // group metaData by start of imageId (this corresponsds to same displayed image stack)
 function groupMetaData() {
@@ -157,5 +166,6 @@ function addRectangles(){
 function initMetaData() {
   addRectangles();
   addSlices();
+  addStudyMetadata();
 };
 export default initMetaData;

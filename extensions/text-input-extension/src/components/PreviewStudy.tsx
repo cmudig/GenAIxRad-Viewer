@@ -5,8 +5,10 @@ import { useTranslation } from 'react-i18next';
 import StudyItem from '@ohif/ui/src/components/StudyItem';
 import LegacyButtonGroup from '@ohif/ui/src/components/LegacyButtonGroup';
 import LegacyButton from '@ohif/ui/src/components/LegacyButton';
-import ThumbnailList from '@ohif/ui/src/components/ThumbnailList';
 import { StringNumber } from '@ohif/ui/src/types';
+import {metaData} from '@cornerstonejs/core';
+import ThumbnailList from './ThumbnailList';
+
 
 const getTrackedSeries = displaySets => {
   let trackedSeries = 0;
@@ -37,9 +39,15 @@ const PreviewStudy = ({
 
   const getTabContent = () => {
     const tabData = tabs.find(tab => tab.name === activeTabName);
+    
     return tabData.studies.map(
       ({ studyInstanceUid, date, description, numInstances, modalities, displaySets }) => {
         const isExpanded = expandedStudyInstanceUIDs.includes(studyInstanceUid);
+        
+        // get study meta data that is stored in data/init_metadata.json
+        const studyMetadata = metaData.get('studyMetadata', studyInstanceUid);
+        const impressions = studyMetadata?.impressions;
+        
         return (
           <React.Fragment key={studyInstanceUid}>
             {/*
@@ -58,14 +66,17 @@ const PreviewStudy = ({
               }}
               data-cy="thumbnail-list"
             /> */}
-              
+
+            <div >{/*//style={{height: '200px' }}*/}
               <ThumbnailList
                 thumbnails={displaySets}
                 activeDisplaySetInstanceUIDs={activeDisplaySetInstanceUIDs}
                 onThumbnailClick={onClickThumbnail}
                 onThumbnailDoubleClick={onDoubleClickThumbnail}
                 onClickUntrack={onClickUntrack}
+                impressions={impressions}
               />
+              </div>
 
           </React.Fragment>
         );
@@ -120,7 +131,7 @@ const PreviewStudy = ({
           })}
         </LegacyButtonGroup>
       </div> }
-      <div className="ohif-scrollbar invisible-scrollbar flex flex-1 flex-col overflow-auto">
+      <div className="ohif-scrollbar  flex flex-1 flex-col overflow-auto">
         {getTabContent()}
       </div>
     </React.Fragment>
