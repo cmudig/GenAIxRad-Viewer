@@ -39,17 +39,18 @@ const PreviewStudy = ({
 
   const getTabContent = () => {
     const tabData = tabs.find(tab => tab.name === activeTabName);
-    
+
     return tabData.studies.map(
       ({ studyInstanceUid, date, description, numInstances, modalities, displaySets }) => {
         const isExpanded = expandedStudyInstanceUIDs.includes(studyInstanceUid);
         
         // get study meta data that is stored in data/init_metadata.json
-        const studyMetadata = metaData.get('studyMetadata', studyInstanceUid);
+        const seriesInstanceUID = displaySets?.[0]?.SeriesInstanceUID;
+        const studyMetadata = metaData.get('studyMetadata', seriesInstanceUID);
         const impressions = studyMetadata?.impressions;
         
         return (
-          <React.Fragment key={studyInstanceUid}>
+          <React.Fragment key={seriesInstanceUID}>
             {/*
 
             // TODO: remove this part if not needed
