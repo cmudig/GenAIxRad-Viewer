@@ -88,7 +88,6 @@ function PreviewStudyBrowser({
       // add all studies to expanded studies
       mappedStudies.forEach(study => {
         _handleStudyClick(study.StudyInstanceUID);
-        console.log("clicked", study.StudyInstanceUID);
       });
 
       const actuallyMappedStudies = mappedStudies.map(qidoStudy => {
@@ -303,6 +302,7 @@ function _mapDisplaySets(displaySets, thumbnailImageSrcMap) {
         description: ds.SeriesDescription || '',
         seriesNumber: ds.SeriesNumber,
         modality: ds.Modality,
+        SeriesInstanceUID: ds.SeriesInstanceUID,
         seriesDate: ds.SeriesDate,
         seriesTime: ds.SeriesTime,
         numInstances: ds.numImageFrames,
@@ -352,23 +352,40 @@ function _createStudyBrowserTabs(primaryStudyInstanceUIDs, studyDisplayList, dis
   const generatedStudies = [];
   const allStudies = [];
   
+  // studyDisplayList.forEach(study => {
+  //   const displaySetsForStudy = displaySets.filter(
+  //     ds => ds.StudyInstanceUID === study.studyInstanceUid
+  //   );
+    
+  //   const tabStudy = Object.assign({}, study, {
+  //     displaySets: displaySetsForStudy,
+  //   });
+  //   console.log("tabStudy", tabStudy);
+  //   if (study.modalities.includes("AI")) {
+  //     generatedStudies.push(tabStudy);
+  //   } else {
+  //     primaryStudies.push(tabStudy);
+      
+      
+  //   }
+  //   allStudies.push(tabStudy);
+  // });
   studyDisplayList.forEach(study => {
-    const displaySetsForStudy = displaySets.filter(
-      ds => ds.StudyInstanceUID === study.studyInstanceUid
-    );
+    displaySets.forEach(series => {
+      const tabStudy = Object.assign({}, study, {
+        displaySets: [series],
+      });
+      console.log("tabStudy 2", tabStudy);
+      if (series.modality.includes("AI")) {
+        generatedStudies.push(tabStudy);
+      } else {
+        primaryStudies.push(tabStudy);
+        
+        
+      }
+      allStudies.push(tabStudy);
     
-    const tabStudy = Object.assign({}, study, {
-      displaySets: displaySetsForStudy,
     });
-    
-    if (study.modalities.includes("AI")) {
-      generatedStudies.push(tabStudy);
-    } else {
-      primaryStudies.push(tabStudy);
-      
-      
-    }
-    allStudies.push(tabStudy);
   });
 
   const tabs = [
