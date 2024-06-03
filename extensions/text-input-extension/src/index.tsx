@@ -1,5 +1,6 @@
 import { id } from './id';
 import TextInputSidePanelComponent from './TextInputSidePanelComponent.tsx';
+import PreviewSidePanelComponent from './PreviewSidePanelComponent.tsx';
 /**
  * You can remove any of the following modules if you don't need them.
  */
@@ -35,6 +36,17 @@ export default {
         iconLabel: 'Text Input',
         label: 'Text Input',
         component: TextInputSidePanelComponent.bind(null, {
+          commandsManager,
+          extensionManager,
+          servicesManager,
+        }),
+      },
+      {
+        name:'preview-side-panel',
+        iconName: 'icon-transferring',
+        iconLabel: 'Preview',
+        label: 'Preview',
+        component: PreviewSidePanelComponent.bind(null, {
           commandsManager,
           extensionManager,
           servicesManager,

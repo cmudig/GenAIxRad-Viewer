@@ -352,30 +352,12 @@ function _createStudyBrowserTabs(primaryStudyInstanceUIDs, studyDisplayList, dis
   const generatedStudies = [];
   const allStudies = [];
   
-  // studyDisplayList.forEach(study => {
-  //   const displaySetsForStudy = displaySets.filter(
-  //     ds => ds.StudyInstanceUID === study.studyInstanceUid
-  //   );
-    
-  //   const tabStudy = Object.assign({}, study, {
-  //     displaySets: displaySetsForStudy,
-  //   });
-  //   console.log("tabStudy", tabStudy);
-  //   if (study.modalities.includes("AI")) {
-  //     generatedStudies.push(tabStudy);
-  //   } else {
-  //     primaryStudies.push(tabStudy);
-      
-      
-  //   }
-  //   allStudies.push(tabStudy);
-  // });
   studyDisplayList.forEach(study => {
     displaySets.forEach(series => {
       const tabStudy = Object.assign({}, study, {
         displaySets: [series],
       });
-      console.log("tabStudy 2", tabStudy);
+      
       if (series.modality.includes("AI")) {
         generatedStudies.push(tabStudy);
       } else {
@@ -405,6 +387,5 @@ function _createStudyBrowserTabs(primaryStudyInstanceUIDs, studyDisplayList, dis
       studies: allStudies,
     },
   ];
-  console.log("Tabs: ", tabs);
   return tabs;
 }
