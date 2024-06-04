@@ -34,7 +34,7 @@ export default {
         name:'text-input-side-panel',
         iconName: 'icon-transferring',
         iconLabel: 'Text Input',
-        label: 'Text Input',
+        label: '',
         component: TextInputSidePanelComponent.bind(null, {
           commandsManager,
           extensionManager,
@@ -43,9 +43,9 @@ export default {
       },
       {
         name:'preview-side-panel',
-        iconName: 'icon-transferring',
+        iconName: 'tab-studies',
         iconLabel: 'Preview',
-        label: 'Preview',
+        label: '',
         component: PreviewSidePanelComponent.bind(null, {
           commandsManager,
           extensionManager,
