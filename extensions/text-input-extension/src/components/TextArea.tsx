@@ -88,7 +88,7 @@ function TextArea({servicesManager, commandsManager}){
                 const activeDisplaySet = activeDisplaySets.find(displaySet => displaySet.displaySetInstanceUID === activeDisplaySetInstanceUID);
                 const activeSeriesInstanceUID = activeDisplaySet.SeriesInstanceUID;
                 const activeSeriesStudyMetadata = metaData.get('studyMetadata', activeSeriesInstanceUID);
-                setPromptData(activeSeriesStudyMetadata?.impressions || ''); // set it to empty string if undefined
+                //setPromptData(activeSeriesStudyMetadata?.impressions || ''); // set it to empty string if undefined
 
             },50)
             
