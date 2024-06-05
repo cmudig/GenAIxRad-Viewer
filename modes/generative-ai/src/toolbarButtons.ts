@@ -1,5 +1,6 @@
 import type { Button } from '@ohif/core/types';
 import { defaults, ToolbarService, ViewportGridService } from '@ohif/core';
+import { EVENTS } from '@cornerstonejs/core';
 
 const { createButton } = ToolbarService;
 
@@ -166,6 +167,26 @@ const toolbarButtons: Button[] = [
           evaluate: ['evaluate.viewportProperties.toggle', 'evaluate.not3D'],
         }),
         createButton({
+          id: 'ImageSliceSync',
+          icon: 'link',
+          label: 'Image Slice Sync',
+          tooltip: 'Enable position synchronization on stack viewports',
+          commands: {
+            commandName: 'toggleSynchronizer',
+            commandOptions: {
+              type: 'imageSlice',
+            },
+          },
+          listeners: {
+            [EVENTS.STACK_VIEWPORT_NEW_STACK]: {
+              commandName: 'toggleImageSliceSync',
+              commandOptions: { toggledState: true },
+            },
+          },
+          evaluate: ['evaluate.cornerstone.synchronizer', 'evaluate.not3D'],
+        }),
+        /*
+        createButton({
           id: 'ReferenceLines',
           icon: 'tool-referenceLines',
           label: 'Reference Lines',
@@ -247,7 +268,7 @@ const toolbarButtons: Button[] = [
           label: 'Dicom Tag Browser',
           tooltip: 'Dicom Tag Browser',
           commands: 'openDICOMTagViewer',
-        }),
+        }),*/
         createButton({
           id: 'AdvancedMagnify',
           icon: 'icon-tool-loupe',
@@ -255,7 +276,7 @@ const toolbarButtons: Button[] = [
           tooltip: 'Magnify Probe',
           commands: 'toggleActiveDisabledToolbar',
           evaluate: 'evaluate.cornerstoneTool.toggle.ifStrictlyDisabled',
-        }),
+        }),/*
         createButton({
           id: 'UltrasoundDirectionalTool',
           icon: 'icon-tool-ultrasound-bidirectional',
@@ -263,7 +284,7 @@ const toolbarButtons: Button[] = [
           tooltip: 'Ultrasound Directional',
           commands: setToolActiveToolbar,
           evaluate: ['evaluate.cornerstoneTool', 'evaluate.isUS'],
-        }),
+        }),*/
       ],
     },
   },
