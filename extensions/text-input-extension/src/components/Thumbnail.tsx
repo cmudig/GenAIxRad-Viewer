@@ -4,6 +4,7 @@ import classnames from 'classnames';
 import { useDrag } from 'react-dnd';
 import Icon from '@ohif/ui/src/components/Icon';
 import { StringNumber } from '@ohif/ui/src/types';
+import { utils } from '@ohif/core';
 import DisplaySetMessageListTooltip from '@ohif/ui/src/components/DisplaySetMessageListTooltip';
 
 /**
@@ -17,6 +18,7 @@ const Thumbnail = ({
   imageAltText,
   description,
   seriesNumber,
+  seriesDate,
   numInstances,
   countIcon,
   messages,
@@ -35,6 +37,8 @@ const Thumbnail = ({
       return Object.keys(dragData).length !== 0;
     },
   });
+  const { formatDate } = utils;
+  seriesDate = formatDate(seriesDate);
 
   const [lastTap, setLastTap] = useState(0);
 
@@ -84,10 +88,14 @@ const Thumbnail = ({
           )}
         </div>
         <div className="flex flex-1 flex-row items-center pt-2 text-base text-blue-300">
-          <div className="mr-4">
+          {/* <div className="mr-4">
             <span className="text-primary-main font-bold">{'S: '}</span>
             {seriesNumber}
-          </div>
+          </div> */}
+          <div className="mr-4">
+            {/*<span className="text-primary-main font-bold">{'Series Date: '}</span>*/}
+            {seriesDate}
+          </div> 
           <div className="flex flex-1 flex-row items-center">
             <Icon
               name={countIcon || 'group-layers'}
@@ -100,7 +108,7 @@ const Thumbnail = ({
             id={`display-set-tooltip-${displaySetInstanceUID}`}
           />
         </div>
-        <div className="break-all text-base text-blue-300">{description}</div>
+        {/*<div className="break-all text-base text-blue-300">{description}</div>*/}
       </div>
     </div>
   );
