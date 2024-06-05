@@ -68,6 +68,7 @@ const ThumbnailList = ({
                     dragData={dragData}
                     description={description}
                     seriesNumber={seriesNumber}
+                    seriesDate={seriesDate}
                     numInstances={numInstances}
                     countIcon={countIcon}
                     imageSrc={imageSrc}
@@ -79,6 +80,7 @@ const ThumbnailList = ({
                   />
                   <StudyMetadataDisplay 
                   impressions={impressions}
+                  description={description}
                   onClick={() => onThumbnailClick(displaySetInstanceUID)}
                   onDoubleClick={() => onThumbnailDoubleClick(displaySetInstanceUID)}
                   />
