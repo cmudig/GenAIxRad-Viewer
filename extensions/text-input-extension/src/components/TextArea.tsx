@@ -252,7 +252,7 @@ function TextArea({servicesManager, commandsManager}){
             return acc.concat(matches.map(Number));
         }
         return acc;
-        }, []);
+        }, [0]);
     }
   
 }
