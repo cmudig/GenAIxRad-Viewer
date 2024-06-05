@@ -33,14 +33,16 @@ function TextArea({servicesManager, commandsManager}){
     const [textData, setTextData] = useState('');
 
     const [promptData, setPromptData] = useState('');
+    const [promptHeaderData, setPromptHeaderData] = useState('Generated, X');    
     const disabled = false;
     const [{viewports }] = useViewportGrid();
 
 
     const handleDisplaySetsChanged = changedDisplaySets => {
-        console.log("handleDisplaySetsChanged")
+        // set initial report data
         // get studyUIDs of current display
         const activeDisplaySets = displaySetService.getActiveDisplaySets();
+        console.log("activeDisplaySets", activeDisplaySets)
         const studyInstanceUIDs = activeDisplaySets.map(set => set.StudyInstanceUID);
         
         // search for any init_report data
@@ -53,6 +55,14 @@ function TextArea({servicesManager, commandsManager}){
         const initialReportText = initialReportElement?.['initial_report'] ?? '';
         
         setReportData(initialReportText);
+
+
+        // set initial prompt header to "Generated, NOT_USED_NUMBER"
+        const seriesDescriptions = activeDisplaySets.map(set => set.SeriesDescription);
+        const seriesDescriptionNumbers = _extractNumbers(seriesDescriptions);
+        const maxNumber = Math.max(...seriesDescriptionNumbers);
+        setPromptHeaderData(`Generated, ${maxNumber+1}`)
+
     }; 
 
     useEffect(() => {
@@ -106,6 +116,10 @@ function TextArea({servicesManager, commandsManager}){
             activeViewportSubscription.unsubscribe(activeViewportSubscription);
         };
     }, []);
+    useEffect(() =>{
+        const activeDisplaySets = displaySetService.getActiveDisplaySets();
+        
+    },[]);
 
 
 
@@ -129,6 +143,10 @@ function TextArea({servicesManager, commandsManager}){
     const handlePromptChange = (event) => {
         setPromptData(event.target.value);
     };
+    const handlePromptHeaderChange = (event) => {
+        setPromptHeaderData(event.target.value);
+    };
+    
 
     //reload images by reloading webside
     const navigate = useNavigate();
@@ -180,7 +198,13 @@ function TextArea({servicesManager, commandsManager}){
                 
             </div>
             <div className="flex flex-col justify-center p-4">
-                <div className="text-primary-main font-bold mb-2">Text for Image Generation</div>
+                <div className="text-primary-main font-bold mb-2">Generate AI Medical Image Examples</div>
+                <input
+                    className="bg-transparent break-all text-base text-blue-300 mb-2"
+                    type="text"
+                    value={promptHeaderData}
+                    onChange={handlePromptHeaderChange}
+                />
                 <textarea  
                     rows = {6}
                     label="Enter prompt:"
@@ -217,6 +241,20 @@ function TextArea({servicesManager, commandsManager}){
         </div>
     
     );
+    // Function to extract numbers from the array
+    function _extractNumbers(arr) {
+        // Use reduce to accumulate numbers in a single array
+        return arr.reduce((acc, str) => {
+        // Match all sequences of digits
+        const matches = str.match(/\d+/g);
+        if (matches) {
+            // Convert matched strings to numbers and add to accumulator
+            return acc.concat(matches.map(Number));
+        }
+        return acc;
+        }, []);
+    }
+  
 }
 
 export default TextArea;

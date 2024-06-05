@@ -100,7 +100,7 @@ const Thumbnail = ({
             id={`display-set-tooltip-${displaySetInstanceUID}`}
           />
         </div>
-        <div className="break-all text-base text-white">{description}</div>
+        <div className="break-all text-base text-blue-300">{description}</div>
       </div>
     </div>
   );
