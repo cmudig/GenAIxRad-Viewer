@@ -48,7 +48,7 @@ const toolbarButtons: Button[] = [
       commands: setToolActiveToolbar,
       evaluate: 'evaluate.cornerstoneTool',
     },
-  },
+  },/*
   {
     id: 'TrackballRotate',
     uiType: 'ohif.radioGroup',
@@ -62,7 +62,7 @@ const toolbarButtons: Button[] = [
         disabledText: 'Select a 3D viewport to enable this tool',
       },
     },
-  },
+  },*/
   {
     id: 'Capture',
     uiType: 'ohif.radioGroup',
