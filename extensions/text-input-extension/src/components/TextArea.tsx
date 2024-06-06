@@ -29,7 +29,8 @@ import RectangleOverlayViewerTool from '../tools/RectangleOverlayViewerTool';
 
 function TextArea({servicesManager, commandsManager}){
     const { measurementService, displaySetService, toolGroupService, segmentationService, viewportGridService, hangingProtocolService} = servicesManager.services;
-    const [reportData, setReportData] = useState('');
+    const [reportImpressionsData, setReportImpressionsData] = useState('');
+    const [reportFindingsData, setReportFindingsData] = useState('');
     const [textData, setTextData] = useState('');
 
     const [promptData, setPromptData] = useState('');
@@ -42,7 +43,7 @@ function TextArea({servicesManager, commandsManager}){
         // set initial report data
         // get studyUIDs of current display
         const activeDisplaySets = displaySetService.getActiveDisplaySets();
-        console.log("activeDisplaySets", activeDisplaySets)
+        
         const studyInstanceUIDs = activeDisplaySets.map(set => set.StudyInstanceUID);
         
         // search for any init_report data
@@ -51,10 +52,17 @@ function TextArea({servicesManager, commandsManager}){
             const studyMetadata = metaData.get('studyMetadata', studyInstanceUid);
             reportList.push(studyMetadata);
         });
-        const initialReportElement = reportList.find(result => result && result.hasOwnProperty('initial_report'));
-        const initialReportText = initialReportElement?.['initial_report'] ?? '';
+
+        // findings
+        const initialReportFindingsElement = reportList.find(result => result && result.hasOwnProperty('initial_findings'));
+        const initialReportFindingsText = initialReportFindingsElement?.['initial_findings'] ?? '';
+        setReportFindingsData(initialReportFindingsText);
         
-        setReportData(initialReportText);
+        // impressions
+        const initialReportImpressionsElement = reportList.find(result => result && result.hasOwnProperty('initial_impressions'));
+        const initialReportImpressionsText = initialReportImpressionsElement?.['initial_impressions'] ?? '';
+        
+        setReportImpressionsData(initialReportImpressionsText);
 
 
         // set initial prompt header to "Generated, NOT_USED_NUMBER"
@@ -123,22 +131,25 @@ function TextArea({servicesManager, commandsManager}){
 
 
 
-    const setPromptDataToReportData = (event) => {
-        console.log(reportData);
-        setPromptData(reportData);
+    const setPromptDataToReportImpressionsData = (event) => {
+        console.log(reportImpressionsData);
+        setPromptData(reportImpressionsData);
     }
-    const setReportDataToPromptData = (event) => {
-        setReportData(promptData);
+    const setReportImpressionsDataToPromptData = (event) => {
+        setReportImpressionsData(promptData);
     }
 
-    const submitText = (event) => {
+    const saveReport = (event) => {
         console.log(promptData);
     }
     const clearText = (event) => {
         setPromptData('');
     }
-    const handleReportChange = (event) => {
-        setReportData(event.target.value);
+    const handleReportFindingsChange = (event) => {
+        setReportFindingsData(event.target.value);
+    };
+    const handleReportImpressionsChange = (event) => {
+        setReportImpressionsData(event.target.value);
     };
     const handlePromptChange = (event) => {
         setPromptData(event.target.value);
@@ -158,32 +169,43 @@ function TextArea({servicesManager, commandsManager}){
 
 
     return (
-        <div className="bg-primary-dark">
-            <div className="flex flex-col justify-center p-4">
-                <div className="text-primary-main font-bold mb-2">Impressions</div>
+        <div className="bg-black">
+            <div className="flex flex-col justify-center p-4 bg-primary-dark">
+                <div className="text-primary-main font-bold mb-2">Findings</div>
                 <textarea  
                     rows = {10}
                     label="Enter findings:"
+                    className="text-white text-[14px] leading-[1.2] border-primary-main bg-black align-top sshadow transition duration-300 appearance-none border border-inputfield-main focus:border-inputfield-focus focus:outline-none disabled:border-inputfield-disabled rounded w-full py-2 px-3 text-sm text-white placeholder-inputfield-placeholder leading-tight mb-4"
+                    type="text"
+                    value={reportFindingsData}
+                    onChange={handleReportFindingsChange}
+                    >
+            
+                </textarea>
+                <div className="text-primary-main font-bold mb-2">Impressions</div>
+                <textarea  
+                    rows = {10}
+                    label="Enter impressions:"
                     className="text-white text-[14px] leading-[1.2] border-primary-main bg-black align-top sshadow transition duration-300 appearance-none border border-inputfield-main focus:border-inputfield-focus focus:outline-none disabled:border-inputfield-disabled rounded w-full py-2 px-3 text-sm text-white placeholder-inputfield-placeholder leading-tight"
                     type="text"
-                    value={reportData}
-                    onChange={handleReportChange}
+                    value={reportImpressionsData}
+                    onChange={handleReportImpressionsChange}
                     >
             
                 </textarea>
                 <div className="flex justify-center p-4 bg-primary-dark">
-                    {/* <ActionButtons
+                    <ActionButtons
                     className="bg-primary-dark mr-4"
                     actions={[
                     {
                         label: 'Save',
-                        onClick: submitText,
+                        onClick: saveReport,
                     }
                     ]}
                     disabled={disabled}
-                    /> */}
+                    /> 
                     <Button
-                        onClick={setPromptDataToReportData}
+                        onClick={setPromptDataToReportImpressionsData}
                         type={ButtonEnums.type.secondary}
                         size={ButtonEnums.size.small}
                         className="ml-3"
@@ -197,8 +219,10 @@ function TextArea({servicesManager, commandsManager}){
                 </div>
                 
             </div>
-            <div className="flex flex-col justify-center p-4">
-                <div className="text-primary-main font-bold mb-2">Generate AI Medical Image Examples</div>
+            {/* dif line */}
+            <div className="border border-primary-main"> </div>
+            <div className="flex flex-col justify-center p-4 bg-primary-dark">
+                <div className="text-primary-main font-bold mb-1 mt-2">Generate AI Medical Image Examples</div>
                 <input
                     className="bg-transparent break-all text-base text-blue-300 mb-2"
                     type="text"
@@ -211,7 +235,7 @@ function TextArea({servicesManager, commandsManager}){
                     className="text-white text-[14px] leading-[1.2] border-primary-main bg-black align-top sshadow transition duration-300 appearance-none border border-inputfield-main focus:border-inputfield-focus focus:outline-none disabled:border-inputfield-disabled rounded w-full py-2 px-3 text-sm text-white placeholder-inputfield-placeholder leading-tight"
                     type="text"
                     value={promptData}
-                    onKeyPress={submitText}
+                    onKeyPress={saveReport}
                     onChange={handlePromptChange}
                     
                 >
@@ -224,7 +248,7 @@ function TextArea({servicesManager, commandsManager}){
             
                 {
                     label: 'Generate new Image',
-                    onClick: submitText,
+                    onClick: saveReport,
                 },
                 {
                     label: 'Clear',
