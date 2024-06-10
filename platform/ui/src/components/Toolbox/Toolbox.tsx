@@ -13,15 +13,21 @@ import { useToolbox } from '../../contextProviders';
  * role in enhancing the app with a toolbox by providing a way to integrate
  * and display various tools and their corresponding options
  */
-function Toolbox({ servicesManager, buttonSectionId, commandsManager, title, ...props }) {
+function Toolbox({
+  servicesManager,
+  buttonSectionId,
+  commandsManager,
+  title,
+  ...props
+}: withAppTypes) {
   const { state: toolboxState, api } = useToolbox(buttonSectionId);
   const { onInteraction, toolbarButtons } = useToolbar({
     servicesManager,
     buttonSection: buttonSectionId,
   });
 
-  const prevButtonIdsRef = useRef();
-  const prevToolboxStateRef = useRef();
+  const prevButtonIdsRef = useRef('');
+  const prevToolboxStateRef = useRef('');
 
   useEffect(() => {
     const currentButtonIdsStr = JSON.stringify(
@@ -124,7 +130,7 @@ function Toolbox({ servicesManager, buttonSectionId, commandsManager, title, ...
     );
 
     api.initializeToolOptions(initializeOptionsWithEnhancements);
-  }, [toolbarButtons, api, toolboxState]);
+  }, [toolbarButtons, api, toolboxState, commandsManager, servicesManager]);
 
   const handleToolOptionChange = (toolName, optionName, newValue) => {
     api.handleToolOptionChange(toolName, optionName, newValue);
@@ -141,7 +147,7 @@ function Toolbox({ servicesManager, buttonSectionId, commandsManager, title, ...
       {...props}
       title={title}
       toolbarButtons={toolbarButtons}
-      activeToolOptions={toolboxState.toolOptions?.[toolboxState.activeTool]}
+      toolboxState={toolboxState}
       handleToolSelect={id => api.handleToolSelect(id)}
       handleToolOptionChange={handleToolOptionChange}
       onInteraction={onInteraction}
