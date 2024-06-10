@@ -8,7 +8,7 @@ import {
 } from '@cornerstonejs/core';
 import * as csStreamingImageVolumeLoader from '@cornerstonejs/streaming-image-volume-loader';
 import { Enums as cs3DToolsEnums } from '@cornerstonejs/tools';
-import { ServicesManager, Types } from '@ohif/core';
+import { Types } from '@ohif/core';
 
 import init from './init';
 import getCustomizationModule from './getCustomizationModule';
@@ -24,7 +24,7 @@ import ColorbarService from './services/ColorbarService';
 import * as CornerstoneExtensionTypes from './types';
 
 import { toolNames } from './initCornerstoneTools';
-import { getEnabledElement, reset as enabledElementReset } from './state';
+import { getEnabledElement, reset as enabledElementReset, setEnabledElement } from './state';
 import dicomLoaderService from './utils/dicomLoaderService';
 import getActiveViewportEnabledElement from './utils/getActiveViewportEnabledElement';
 
@@ -36,6 +36,8 @@ import { showLabelAnnotationPopup } from './utils/callInputDialog';
 import ViewportActionCornersService from './services/ViewportActionCornersService/ViewportActionCornersService';
 import { ViewportActionCornersProvider } from './contextProviders/ViewportActionCornersProvider';
 import ActiveViewportWindowLevel from './components/ActiveViewportWindowLevel';
+import getSOPInstanceAttributes from './utils/measurementServiceMappings/utils/getSOPInstanceAttributes';
+import { findNearbyToolData } from './utils/findNearbyToolData';
 
 const { helpers: volumeLoaderHelpers } = csStreamingImageVolumeLoader;
 const { getDynamicVolumeInfo } = volumeLoaderHelpers ?? {};
@@ -61,7 +63,7 @@ const cornerstoneExtension: Types.Extensions.Extension = {
    */
   id,
 
-  onModeEnter: ({ servicesManager }): void => {
+  onModeEnter: ({ servicesManager }: withAppTypes): void => {
     const { cornerstoneViewportService, toolbarService, segmentationService } =
       servicesManager.services;
     toolbarService.registerEventForToolbarUpdate(cornerstoneViewportService, [
@@ -79,7 +81,7 @@ const cornerstoneExtension: Types.Extensions.Extension = {
     ]);
   },
 
-  onModeExit: ({ servicesManager }): void => {
+  onModeExit: ({ servicesManager }: withAppTypes): void => {
     const { cineService } = servicesManager.services;
     // Empty out the image load and retrieval pools to prevent memory leaks
     // on the mode exits
@@ -132,7 +134,7 @@ const cornerstoneExtension: Types.Extensions.Extension = {
       // const onNewImageHandler = jumpData => {
       //   commandsManager.runCommand('jumpToImage', jumpData);
       // };
-      const { toolbarService } = (servicesManager as ServicesManager).services;
+      const { toolbarService } = servicesManager.services;
 
       return (
         <OHIFCornerstoneViewport
@@ -195,6 +197,10 @@ export {
   CornerstoneExtensionTypes as Types,
   toolNames,
   getActiveViewportEnabledElement,
+  setEnabledElement,
+  findNearbyToolData,
+  getEnabledElement,
   ImageOverlayViewerTool,
+  getSOPInstanceAttributes,
 };
 export default cornerstoneExtension;
