@@ -21,16 +21,18 @@ const getTrackedSeries = displaySets => {
   return trackedSeries;
 };
 
+const noop = () => {};
+
 
 const PreviewStudy = ({
   tabs,
   activeTabName,
   expandedStudyInstanceUIDs,
-  onClickTab,
-  onClickStudy,
-  onClickThumbnail,
-  onDoubleClickThumbnail,
-  onClickUntrack,
+  onClickTab=noop,
+  onClickStudy=noop,
+  onClickThumbnail=noop,
+  onDoubleClickThumbnail=noop,
+  onClickUntrack=noop,
   activeDisplaySetInstanceUIDs,
   servicesManager,
 }) => {
@@ -190,14 +192,6 @@ PreviewStudy.propTypes = {
   ),
 };
 
-const noop = () => {};
 
-PreviewStudy.defaultProps = {
-  onClickTab: noop,
-  onClickStudy: noop,
-  onClickThumbnail: noop,
-  onDoubleClickThumbnail: noop,
-  onClickUntrack: noop,
-};
 
 export default PreviewStudy;
