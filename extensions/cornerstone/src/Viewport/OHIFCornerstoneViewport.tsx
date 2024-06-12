@@ -429,10 +429,6 @@ const OHIFCornerstoneViewport = React.memo((props: withAppTypes) => {
     <React.Fragment>
       <div className="viewport-and-scrollbar-container">
         <div className="viewport-wrapper" style={{ width: 'calc(100% - 10px)', height:'100%' }}>
-          <ReactResizeDetector
-            onResize={onResize}
-            targetRef={elementRef.current}
-          />
           <div
             className="cornerstone-viewport-element"
             style={{ height: '90%', width: '90%' }}
