@@ -19,7 +19,6 @@ import * as cornerstone from '@cornerstonejs/core';
 import RectangleOverlayViewerTool from '../tools/RectangleOverlayViewerTool';
 //import Icon from '../../../../platform/ui/src/components/Icon'
 
-
 /**
  * This Component allows Text input and provides features to send text to backend§ services
  * Its state is not shared with other components.
@@ -158,12 +157,23 @@ function TextArea({servicesManager, commandsManager}){
         setPromptHeaderData(event.target.value);
     };
     
-
+    const fetchDicomSeries = async () => {
+        try {
+          const response = await fetch('http://localhost/pacs/series');
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          const data = await response.json();
+          
+          console.log(data); // Log the series data to the console
+        } catch (error) {
+          console.error('There has been a problem with your fetch operation:', error);
+        }
+      };
     //reload images by reloading webside
     const navigate = useNavigate();
     const reloadPage = () => {
-        //handleDisplaySetsChanged();
-        console.log("test")
+        fetchDicomSeries();
     }
 
 
