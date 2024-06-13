@@ -1,4 +1,4 @@
-import React,{useState, useEffect} from 'react';
+import React,{useState, useEffect, useCallback} from 'react';
 import {ActionButtons, Button, ButtonEnums, InputText, Input, Icon, useViewportGrid} from '@ohif/ui'
 import { useNavigate } from 'react-router-dom'
 import {DicomMetadataStore, DisplaySetService} from '@ohif/core'
@@ -17,6 +17,7 @@ import getActiveViewportEnabledElement from '../../../cornerstone/src/utils/getA
 import * as cornerstoneTools from '@cornerstonejs/tools';
 import * as cornerstone from '@cornerstonejs/core';
 import RectangleOverlayViewerTool from '../tools/RectangleOverlayViewerTool';
+import debounce from 'lodash.debounce';
 //import Icon from '../../../../platform/ui/src/components/Icon'
 
 /**
@@ -37,13 +38,20 @@ function TextArea({servicesManager, commandsManager}){
     const disabled = false;
     const [{viewports }] = useViewportGrid();
 
+    const [orthancStudyID, setOrthancStudyID] = useState('');
+    
 
-    const handleDisplaySetsChanged = changedDisplaySets => {
+    const handleDisplaySetsChanged = async (changedDisplaySets) => {
         // set initial report data
         // get studyUIDs of current display
         const activeDisplaySets = displaySetService.getActiveDisplaySets();
         
-        const studyInstanceUIDs = activeDisplaySets.map(set => set.StudyInstanceUID);
+        const studyInstanceUIDs = activeDisplaySets.map(set => set.StudyInstanceUID); //e.g. ["2.6"], it guaranteed that there is only one studyInstanceUID
+
+        // set orthancStudyID
+        const orthancStudyID = await _getOrthancStudyID(studyInstanceUIDs[0]);
+        console.log("orthancStudyID", orthancStudyID)
+        setOrthancStudyID(orthancStudyID);
         
         // search for any init_report data
         const reportList = [];
@@ -58,8 +66,8 @@ function TextArea({servicesManager, commandsManager}){
         setReportFindingsData(initialReportFindingsText);
         
         // impressions
-        const initialReportImpressionsElement = reportList.find(result => result && result.hasOwnProperty('initial_impressions'));
-        const initialReportImpressionsText = initialReportImpressionsElement?.['initial_impressions'] ?? '';
+        const initialReportImpressionsText = await getImpressionMetadataOfStudy(orthancStudyID);
+        console.log("initialReportImpressionsText", initialReportImpressionsText)
         
         setReportImpressionsData(initialReportImpressionsText);
 
@@ -147,8 +155,11 @@ function TextArea({servicesManager, commandsManager}){
     const handleReportFindingsChange = (event) => {
         setReportFindingsData(event.target.value);
     };
-    const handleReportImpressionsChange = (event) => {
+    const handleReportImpressionsChange = async (event) => {
+        
+        debouncedAddImpressionMetadataToStudy(orthancStudyID, event.target.value);
         setReportImpressionsData(event.target.value);
+
     };
     const handlePromptChange = (event) => {
         setPromptData(event.target.value);
@@ -157,19 +168,95 @@ function TextArea({servicesManager, commandsManager}){
         setPromptHeaderData(event.target.value);
     };
     
-    const fetchDicomSeries = async () => {
+    const _getOrthancStudyID = async (studyInstanceUID) => {
         try {
-          const response = await fetch('http://localhost/pacs/series/af503a5b-a3ebfdfb-a362f881-f5808707-cff51ae8/metadata/SeriesPrompt');
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
+            // Parameters to include in the request
+            const params = new URLSearchParams({
+              expand: 1,
+              requestedTags: "StudyInstanceUID"
+            });
+        
+            // Fetching DICOM studies from the PACS server with query parameters
+            const response = await fetch(`http://localhost/pacs/studies?${params.toString()}`);
+        
+            // Check if the response is ok (status code 200-299)
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+        
+            // Parse the response as JSON
+            const data = await response.json();
+        
+            // Filter the data to find the study with the given StudyInstanceUID
+            const study = data.find(item => item.RequestedTags.StudyInstanceUID === studyInstanceUID);
+        
+            // Check if the study was found
+            if (study) {
+              return study.ID;
+            } else {
+              return null;
+            }
+          } catch (error) {
+            // Log any errors that occur during the fetch operation
+            console.error('There has been a problem with your fetch operation:', error);
+            return null;
           }
-          const data = await response.text();
-          
-          console.log(data); // Log the series data to the console
+        };
+      
+
+    const addImpressionMetadataToStudy = async (studyID, data) => {
+        try {
+            const url = `http://localhost/pacs/studies/${studyID}/metadata/Impressions`;
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'text/plain'  // Ensure the server expects text/plain content type
+                },
+                body: data 
+            });
+    
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.log("Response not ok. Status:", response.status, "Response text:", errorText);
+                return;
+            }
+    
         } catch (error) {
-          console.error('There has been a problem with your fetch operation:', error);
+            console.error('There was a problem with your fetch operation:', error);
         }
-      };
+    };
+
+    const debouncedAddImpressionMetadataToStudy = useCallback(
+        debounce((orthancStudyID, value) => {
+          addImpressionMetadataToStudy(orthancStudyID, value);
+        }, 500),
+        [] 
+      );
+
+    // returns metadata or null if no metadata
+    const getImpressionMetadataOfStudy = async (studyID) => {
+        try {
+            const url = `http://localhost/pacs/studies/${studyID}/metadata/Impressions`;
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'text/plain'  // Ensure the server expects text/plain content type
+                }
+            });
+    
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.log("Response not ok. Status:", response.status, "Response text:", errorText);
+                return;
+            }
+            else {
+                return response.text();
+            }
+
+        } catch (error) {
+            console.error('There was a problem with your fetch operation:', error);
+        }
+    }
 
       const addPromptMetadataToSeries = async (seriesID, promptData) => {
         try {
@@ -205,8 +292,7 @@ function TextArea({servicesManager, commandsManager}){
     //reload images by reloading webside
     const navigate = useNavigate();
     const reloadPage = () => {
-        addPromptMetadataToSeries('af503a5b-a3ebfdfb-a362f881-f5808707-cff51ae8', 'Test');
-        fetchDicomSeries();
+        getImpressionMetadataOfStudy(orthancStudyID);
     }
 
 

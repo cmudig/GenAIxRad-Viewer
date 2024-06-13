@@ -50,7 +50,8 @@
   "HttpsVerifyPeers": true,
   "HttpsCACertificates": "",
   "UserMetadata": {
-    "SeriesPrompt": 1024
+    "SeriesPrompt": 1024,
+    "Impressions": 1025
   },
   "StableAge": 60,
   "StrictAetComparison": false,
