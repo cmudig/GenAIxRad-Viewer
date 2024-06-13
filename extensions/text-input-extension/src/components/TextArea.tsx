@@ -33,9 +33,8 @@ function TextArea({servicesManager, commandsManager}){
     const [reportFindingsData, setReportFindingsData] = useState('');
     const [textData, setTextData] = useState('');
 
-    const [promptData, setPromptData] = useState('');
-    const [promptHeaderData, setPromptHeaderData] = useState('Generated, X');    
     const disabled = false;
+
     const [{viewports }] = useViewportGrid();
 
     const [orthancStudyID, setOrthancStudyID] = useState('');
@@ -66,17 +65,14 @@ function TextArea({servicesManager, commandsManager}){
         setReportFindingsData(initialReportFindingsText);
         
         // impressions
-        const initialReportImpressionsText = await getImpressionMetadataOfStudy(orthancStudyID);
+        let initialReportImpressionsText;
+        if (orthancStudyID !== null) {
+            initialReportImpressionsText = await getImpressionMetadataOfStudy(orthancStudyID);
+        }
+
         console.log("initialReportImpressionsText", initialReportImpressionsText)
         
         setReportImpressionsData(initialReportImpressionsText);
-
-
-        // set initial prompt header to "Generated, NOT_USED_NUMBER"
-        const seriesDescriptions = activeDisplaySets.map(set => set.SeriesDescription);
-        const seriesDescriptionNumbers = _extractNumbers(seriesDescriptions);
-        const maxNumber = Math.max(...seriesDescriptionNumbers);
-        setPromptHeaderData(`Generated, ${maxNumber+1}`)
 
     }; 
 
@@ -147,11 +143,9 @@ function TextArea({servicesManager, commandsManager}){
     }
 
     const saveReport = (event) => {
-        console.log(promptData);
+        console.log(event.target.value);
     }
-    const clearText = (event) => {
-        setPromptData('');
-    }
+
     const handleReportFindingsChange = (event) => {
         setReportFindingsData(event.target.value);
     };
@@ -161,12 +155,8 @@ function TextArea({servicesManager, commandsManager}){
         setReportImpressionsData(event.target.value);
 
     };
-    const handlePromptChange = (event) => {
-        setPromptData(event.target.value);
-    };
-    const handlePromptHeaderChange = (event) => {
-        setPromptHeaderData(event.target.value);
-    };
+
+
     
     const _getOrthancStudyID = async (studyInstanceUID) => {
         try {
@@ -289,11 +279,6 @@ function TextArea({servicesManager, commandsManager}){
             console.error('There was a problem with your fetch operation:', error);
         }
     }
-    //reload images by reloading webside
-    const navigate = useNavigate();
-    const reloadPage = () => {
-        getImpressionMetadataOfStudy(orthancStudyID);
-    }
 
 
 
@@ -350,63 +335,11 @@ function TextArea({servicesManager, commandsManager}){
             </div>
             {/* dif line */}
             <div className="border border-primary-main"> </div>
-            <div className="flex flex-col justify-center p-4 bg-primary-dark">
-                <div className="text-primary-main font-bold mb-1 mt-2">Generate AI Medical Image Examples</div>
-                <input
-                    className="bg-transparent break-all text-base text-blue-300 mb-2"
-                    type="text"
-                    value={promptHeaderData}
-                    onChange={handlePromptHeaderChange}
-                />
-                <textarea  
-                    rows = {6}
-                    label="Enter prompt:"
-                    className="text-white text-[14px] leading-[1.2] border-primary-main bg-black align-top sshadow transition duration-300 appearance-none border border-inputfield-main focus:border-inputfield-focus focus:outline-none disabled:border-inputfield-disabled rounded w-full py-2 px-3 text-sm text-white placeholder-inputfield-placeholder leading-tight"
-                    type="text"
-                    value={promptData}
-                    onKeyPress={saveReport}
-                    onChange={handlePromptChange}
-                    
-                >
-                </textarea>
-            </div>
-            <div className="flex justify-center p-4 bg-primary-dark">
-                <ActionButtons
-                className="bg-primary-dark"
-                actions={[
             
-                {
-                    label: 'Generate new Image',
-                    onClick: saveReport,
-                },
-                {
-                    label: 'Clear',
-                    onClick: clearText,
-                },
-                {
-                    label: 'Reload',
-                    onClick: reloadPage,
-                },
-                ]}
-                disabled={disabled}
-                />
-            </div>
         </div>
     
     );
-    // Function to extract numbers from the array
-    function _extractNumbers(arr) {
-        // Use reduce to accumulate numbers in a single array
-        return arr.reduce((acc, str) => {
-        // Match all sequences of digits
-        const matches = str.match(/\d+/g);
-        if (matches) {
-            // Convert matched strings to numbers and add to accumulator
-            return acc.concat(matches.map(Number));
-        }
-        return acc;
-        }, [0]);
-    }
+
   
 }
 

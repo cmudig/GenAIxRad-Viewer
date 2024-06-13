@@ -89,7 +89,7 @@ const PreviewStudy = ({
 
   return (
     <React.Fragment>
-      {
+      {/*
       // removed Buttons for preview selection for now.
       //TODO: remove uncommented part and its function if they are relly not needed
 
@@ -133,7 +133,7 @@ const PreviewStudy = ({
             );
           })}
         </LegacyButtonGroup>
-      </div> }
+      </div> */}
       <div className="ohif-scrollbar  flex flex-1 flex-col overflow-auto">
         {getTabContent()}
       </div>
