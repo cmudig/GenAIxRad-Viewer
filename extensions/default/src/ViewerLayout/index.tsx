@@ -17,7 +17,7 @@ function ViewerLayout({
   viewports,
   ViewportGridComp,
   leftPanelClosed = false,
-  rightPanelClosed = false,
+  rightPanelClosed = true,
 }: withAppTypes): React.FunctionComponent {
   const [appConfig] = useAppConfig();
 
@@ -106,6 +106,19 @@ function ViewerLayout({
     };
   }, [panelService, hasPanels]);
 
+  // TODO: Remove this hack to avoid not diplaying Study preview image
+  useEffect(() => {
+    let timer;
+    if(timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      
+      setRightPanelClosed(false);
+
+    }, 4000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const viewportComponents = viewports.map(getViewportComponentData);
 
   return (
@@ -151,7 +164,7 @@ function ViewerLayout({
                 side="right"
                 activeTabIndex={rightPanelClosedState ? null : 0}
                 servicesManager={servicesManager}
-                expandedWidth={300}
+                expandedWidth={400}
               />
             </ErrorBoundary>
           ) : null}

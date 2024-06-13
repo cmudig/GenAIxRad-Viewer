@@ -1,6 +1,6 @@
 import { id } from './id';
 import TextInputSidePanelComponent from './TextInputSidePanelComponent.tsx';
-import PreviewSidePanelComponent from './PreviewSidePanelComponent.tsx';
+import GenerativeAIComponent from './GenerativeAIComponent.tsx';
 import twoOneProtocol from './hangingprotocols/twoOne.ts';
 /**
  * You can remove any of the following modules if you don't need them.
@@ -47,7 +47,7 @@ export default {
         iconName: 'tab-studies',
         iconLabel: 'Preview',
         label: '',
-        component: PreviewSidePanelComponent.bind(null, {
+        component: GenerativeAIComponent.bind(null, {
           commandsManager,
           extensionManager,
           servicesManager,
