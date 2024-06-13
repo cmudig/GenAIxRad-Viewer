@@ -159,20 +159,53 @@ function TextArea({servicesManager, commandsManager}){
     
     const fetchDicomSeries = async () => {
         try {
-          const response = await fetch('http://localhost/pacs/series');
+          const response = await fetch('http://localhost/pacs/series/af503a5b-a3ebfdfb-a362f881-f5808707-cff51ae8/metadata/SeriesPrompt');
           if (!response.ok) {
             throw new Error('Network response was not ok');
           }
-          const data = await response.json();
+          const data = await response.text();
           
           console.log(data); // Log the series data to the console
         } catch (error) {
           console.error('There has been a problem with your fetch operation:', error);
         }
       };
+
+      const addPromptMetadataToSeries = async (seriesID, promptData) => {
+        try {
+            const url = `http://localhost/pacs/series/${seriesID}/metadata/SeriesPrompt`;
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'text/plain'  // Ensure the server expects text/plain content type
+                },
+                body: promptData // Ensure promptData is correctly formatted as a string
+            });
+    
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.log("Response not ok. Status:", response.status, "Response text:", errorText);
+                return;
+            }
+    
+            const text = await response.text();
+            let data;
+            try {
+                data = text ? JSON.parse(text) : {}; // Attempt to parse only if text is not empty
+            } catch (parseError) {
+                console.error('Error parsing JSON:', parseError);
+                return;
+            }
+    
+            console.log('Response from server:', data); // Log the response from the server
+        } catch (error) {
+            console.error('There was a problem with your fetch operation:', error);
+        }
+    }
     //reload images by reloading webside
     const navigate = useNavigate();
     const reloadPage = () => {
+        addPromptMetadataToSeries('af503a5b-a3ebfdfb-a362f881-f5808707-cff51ae8', 'Test');
         fetchDicomSeries();
     }
 
