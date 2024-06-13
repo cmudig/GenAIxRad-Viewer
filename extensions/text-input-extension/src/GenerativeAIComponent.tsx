@@ -57,58 +57,65 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
 
 
     return (
-           
         <div className="ohif-scrollbar flex flex-col">
             <div className="flex flex-col justify-center p-4 bg-primary-dark">
-                <div className="text-primary-main font-bold mb-1 mt-2">Generate AI Medical Image Examples</div>
-                <input
-                    className="bg-transparent break-all text-base text-blue-300 mb-2"
-                    type="text"
-                    value={promptHeaderData}
-                    onChange={handlePromptHeaderChange}
-                />
+                
+                <div className="flex items-center mb-2">
+                    <div className="text-primary-main  mr-2">Name:</div>
+                    <input
+                        id="promptHeader"
+                        className="bg-transparent break-all text-base text-blue-300"
+                        type="text"
+                        value={promptHeaderData}
+                        onChange={handlePromptHeaderChange}
+                    />
+                </div>
+                
                 <textarea  
-                    rows = {6}
+                    rows={6}
                     label="Enter prompt:"
+                    placeholder="Enter Text to generate CT..."
                     className="text-white text-[14px] leading-[1.2] border-primary-main bg-black align-top sshadow transition duration-300 appearance-none border border-inputfield-main focus:border-inputfield-focus focus:outline-none disabled:border-inputfield-disabled rounded w-full py-2 px-3 text-sm text-white placeholder-inputfield-placeholder leading-tight"
                     type="text"
                     value={promptData}
                     onKeyPress={saveReport}
                     onChange={handlePromptChange}
-                    
                 >
                 </textarea>
-            </div>
-            <div className="flex justify-center p-4 bg-primary-dark">
-                <ActionButtons
-                className="bg-primary-dark"
-                actions={[
             
-                {
-                    label: 'Generate new Image',
-                    onClick: saveReport,
-                },
-                {
-                    label: 'Clear',
-                    onClick: clearText,
-                },
-                {
-                    label: 'Reload',
-                    onClick: reloadPage,
-                },
-                ]}
-                disabled={disabled}
+                <div className="flex justify-center p-2 pb-8 bg-primary-dark">
+                    <ActionButtons
+                        className="bg-primary-dark"
+                        actions={[
+                            {
+                                label: 'Generate new CT',
+                                onClick: saveReport,
+                            },
+                            {
+                                label: 'Clear',
+                                onClick: clearText,
+                            },
+                            {
+                                label: 'Reload',
+                                onClick: reloadPage,
+                            },
+                        ]}
+                        disabled={disabled}
+                    />
+                </div>
+            </div>
+            
+            {/* dif line */}
+            <div className="border border-primary-main"> </div>
+            <div className="mx-auto w-9/10">
+                <WrappedPreviewStudyBrowser
+                    commandsManager={commandsManager}
+                    extensionManager={extensionManager}
+                    servicesManager={servicesManager}
+                    activatedTabName="ai"
                 />
             </div>
-            <WrappedPreviewStudyBrowser
-                commandsManager={commandsManager}
-                extensionManager={extensionManager}
-                servicesManager={servicesManager}
-                activatedTabName="ai"
-
-            />
         </div>
-        
         
     );
 

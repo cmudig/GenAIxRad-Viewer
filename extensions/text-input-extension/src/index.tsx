@@ -35,7 +35,7 @@ export default {
         name:'text-input-side-panel',
         iconName: 'icon-transferring',
         iconLabel: 'Text Input',
-        label: '',
+        label: 'Report',
         component: TextInputSidePanelComponent.bind(null, {
           commandsManager,
           extensionManager,
@@ -43,10 +43,10 @@ export default {
         }),
       },
       {
-        name:'preview-side-panel',
+        name:'generative-ai-panel',
         iconName: 'tab-studies',
         iconLabel: 'Preview',
-        label: '',
+        label: 'Generative AI',
         component: GenerativeAIComponent.bind(null, {
           commandsManager,
           extensionManager,
