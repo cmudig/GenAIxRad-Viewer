@@ -333,8 +333,7 @@ function TextArea({servicesManager, commandsManager}){
                 </div>
                 
             </div>
-            {/* dif line */}
-            <div className="border border-primary-main"> </div>
+
             
         </div>
     

@@ -14,6 +14,8 @@ function TextInputSidePanelComponent({ commandsManager, extensionManager, servic
                 servicesManager={servicesManager}
                 commandsManager={commandsManager}
             />
+            {/* dif line */}
+            <div className="border border-primary-main"> </div>
             <WrappedPreviewStudyBrowser 
                 commandsManager={commandsManager}
                 extensionManager={extensionManager}
