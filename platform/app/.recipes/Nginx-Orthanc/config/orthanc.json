@@ -49,8 +49,9 @@
   "HttpTimeout": 10,
   "HttpsVerifyPeers": true,
   "HttpsCACertificates": "",
-  "UserMetadata": {},
-  "UserContentType": {},
+  "UserMetadata": {
+    "SeriesPrompt": 1024
+  },
   "StableAge": 60,
   "StrictAetComparison": false,
   "StoreMD5ForAttachments": true,
