@@ -51,7 +51,8 @@
   "HttpsCACertificates": "",
   "UserMetadata": {
     "SeriesPrompt": 1024,
-    "Impressions": 1025
+    "Impressions": 1025,
+    "Findings": 1026
   },
   "StableAge": 60,
   "StrictAetComparison": false,

@@ -52,25 +52,20 @@ function TextArea({servicesManager, commandsManager}){
         console.log("orthancStudyID", orthancStudyID)
         setOrthancStudyID(orthancStudyID);
         
-        // search for any init_report data
-        const reportList = [];
-        studyInstanceUIDs.forEach(studyInstanceUid => {
-            const studyMetadata = metaData.get('studyMetadata', studyInstanceUid);
-            reportList.push(studyMetadata);
-        });
-
         // findings
-        const initialReportFindingsElement = reportList.find(result => result && result.hasOwnProperty('initial_findings'));
-        const initialReportFindingsText = initialReportFindingsElement?.['initial_findings'] ?? '';
+        let initialReportFindingsText;
+        if (orthancStudyID !== null) {
+            initialReportFindingsText = await getMetadataOfStudy(orthancStudyID, 'Findings');
+        }
+
         setReportFindingsData(initialReportFindingsText);
         
         // impressions
         let initialReportImpressionsText;
         if (orthancStudyID !== null) {
-            initialReportImpressionsText = await getImpressionMetadataOfStudy(orthancStudyID);
+            initialReportImpressionsText = await getMetadataOfStudy(orthancStudyID, 'Impressions');
         }
 
-        console.log("initialReportImpressionsText", initialReportImpressionsText)
         
         setReportImpressionsData(initialReportImpressionsText);
 
@@ -147,11 +142,12 @@ function TextArea({servicesManager, commandsManager}){
     }
 
     const handleReportFindingsChange = (event) => {
+        debouncedAddMetadataToStudy(orthancStudyID, event.target.value, 'Findings');
         setReportFindingsData(event.target.value);
     };
     const handleReportImpressionsChange = async (event) => {
         
-        debouncedAddImpressionMetadataToStudy(orthancStudyID, event.target.value);
+        debouncedAddMetadataToStudy(orthancStudyID, event.target.value, 'Impressions');
         setReportImpressionsData(event.target.value);
 
     };
@@ -193,10 +189,14 @@ function TextArea({servicesManager, commandsManager}){
           }
         };
       
-
-    const addImpressionMetadataToStudy = async (studyID, data) => {
+    //type: 'Impressions' or 'Findings'
+    const addMetadataToStudy = async (studyID, data, type) => {
+        if (type !== 'Impressions' && type !== 'Findings') {
+            console.error('Invalid metadata type');
+            return;
+        }
         try {
-            const url = `http://localhost/pacs/studies/${studyID}/metadata/Impressions`;
+            const url = `http://localhost/pacs/studies/${studyID}/metadata/${type}`;
             const response = await fetch(url, {
                 method: 'PUT',
                 headers: {
@@ -216,17 +216,22 @@ function TextArea({servicesManager, commandsManager}){
         }
     };
 
-    const debouncedAddImpressionMetadataToStudy = useCallback(
-        debounce((orthancStudyID, value) => {
-          addImpressionMetadataToStudy(orthancStudyID, value);
+    const debouncedAddMetadataToStudy = useCallback(
+        debounce((orthancStudyID, value, type) => {
+          addMetadataToStudy(orthancStudyID, value, type);
         }, 500),
         [] 
       );
 
     // returns metadata or null if no metadata
-    const getImpressionMetadataOfStudy = async (studyID) => {
+    // type: 'Impressions' or 'Findings'
+    const getMetadataOfStudy = async (studyID, type) => {
+        if (type !== 'Impressions' && type !== 'Findings') {
+            console.error('Invalid metadata type');
+            return;
+        }
         try {
-            const url = `http://localhost/pacs/studies/${studyID}/metadata/Impressions`;
+            const url = `http://localhost/pacs/studies/${studyID}/metadata/${type}`;
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {
@@ -247,39 +252,6 @@ function TextArea({servicesManager, commandsManager}){
             console.error('There was a problem with your fetch operation:', error);
         }
     }
-
-      const addPromptMetadataToSeries = async (seriesID, promptData) => {
-        try {
-            const url = `http://localhost/pacs/series/${seriesID}/metadata/SeriesPrompt`;
-            const response = await fetch(url, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'text/plain'  // Ensure the server expects text/plain content type
-                },
-                body: promptData // Ensure promptData is correctly formatted as a string
-            });
-    
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.log("Response not ok. Status:", response.status, "Response text:", errorText);
-                return;
-            }
-    
-            const text = await response.text();
-            let data;
-            try {
-                data = text ? JSON.parse(text) : {}; // Attempt to parse only if text is not empty
-            } catch (parseError) {
-                console.error('Error parsing JSON:', parseError);
-                return;
-            }
-    
-            console.log('Response from server:', data); // Log the response from the server
-        } catch (error) {
-            console.error('There was a problem with your fetch operation:', error);
-        }
-    }
-
 
 
     return (
