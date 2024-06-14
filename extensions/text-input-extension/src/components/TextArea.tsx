@@ -49,7 +49,7 @@ function TextArea({servicesManager, commandsManager}){
 
         // set orthancStudyID
         const orthancStudyID = await _getOrthancStudyID(studyInstanceUIDs[0]);
-        console.log("orthancStudyID", orthancStudyID)
+        
         setOrthancStudyID(orthancStudyID);
         
         // findings
@@ -130,7 +130,7 @@ function TextArea({servicesManager, commandsManager}){
 
 
     const setPromptDataToReportImpressionsData = (event) => {
-        console.log(reportImpressionsData);
+        
         setPromptData(reportImpressionsData);
     }
     const setReportImpressionsDataToPromptData = (event) => {
@@ -279,6 +279,8 @@ function TextArea({servicesManager, commandsManager}){
                     >
             
                 </textarea>
+
+                
                 <div className="flex justify-center p-4 bg-primary-dark">
                     <ActionButtons
                     className="bg-primary-dark mr-4"
@@ -289,7 +291,8 @@ function TextArea({servicesManager, commandsManager}){
                     }
                     ]}
                     disabled={disabled}
-                    /> 
+                    />
+                    {/*
                     <Button
                         onClick={setPromptDataToReportImpressionsData}
                         type={ButtonEnums.type.secondary}
@@ -301,8 +304,9 @@ function TextArea({servicesManager, commandsManager}){
                             className="transform rotate-90 h-5 w-5"
                         />
                     </Button>
-
-                </div>
+                    */}
+                </div> 
+                
                 
             </div>
 

@@ -48,8 +48,7 @@ const PreviewStudy = ({
         
         // get study meta data that is stored in data/init_metadata.json
         const seriesInstanceUID = displaySets?.[0]?.SeriesInstanceUID;
-        const studyMetadata = metaData.get('studyMetadata', seriesInstanceUID);
-        const impressions = studyMetadata?.impressions;
+
         
         return (
           <React.Fragment key={seriesInstanceUID}>
@@ -77,7 +76,7 @@ const PreviewStudy = ({
                 onThumbnailClick={onClickThumbnail}
                 onThumbnailDoubleClick={onDoubleClickThumbnail}
                 onClickUntrack={onClickUntrack}
-                impressions={impressions}
+                
               />
               </div>
 
