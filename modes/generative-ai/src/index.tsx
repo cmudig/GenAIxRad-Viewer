@@ -12,7 +12,6 @@ import RectangleOverlayViewerTool from '../../../extensions/text-input-extension
 const ohif = {
   layout: '@ohif/extension-default.layoutTemplateModule.viewerLayout',
   sopClassHandler: '@ohif/extension-default.sopClassHandlerModule.stack',
-  hangingProtocol: '@ohif/extension-default.hangingProtocolModule.default',
   leftPanel: '@ohif/extension-default.panelModule.seriesList',
   rightPanel: '@ohif/extension-default.panelModule.measure',
 };
@@ -134,7 +133,7 @@ function modeFactory({ modeConfiguration }) {
             props: {
               leftPanels: ['text-input-extension.panelModule.text-input-side-panel'], //, ohif.leftPanel
               //leftPanelClosed: true,
-              rightPanels: ['text-input-extension.panelModule.preview-side-panel'], //segmentation.panelTool
+              rightPanels: ['text-input-extension.panelModule.generative-ai-panel'], //segmentation.panelTool
               viewports: [
                 {
                   namespace: cornerstone.viewport,
@@ -149,7 +148,7 @@ function modeFactory({ modeConfiguration }) {
     /** List of extensions that are used by the mode */
     extensions: extensionDependencies,
     /** HangingProtocol used by the mode */
-    // hangingProtocol: [''],
+    hangingProtocol: ['twoOneGenAI'],
     /** SopClassHandlers used by the mode */
     sopClassHandlers: [ohif.sopClassHandler, segmentation.sopClassHandler],
     /** hotkeys for mode */

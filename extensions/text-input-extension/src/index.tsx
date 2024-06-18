@@ -1,6 +1,7 @@
 import { id } from './id';
 import TextInputSidePanelComponent from './TextInputSidePanelComponent.tsx';
-import PreviewSidePanelComponent from './PreviewSidePanelComponent.tsx';
+import GenerativeAIComponent from './GenerativeAIComponent.tsx';
+import twoOneProtocol from './hangingprotocols/twoOne.ts';
 /**
  * You can remove any of the following modules if you don't need them.
  */
@@ -34,7 +35,7 @@ export default {
         name:'text-input-side-panel',
         iconName: 'icon-transferring',
         iconLabel: 'Text Input',
-        label: '',
+        label: 'Report',
         component: TextInputSidePanelComponent.bind(null, {
           commandsManager,
           extensionManager,
@@ -42,11 +43,11 @@ export default {
         }),
       },
       {
-        name:'preview-side-panel',
+        name:'generative-ai-panel',
         iconName: 'tab-studies',
         iconLabel: 'Preview',
-        label: '',
-        component: PreviewSidePanelComponent.bind(null, {
+        label: 'Generative AI',
+        component: GenerativeAIComponent.bind(null, {
           commandsManager,
           extensionManager,
           servicesManager,
@@ -92,7 +93,15 @@ export default {
    * { name, protocols}. Examples include the default hanging protocol provided by
    * the default extension that shows 2x2 viewports.
    */
-  getHangingProtocolModule: ({ servicesManager, commandsManager, extensionManager }) => {},
+  getHangingProtocolModule: ({ servicesManager, commandsManager, extensionManager }) => {
+    // the twoOneGenAI protocol will be registred and can be consumed by any extension
+    return [
+      {
+        name: twoOneProtocol.id,
+        protocol: twoOneProtocol,
+      },
+    ];
+  },
   /**
    * CommandsModule should provide a list of commands that will be available in OHIF
    * for Modes to consume and use in the viewports. Each command is defined by

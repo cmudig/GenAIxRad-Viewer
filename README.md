@@ -38,7 +38,7 @@ provided by the <a href="https://ohif.org/">Open Health Imaging Foundation (OHIF
 ### Requirements
 
 - [Yarn 1.17.3+](https://yarnpkg.com/en/docs/install)
-- [Node 16+](https://nodejs.org/en/)
+- [Node 18+](https://nodejs.org/en/)
 - Yarn Workspaces should be enabled on your machine:
   - `yarn config set workspaces-experimental true`
 
@@ -198,4 +198,3 @@ MIT © [OHIF](https://github.com/OHIF)
 [extension-vtk]: extensions/vtk/README.md
 [vtk-npm]: https://www.npmjs.com/package/@ohif/extension-vtk
 <!-- prettier-ignore-end -->
-

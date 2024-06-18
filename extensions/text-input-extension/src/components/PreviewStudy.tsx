@@ -21,16 +21,18 @@ const getTrackedSeries = displaySets => {
   return trackedSeries;
 };
 
+const noop = () => {};
+
 
 const PreviewStudy = ({
   tabs,
   activeTabName,
   expandedStudyInstanceUIDs,
-  onClickTab,
-  onClickStudy,
-  onClickThumbnail,
-  onDoubleClickThumbnail,
-  onClickUntrack,
+  onClickTab=noop,
+  onClickStudy=noop,
+  onClickThumbnail=noop,
+  onDoubleClickThumbnail=noop,
+  onClickUntrack=noop,
   activeDisplaySetInstanceUIDs,
   servicesManager,
 }) => {
@@ -46,8 +48,7 @@ const PreviewStudy = ({
         
         // get study meta data that is stored in data/init_metadata.json
         const seriesInstanceUID = displaySets?.[0]?.SeriesInstanceUID;
-        const studyMetadata = metaData.get('studyMetadata', seriesInstanceUID);
-        const impressions = studyMetadata?.impressions;
+
         
         return (
           <React.Fragment key={seriesInstanceUID}>
@@ -75,7 +76,7 @@ const PreviewStudy = ({
                 onThumbnailClick={onClickThumbnail}
                 onThumbnailDoubleClick={onDoubleClickThumbnail}
                 onClickUntrack={onClickUntrack}
-                impressions={impressions}
+                
               />
               </div>
 
@@ -87,7 +88,7 @@ const PreviewStudy = ({
 
   return (
     <React.Fragment>
-      {
+      {/*
       // removed Buttons for preview selection for now.
       //TODO: remove uncommented part and its function if they are relly not needed
 
@@ -131,7 +132,7 @@ const PreviewStudy = ({
             );
           })}
         </LegacyButtonGroup>
-      </div> }
+      </div> */}
       <div className="ohif-scrollbar  flex flex-1 flex-col overflow-auto">
         {getTabContent()}
       </div>
@@ -190,14 +191,6 @@ PreviewStudy.propTypes = {
   ),
 };
 
-const noop = () => {};
 
-PreviewStudy.defaultProps = {
-  onClickTab: noop,
-  onClickStudy: noop,
-  onClickThumbnail: noop,
-  onDoubleClickThumbnail: noop,
-  onClickUntrack: noop,
-};
 
 export default PreviewStudy;

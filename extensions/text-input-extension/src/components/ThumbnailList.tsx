@@ -20,7 +20,6 @@ const ThumbnailList = ({
   onThumbnailClick,
   onThumbnailDoubleClick,
   onClickUntrack,
-  impressions,
   activeDisplaySetInstanceUIDs = [],
 
 }) => {
@@ -48,6 +47,7 @@ const ThumbnailList = ({
           messages,
           imageAltText,
           isHydratedForDerivedDisplaySet,
+          SeriesInstanceUID,
         }) => {
           const isActive = activeDisplaySetInstanceUIDs.includes(displaySetInstanceUID);
           switch (componentType) {
@@ -61,6 +61,7 @@ const ThumbnailList = ({
                       ? 'bg-primary-dark'
                       : ''
                   )}
+                  style={{width:'375px'}} // hardcoded width, not so nice
                 >
                   <Thumbnail
                     key={displaySetInstanceUID}
@@ -79,10 +80,10 @@ const ThumbnailList = ({
                     onDoubleClick={() => onThumbnailDoubleClick(displaySetInstanceUID)}
                   />
                   <StudyMetadataDisplay 
-                  impressions={impressions}
                   description={description}
                   onClick={() => onThumbnailClick(displaySetInstanceUID)}
                   onDoubleClick={() => onThumbnailDoubleClick(displaySetInstanceUID)}
+                  seriesInstanceUID={SeriesInstanceUID}
                   />
               </div>
               );

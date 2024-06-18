@@ -15,7 +15,7 @@ import requestDisplaySetCreationForStudy from '@ohif/extension-default/src/Panel
  * @param {object} commandsManager
  * @param {object} extensionManager
  */
-function WrappedPreviewStudyBrowser({ commandsManager, extensionManager, servicesManager }) {
+function WrappedPreviewStudyBrowser({ commandsManager, extensionManager, servicesManager, activatedTabName }) {
   // TODO: This should be made available a different way; route should have
   // already determined our datasource
   const dataSource = extensionManager.getDataSources()[0];
@@ -36,6 +36,7 @@ function WrappedPreviewStudyBrowser({ commandsManager, extensionManager, service
       getImageSrc={_getImageSrcFromImageId}
       getStudiesForPatientByMRN={_getStudiesForPatientByMRN}
       requestDisplaySetCreationForStudy={_requestDisplaySetCreationForStudy}
+      activatedTabName={activatedTabName}
     />
   );
 }
