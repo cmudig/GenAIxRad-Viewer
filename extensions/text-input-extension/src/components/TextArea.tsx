@@ -1,4 +1,4 @@
-import React,{useState, useEffect} from 'react';
+import React,{useState, useEffect, useCallback} from 'react';
 import {ActionButtons, Button, ButtonEnums, InputText, Input, Icon, useViewportGrid} from '@ohif/ui'
 import { useNavigate } from 'react-router-dom'
 import {DicomMetadataStore, DisplaySetService} from '@ohif/core'
@@ -17,8 +17,8 @@ import getActiveViewportEnabledElement from '../../../cornerstone/src/utils/getA
 import * as cornerstoneTools from '@cornerstonejs/tools';
 import * as cornerstone from '@cornerstonejs/core';
 import RectangleOverlayViewerTool from '../tools/RectangleOverlayViewerTool';
+import debounce from 'lodash.debounce';
 //import Icon from '../../../../platform/ui/src/components/Icon'
-
 
 /**
  * This Component allows Text input and provides features to send text to backend§ services
@@ -33,43 +33,41 @@ function TextArea({servicesManager, commandsManager}){
     const [reportFindingsData, setReportFindingsData] = useState('');
     const [textData, setTextData] = useState('');
 
-    const [promptData, setPromptData] = useState('');
-    const [promptHeaderData, setPromptHeaderData] = useState('Generated, X');    
     const disabled = false;
+
     const [{viewports }] = useViewportGrid();
 
+    const [orthancStudyID, setOrthancStudyID] = useState('');
+    
 
-    const handleDisplaySetsChanged = changedDisplaySets => {
+    const handleDisplaySetsChanged = async (changedDisplaySets) => {
         // set initial report data
         // get studyUIDs of current display
         const activeDisplaySets = displaySetService.getActiveDisplaySets();
         
-        const studyInstanceUIDs = activeDisplaySets.map(set => set.StudyInstanceUID);
-        
-        // search for any init_report data
-        const reportList = [];
-        studyInstanceUIDs.forEach(studyInstanceUid => {
-            const studyMetadata = metaData.get('studyMetadata', studyInstanceUid);
-            reportList.push(studyMetadata);
-        });
+        const studyInstanceUIDs = activeDisplaySets.map(set => set.StudyInstanceUID); //e.g. ["2.6"], it guaranteed that there is only one studyInstanceUID
 
+        // set orthancStudyID
+        const orthancStudyID = await _getOrthancStudyID(studyInstanceUIDs[0]);
+        
+        setOrthancStudyID(orthancStudyID);
+        
         // findings
-        const initialReportFindingsElement = reportList.find(result => result && result.hasOwnProperty('initial_findings'));
-        const initialReportFindingsText = initialReportFindingsElement?.['initial_findings'] ?? '';
+        let initialReportFindingsText;
+        if (orthancStudyID !== null) {
+            initialReportFindingsText = await getMetadataOfStudy(orthancStudyID, 'Findings');
+        }
+
         setReportFindingsData(initialReportFindingsText);
         
         // impressions
-        const initialReportImpressionsElement = reportList.find(result => result && result.hasOwnProperty('initial_impressions'));
-        const initialReportImpressionsText = initialReportImpressionsElement?.['initial_impressions'] ?? '';
+        let initialReportImpressionsText;
+        if (orthancStudyID !== null) {
+            initialReportImpressionsText = await getMetadataOfStudy(orthancStudyID, 'Impressions');
+        }
+
         
         setReportImpressionsData(initialReportImpressionsText);
-
-
-        // set initial prompt header to "Generated, NOT_USED_NUMBER"
-        const seriesDescriptions = activeDisplaySets.map(set => set.SeriesDescription);
-        const seriesDescriptionNumbers = _extractNumbers(seriesDescriptions);
-        const maxNumber = Math.max(...seriesDescriptionNumbers);
-        setPromptHeaderData(`Generated, ${maxNumber+1}`)
 
     }; 
 
@@ -132,7 +130,7 @@ function TextArea({servicesManager, commandsManager}){
 
 
     const setPromptDataToReportImpressionsData = (event) => {
-        console.log(reportImpressionsData);
+        
         setPromptData(reportImpressionsData);
     }
     const setReportImpressionsDataToPromptData = (event) => {
@@ -140,32 +138,120 @@ function TextArea({servicesManager, commandsManager}){
     }
 
     const saveReport = (event) => {
-        console.log(promptData);
+        console.log(event.target.value);
     }
-    const clearText = (event) => {
-        setPromptData('');
-    }
+
     const handleReportFindingsChange = (event) => {
+        debouncedAddMetadataToStudy(orthancStudyID, event.target.value, 'Findings');
         setReportFindingsData(event.target.value);
     };
-    const handleReportImpressionsChange = (event) => {
+    const handleReportImpressionsChange = async (event) => {
+        
+        debouncedAddMetadataToStudy(orthancStudyID, event.target.value, 'Impressions');
         setReportImpressionsData(event.target.value);
+
     };
-    const handlePromptChange = (event) => {
-        setPromptData(event.target.value);
-    };
-    const handlePromptHeaderChange = (event) => {
-        setPromptHeaderData(event.target.value);
-    };
+
+
     
+    const _getOrthancStudyID = async (studyInstanceUID) => {
+        try {
+            // Parameters to include in the request
+            const params = new URLSearchParams({
+              expand: 1,
+              requestedTags: "StudyInstanceUID"
+            });
+        
+            // Fetching DICOM studies from the PACS server with query parameters
+            const response = await fetch(`http://localhost/pacs/studies?${params.toString()}`);
+        
+            // Check if the response is ok (status code 200-299)
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+        
+            // Parse the response as JSON
+            const data = await response.json();
+        
+            // Filter the data to find the study with the given StudyInstanceUID
+            const study = data.find(item => item.RequestedTags.StudyInstanceUID === studyInstanceUID);
+        
+            // Check if the study was found
+            if (study) {
+              return study.ID;
+            } else {
+              return null;
+            }
+          } catch (error) {
+            // Log any errors that occur during the fetch operation
+            console.error('There has been a problem with your fetch operation:', error);
+            return null;
+          }
+        };
+      
+    //type: 'Impressions' or 'Findings'
+    const addMetadataToStudy = async (studyID, data, type) => {
+        if (type !== 'Impressions' && type !== 'Findings') {
+            console.error('Invalid metadata type');
+            return;
+        }
+        try {
+            const url = `http://localhost/pacs/studies/${studyID}/metadata/${type}`;
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'text/plain'  // Ensure the server expects text/plain content type
+                },
+                body: data 
+            });
+    
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.log("Response not ok. Status:", response.status, "Response text:", errorText);
+                return;
+            }
+    
+        } catch (error) {
+            console.error('There was a problem with your fetch operation:', error);
+        }
+    };
 
-    //reload images by reloading webside
-    const navigate = useNavigate();
-    const reloadPage = () => {
-        //handleDisplaySetsChanged();
-        console.log("test")
+    const debouncedAddMetadataToStudy = useCallback(
+        debounce((orthancStudyID, value, type) => {
+          addMetadataToStudy(orthancStudyID, value, type);
+        }, 500),
+        [] 
+      );
+
+    // returns metadata or null if no metadata
+    // type: 'Impressions' or 'Findings'
+    const getMetadataOfStudy = async (studyID, type) => {
+        if (type !== 'Impressions' && type !== 'Findings') {
+            console.error('Invalid metadata type');
+            return;
+        }
+        try {
+            const url = `http://localhost/pacs/studies/${studyID}/metadata/${type}`;
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'text/plain'  // Ensure the server expects text/plain content type
+                }
+            });
+    
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.log("Response not ok. Status:", response.status, "Response text:", errorText);
+                return;
+            }
+            else {
+                return response.text();
+            }
+
+        } catch (error) {
+            console.error('There was a problem with your fetch operation:', error);
+        }
     }
-
 
 
     return (
@@ -193,6 +279,8 @@ function TextArea({servicesManager, commandsManager}){
                     >
             
                 </textarea>
+
+                
                 <div className="flex justify-center p-4 bg-primary-dark">
                     <ActionButtons
                     className="bg-primary-dark mr-4"
@@ -203,7 +291,8 @@ function TextArea({servicesManager, commandsManager}){
                     }
                     ]}
                     disabled={disabled}
-                    /> 
+                    />
+                    {/*
                     <Button
                         onClick={setPromptDataToReportImpressionsData}
                         type={ButtonEnums.type.secondary}
@@ -215,69 +304,17 @@ function TextArea({servicesManager, commandsManager}){
                             className="transform rotate-90 h-5 w-5"
                         />
                     </Button>
-
-                </div>
+                    */}
+                </div> 
+                
                 
             </div>
-            {/* dif line */}
-            <div className="border border-primary-main"> </div>
-            <div className="flex flex-col justify-center p-4 bg-primary-dark">
-                <div className="text-primary-main font-bold mb-1 mt-2">Generate AI Medical Image Examples</div>
-                <input
-                    className="bg-transparent break-all text-base text-blue-300 mb-2"
-                    type="text"
-                    value={promptHeaderData}
-                    onChange={handlePromptHeaderChange}
-                />
-                <textarea  
-                    rows = {6}
-                    label="Enter prompt:"
-                    className="text-white text-[14px] leading-[1.2] border-primary-main bg-black align-top sshadow transition duration-300 appearance-none border border-inputfield-main focus:border-inputfield-focus focus:outline-none disabled:border-inputfield-disabled rounded w-full py-2 px-3 text-sm text-white placeholder-inputfield-placeholder leading-tight"
-                    type="text"
-                    value={promptData}
-                    onKeyPress={saveReport}
-                    onChange={handlePromptChange}
-                    
-                >
-                </textarea>
-            </div>
-            <div className="flex justify-center p-4 bg-primary-dark">
-                <ActionButtons
-                className="bg-primary-dark"
-                actions={[
+
             
-                {
-                    label: 'Generate new Image',
-                    onClick: saveReport,
-                },
-                {
-                    label: 'Clear',
-                    onClick: clearText,
-                },
-                {
-                    label: 'Reload',
-                    onClick: reloadPage,
-                },
-                ]}
-                disabled={disabled}
-                />
-            </div>
         </div>
     
     );
-    // Function to extract numbers from the array
-    function _extractNumbers(arr) {
-        // Use reduce to accumulate numbers in a single array
-        return arr.reduce((acc, str) => {
-        // Match all sequences of digits
-        const matches = str.match(/\d+/g);
-        if (matches) {
-            // Convert matched strings to numbers and add to accumulator
-            return acc.concat(matches.map(Number));
-        }
-        return acc;
-        }, [0]);
-    }
+
   
 }
 

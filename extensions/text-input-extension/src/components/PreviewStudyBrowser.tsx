@@ -18,6 +18,7 @@ function PreviewStudyBrowser({
   getStudiesForPatientByMRN,
   requestDisplaySetCreationForStudy,
   dataSource,
+  activatedTabName,
 }) {
   const { hangingProtocolService, displaySetService, uiNotificationService } =
     servicesManager.services;
@@ -29,7 +30,7 @@ function PreviewStudyBrowser({
   const { StudyInstanceUIDs } = useImageViewer();
   const [{ activeViewportId, viewports, isHangingProtocolLayout }, viewportGridService] =
     useViewportGrid();
-  const [activeTabName, setActiveTabName] = useState('recent');
+  const [activeTabName, setActiveTabName] = useState(activatedTabName);
   const [expandedStudyInstanceUIDs, setExpandedStudyInstanceUIDs] = useState([
     ...StudyInstanceUIDs,
   ]);
@@ -214,7 +215,7 @@ function PreviewStudyBrowser({
     };
   }, [StudyInstanceUIDs, thumbnailImageSrcMap, displaySetService]);
 
-  const tabs = _createStudyBrowserTabs(StudyInstanceUIDs, studyDisplayList, displaySets);
+  const tabs = _createStudyBrowserTabs(StudyInstanceUIDs, studyDisplayList, displaySets, activatedTabName);
 
   // TODO: Should not fire this on "close"
   function _handleStudyClick(StudyInstanceUID) {
@@ -346,12 +347,12 @@ function _getComponentType(ds) {
  * @param {object[]} displaySets
  * @returns tabs - The prop object expected by the StudyBrowser component
  */
-function _createStudyBrowserTabs(primaryStudyInstanceUIDs, studyDisplayList, displaySets) {
+function _createStudyBrowserTabs(primaryStudyInstanceUIDs, studyDisplayList, displaySets, activatedTabName) {
   // filters for AI in modality
   const primaryStudies = [];
   const generatedStudies = [];
   const allStudies = [];
-  
+
   studyDisplayList.forEach(study => {
     displaySets.forEach(series => {
       const tabStudy = Object.assign({}, study, {
@@ -372,12 +373,12 @@ function _createStudyBrowserTabs(primaryStudyInstanceUIDs, studyDisplayList, dis
 
   const tabs = [
     {
-      name: 'primary',
+      name: 'original',
       label: 'Original',
       studies: primaryStudies,
     },
     {
-      name: 'recent',
+      name: 'ai',
       label: 'AI Generated',
       studies: generatedStudies,
     },

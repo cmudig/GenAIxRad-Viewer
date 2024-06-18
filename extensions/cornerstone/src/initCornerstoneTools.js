@@ -33,9 +33,11 @@ import {
   AdvancedMagnifyTool,
   UltrasoundDirectionalTool,
   PlanarFreehandROITool,
+  PlanarFreehandContourSegmentationTool,
   SplineROITool,
   LivewireContourTool,
   OrientationMarkerTool,
+  WindowLevelRegionTool,
 } from '@cornerstonejs/tools';
 
 import CalibrationLineTool from './tools/CalibrationLineTool';
@@ -85,6 +87,8 @@ export default function initCornerstoneTools(configuration = {}) {
   addTool(LivewireContourTool);
   addTool(OrientationMarkerTool);
   addTool(RectangleOverlayViewerTool); // TODO: this should be moved to the text-input-extension
+  addTool(WindowLevelRegionTool);
+  addTool(PlanarFreehandContourSegmentationTool);
 
   // Modify annotation tools to use dashed lines on SR
   const annotationStyle = {
@@ -138,6 +142,8 @@ const toolNames = {
   LivewireContour: LivewireContourTool.toolName,
   PlanarFreehandROI: PlanarFreehandROITool.toolName,
   OrientationMarker: OrientationMarkerTool.toolName,
+  WindowLevelRegion: WindowLevelRegionTool.toolName,
+  PlanarFreehandContourSegmentation: PlanarFreehandContourSegmentationTool.toolName,
 };
 
 export { toolNames };
