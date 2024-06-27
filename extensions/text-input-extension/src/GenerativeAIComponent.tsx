@@ -121,18 +121,18 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
         const studyInstanceUIDs = activeDisplaySets.map(set => set.StudyInstanceUID); // e.g. 3.2 (must be the same for all series in the study)
         const studyInstanceUID = studyInstanceUIDs[0];
 
-        console.log('studyInstanceUID', studyInstanceUID);
+        
         const currentStudy = await _getOrthancStudyByID(studyInstanceUID);
         
         const firstTenLetters = promptData.replace(/[^a-zA-Z]/g, '').slice(0, 10);
         
         
         
-        // Generate a unique timestamp in YYYYMMDDHHMMSS format
+        
         const formattedDate = _generateUniqueTimestamp();
-        let currentFileID = `${formattedDate}${firstTenLetters}`
+        let currentFileID = `${formattedDate}${firstTenLetters}` // Generate a unique ID e.g. YYYYMMDDHHMMSSCardiomega
 
-        //fileID = 'test'// remove that when we really generate images
+
         setFileID(currentFileID);
 
 
@@ -257,17 +257,11 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
             responseType: 'arraybuffer'
           });
 
-     
-    
             const arrayBuffer = response.data
-            
             const dataSet = dicomParser.parseDicom(new Uint8Array(arrayBuffer));
             // const patientName = dataSet.string('x00100010'); // Extract the patient's name as an example
             // console.log(`Patient Name: ${patientName}`);
-
-            // Create a Blob from the arrayBuffer
             const blob = new Blob([arrayBuffer], { type: 'application/dicom' });
-
             return blob;
             
 
@@ -306,20 +300,20 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
           if (!response.ok) {
             throw new Error('Network response was not ok');
           }
+
           const data = await response.json();
-      
           // Filter the data to find the study with the given StudyInstanceUID
           const study = data.find(item => item.RequestedTags.StudyInstanceUID === studyInstanceUID);
-      
-          // Check if the study was found
+
           if (study) {
             return study;
           } else {
+            console.error("No study found with studyInstanceUID: ",studyInstanceUID )
             return null;
           }
+
         } catch (error) {
-          // Log any errors that occur during the fetch operation
-          console.error('There has been a problem with your fetch operation:', error);
+          console.error('There has been a problem with _getOrthancStudyByID:', error);
           return null;
         }
       };
@@ -331,25 +325,23 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
             requestedTags: "SeriesInstanceUID"
           });
       
-          // Fetching DICOM studies from the PACS server with query parameters
+          
           const response = await fetch(`http://localhost/pacs/series?${params.toString()}`);
       
-          // Check if the response is ok (status code 200-299)
           if (!response.ok) {
             throw new Error('Network response was not ok');
           }
       
-          // Parse the response as JSON
           const data = await response.json();
-          console.log("data", data)
+
           // Filter the data to find the study with the given seriesInstanceUID
           const study = data.find(item => item.RequestedTags.SeriesInstanceUID === seriesInstanceUID);
-          console.log("study", study)
-          // Check if the study was found
+
+        
           if (study) {
             return study;
           } else {
-            console.error("No study found with no seriesInstanceUID: ",seriesInstanceUID )
+            console.error("No series found with no seriesInstanceUID: ",seriesInstanceUID )
             return null;
           }
         } catch (error) {
@@ -365,12 +357,11 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
         }
   
         try {
-            console.log("seriesInstanceUid", seriesInstanceUid)
+            
             const generatedSeries =  await _getOrthancSeriesByID(seriesInstanceUid);
-            console.log('Generated series:',generatedSeries)
+            
             const generatedSeriesOrthancID = generatedSeries.ID;
           
-            console.log("generatedSeriesOrthancID", generatedSeriesOrthancID);
             const url = `http://localhost/pacs/series/${generatedSeriesOrthancID}/metadata/${type}`;
             const headers = {
                 'Content-Type': 'text/plain' // Ensure the server expects text/plain content type
