@@ -6,23 +6,27 @@ const StudyMetadataDisplay = ({
     onClick,
     onDoubleClick,
     seriesInstanceUID,
+    modality
  }) => {
   const [promptMetaData, setPromptMetaData] = useState("");
 
   useEffect(() => {
-    const fetchMetadata = async () => {
-      const orthancSeriesID = await _getOrthancSeriesID(seriesInstanceUID);
-      const response = await _getPromptMetadataOfSeries(orthancSeriesID);
-      
-      setPromptMetaData(response);
-    };
+    if (modality ==='AI'){
+      const fetchMetadata = async () => {
+        const orthancSeriesID = await _getOrthancSeriesID(seriesInstanceUID);
+        const response = await _getPromptMetadataOfSeries(orthancSeriesID);
+        
+        setPromptMetaData(response);
+      };
+  
+      fetchMetadata();
+    }
 
-    fetchMetadata();
-  }, [seriesInstanceUID]);
+  }, [seriesInstanceUID, modality]);
   
 
   
-  if (promptMetaData === undefined) return (
+  if (modality !== 'AI') return (
     <div className="group mb-8 flex flex-1 cursor-pointer flex-col px-3 outline-none"
       onClick={onClick}
       onDoubleClick={onDoubleClick}>
