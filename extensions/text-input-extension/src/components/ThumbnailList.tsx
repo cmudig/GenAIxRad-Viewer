@@ -84,6 +84,7 @@ const ThumbnailList = ({
                   onClick={() => onThumbnailClick(displaySetInstanceUID)}
                   onDoubleClick={() => onThumbnailDoubleClick(displaySetInstanceUID)}
                   seriesInstanceUID={SeriesInstanceUID}
+                  modality={modality}
                   />
               </div>
               );
