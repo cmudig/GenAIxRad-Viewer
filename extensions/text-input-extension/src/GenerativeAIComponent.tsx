@@ -462,7 +462,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
                         type="text"
                         value={promptHeaderData}
                         onChange={handlePromptHeaderChange}
-                        disabled= {modelIsRunning ||  !isServerRunning || dataIsUploading}
+                        disabled= {modelIsRunning ||   dataIsUploading}
                     />
                 </div>
 
@@ -474,7 +474,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
                     type="text"
                     value={promptData}
                     onChange={handlePromptChange}
-                    disabled= {modelIsRunning ||  !isServerRunning || dataIsUploading}
+                    disabled= {modelIsRunning ||   dataIsUploading}
                 >
                 </textarea>
 
