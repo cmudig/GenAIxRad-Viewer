@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import requests
 import simple_orthanc
 import json
+from sklearn.preprocessing import RobustScaler
 
 
 
@@ -112,14 +113,29 @@ def nifti_to_dicom(nifti_file,
     ds.PatientSex = "O"
     ds.PatientBirthDate = "19000101"
 
+    if modality=='AI':
+        # set window preset for ai generated imgags
+        ds.WindowWidth = 2000
+        ds.WindowCenter = 0
+        data = (data - np.min(data)) / (np.max(data) - np.min(data)) * 1624 -1024 # from MedSyn Paper
+    else:
+        # set window preset for original imges
+        ds.WindowWidth = 200
+        ds.WindowCenter = 0
+        data = (data - np.min(data)) / (np.max(data) - np.min(data)) * 2000 -1000 # tried out
+
     
 
     # Scale pixel data if necessary (e.g., to avoid issues with pixel value ranges)
     #data = data - np.min(data)
     #data = data / np.max(data) * (3000)
+
     
+
+
     # norm the HUE data between -2000, and 2000
-    data = (data - np.min(data)) / (np.max(data) - np.min(data)) * 4000 - 2000
+    
+    
     data = data.astype('int16')
 
     # reverse in 3rd axis
@@ -130,6 +146,15 @@ def nifti_to_dicom(nifti_file,
     elif rotate == "clockwise":
         data = np.rot90(data, k=3, axes=(0, 1))
     
+    #plot 
+    # flattened_data = data.flatten()
+    # plt.figure(figsize=(10, 6))
+    # plt.hist(flattened_data, bins=50, alpha=0.7, color='blue')
+    # plt.title('Data Distribution of All Values in Multidimensional Array')
+    # plt.xlabel('Value')
+    # plt.ylabel('Frequency')
+    # plt.grid(True)
+    # plt.show()
     
 
     
