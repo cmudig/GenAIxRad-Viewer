@@ -115,7 +115,7 @@ def nifti_to_dicom(nifti_file,
 
     if modality=='AI':
         # set window preset for ai generated imgags
-        ds.WindowWidth = 2000
+        ds.WindowWidth = 1500
         ds.WindowCenter = 0
         data = (data - np.min(data)) / (np.max(data) - np.min(data)) * 1624 -1024 # from MedSyn Paper
     else:
