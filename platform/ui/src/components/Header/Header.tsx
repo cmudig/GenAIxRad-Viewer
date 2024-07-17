@@ -55,9 +55,9 @@ function Header({
                 className="text-primary-active w-8"
               />
             )}
-            <div className="ml-1">
+            {/* <div className="ml-1">
               {WhiteLabeling?.createLogoComponentFn?.(React, props) || <Svg name="logo-ohif" />}
-            </div>
+            </div> */}
           </div>
         </div>
         <div className="absolute top-1/2 left-[250px]  h-8 -translate-y-1/2">{Secondary}</div>
