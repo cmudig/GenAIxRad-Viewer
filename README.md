@@ -3,14 +3,13 @@
 <div align="center">
   <h1>A Generative AI Extension for the OHIF Viewer</h1>
   <p>This Repository contains the <strong>OHIF Viewer</strong> with an <strong>Generative AI </strong> extension, that enables the user to input a text and ganerates a CT scan of the chest. The OHIF Viewer is a zero-footprint medical image viewer
-provided by the <a href="https://ohif.org/">Open Health Imaging Foundation (OHIF)</a>. It is a configurable and extensible progressive web application with out-of-the-box support for image archives which support <a href="https://www.dicomstandard.org/using/dicomweb/">DICOMweb</a>.</p>
+provided by the <a href="https://ohif.org/">Open Health Imaging Foundation (OHIF)</a>. It is a configurable and extensible progressive web application with out-of-the-box support for image archives which support <a href="https://www.dicomstandard.org/using/dicomweb/">DICOMweb</a>. This extension requires an backend server to run the generative AI model (MedSyn) to convert text input into 3D CT scans.</p>
 </div>
 
 <hr />
 
-[![NPM version][npm-version-image]][npm-url]
-[![MIT License][license-image]][license-url]
-[![This project is using Percy.io for visual regression testing.][percy-image]](percy-url)
+
+
 <!-- [![NPM downloads][npm-downloads-image]][npm-url] -->
 <!-- [![Pulls][docker-pulls-img]][docker-image-url] -->
 <!-- [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FOHIF%2FViewers.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FOHIF%2FViewers?ref=badge_shield) -->
@@ -22,10 +21,10 @@ provided by the <a href="https://ohif.org/">Open Health Imaging Foundation (OHIF
 <!-- prettier-ignore-end -->
 
 
-|     |  | |
-| :-: | :---  | :--- |
-| <img src="https://github.com/OHIF/Viewers/blob/master/platform/docs/docs/assets/img/demo-measurements.webp?raw=true" alt="TODO: add demo" width="350"/> | TODO | [Demo](https://viewer.ohif.org/viewer?StudyInstanceUIDs=1.3.6.1.4.1.25403.345050719074.3824.20170125095438.5) |
 
+<img src="Screenshot 2024-07-17 143727.png" alt="Generative AI extension." /> 
+
+Screenshot of Generative AI extension. Left: Findings and Impressions of original CT scan. Right: Enter prompt to generate CT and server Status, below already generated images.
 
 
 
@@ -39,33 +38,41 @@ provided by the <a href="https://ohif.org/">Open Health Imaging Foundation (OHIF
 
 - [Yarn 1.17.3+](https://yarnpkg.com/en/docs/install)
 - [Node 18+](https://nodejs.org/en/)
+- [Docker](https://docs.docker.com/get-docker/)
 - Yarn Workspaces should be enabled on your machine:
   - `yarn config set workspaces-experimental true`
+- To make inference with model GPU with 40GB RAM required
 
 ### Getting Started
+#### Run Viewer
 1. Clone this repository
    - `git clone https://github.com/TomWartm/Viewers.git`
 2. Navigate to the cloned project's directory
 3. `yarn install` to restore dependencies and link projects
 
+#### Run Backend
+1. Clone the backend repository (on a machine with large GPU RAM)
+    - `git clone https://github.com/TomWartm/MedsynBackend`
+2. Navigate to the cloned project's directory
+3. Install required python packages `conda env create --file environment.yml`
+4. Actiave environment `conda activate medsyn-3-8`
+5. Navigate to src folder
+6. Run flask server `flask run`
+
+#### Add dummy Data
+Add NIfTI files to the folder `data/nifti` (some are available on our google drive) and use the notebook in `backend/nifti_to_orthan.ipynb` to converti files into DICOM and upload to the Orthanc server.
 
 ## Commands
 
-These commands are available from the root directory. Each project directory
-also supports a number of commands that can be found in their respective
-`README.md` and `package.json` files.
+These commands are available from the root directory.
 
 | Yarn Commands                | Description                                                   |
 | ---------------------------- | ------------------------------------------------------------- |
 | **Develop**                  |                                                               |
-| `dev` or `start`             | Default development experience for Viewer                     |
-| `test:unit`                  | Jest multi-project test runner; overall coverage              |
-| `run dev:orthanc`            | Runs the viewer with Orthnac backend                          |
-| **Deploy**                   |                                                               |
-| `build`\*                    | Builds production output for our PWA Viewer                   |  |
+| `yarn orthanc:up`            | Starts Orthanc server in docker                          |
+| `yarn dev:orthanc`            | Runs the viewer with Orthnac backend                          |
 
-\* - For more information on our different builds, check out our [Deploy
-Docs][deployment-docs]
+
 
 ## Project
 
@@ -114,27 +121,12 @@ you'll see the following:
 └── README.md                # This file
 ```
 
-## Acknowledgments
-
-To acknowledge the OHIF Viewer in an academic publication, please cite
-
-> _Open Health Imaging Foundation Viewer: An Extensible Open-Source Framework
-> for Building Web-Based Imaging Applications to Support Cancer Research_
->
-> Erik Ziegler, Trinity Urban, Danny Brown, James Petts, Steve D. Pieper, Rob
-> Lewis, Chris Hafey, and Gordon J. Harris
->
-> _JCO Clinical Cancer Informatics_, no. 4 (2020), 336-345, DOI:
-> [10.1200/CCI.19.00131](https://www.doi.org/10.1200/CCI.19.00131)
->
-> Open-Access on Pubmed Central:
-> https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7259879/
 
 
 
 ## License
+[![MIT License][license-image]][license-url]
 
-MIT © [OHIF](https://github.com/OHIF)
 
 <!--
   Links
