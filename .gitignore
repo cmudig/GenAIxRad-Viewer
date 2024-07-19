@@ -47,6 +47,7 @@ platform/app/.recipes/OpenResty-Orthanc/logs/*
 .vercel
 
 .vs
+.pyc
 
 # PlayWright
 

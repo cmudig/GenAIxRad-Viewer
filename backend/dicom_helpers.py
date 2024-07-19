@@ -211,7 +211,7 @@ def nifti_to_dicom(nifti_file,
 
 
 
-def store_metadata(series_instance_uid, metadata, json_file_path="../data/init_metadata.json"):
+def store_metadata(series_instance_uid, metadata, json_file_path="../backend/init_metadata.json"):
     # Load the existing JSON file
     with open(json_file_path, 'r') as json_file:
         data = json.load(json_file)
