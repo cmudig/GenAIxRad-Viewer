@@ -1,5 +1,5 @@
 import {classes} from '@ohif/core';
-import studyMetadata from '../../../data/init_metadata.json';
+import studyMetadata from '../../../backend/init_metadata.json';
 const { MetadataProvider } = classes;
 
 
