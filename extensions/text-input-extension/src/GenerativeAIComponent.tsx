@@ -49,6 +49,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
         return () => clearInterval(interval); // Cleanup on component unmount
       }, []);
 
+      // follow status of MedSyn: when finished download images from backend and upload to Orthanc
       useEffect(() => {
         const checkModelIsRunning = async () => {
             try {
@@ -63,42 +64,6 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
                             console.log("Model ended");
                             console.log("Try to download data");
 
-                            const executeDownloadAndUpload = async () => {
-                                try {
-                                    await _downloadAndUploadImages(fileID);
-
-                                    await _addMetadataToSeries(generatingFileSeriesInstanceUID, generatingFilePrompt, 'SeriesPrompt');
-
-                                    // Show success window and wait for user to click OK
-                                    await showModal();
-                                    // Reload the window after the dialog is dismissed
-                                    
-
-
-                                } catch (error) {
-                                    console.error('Error in downloading and uploading images:', error);
-                                    uiModalService.show({
-                                      title: 'Error with Image Generation ',
-                                      containerDimensions: 'w-1/2',
-                                      content: () => {
-                                        return (
-                                          <div>
-                                            <p className="mt-2 p-2">
-                                              Please check if the backend CUDA is out of memory. 
-                                            </p>
-                                            <p className="mt-2 p-2">
-                                              If you do not wish to regenerate the CT scans that were previously attempted, remove them from the backend cache located in: results/text_embed and results/img_64_standard. If these files remain in the cache, they will be regenerated but not uploaded. 
-                                            </p>
-                                            <p className="mt-2 p-2">
-                                              Otherwise just click "Generate new CT" again and hope the backend server is less used than before. 
-                                            </p>
-                                          </div>
-                                        );
-                                      },
-                                    });
-                                }
-                            };
-
                             executeDownloadAndUpload();
                         }
                         setOldModelIsRunning(prevModelIsRunning);
@@ -109,13 +74,50 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
                 console.log('Error checking for model status:', error);
             }
         };
+        const executeDownloadAndUpload = async () => {
+          try {
+              await _downloadAndUploadImages(fileID);
+
+              await _addMetadataToSeries(generatingFileSeriesInstanceUID, generatingFilePrompt, 'SeriesPrompt');
+
+              // Show success window and wait for user to click OK
+              await showSuccessFeedback();
+
+          } catch (error) {
+              console.error('Error in downloading and uploading images:', error);
+              showErrorFeedback();
+              
+          }
+        };
         const reloadWindow = () => {
           
           console.log('Modal is closing');        
           window.location.reload();
         };
+        const showErrorFeedback=()=>{
+          uiModalService.show({
+            title: 'Error with Image Generation ',
+            containerDimensions: 'w-1/2',
+            content: () => {
+              return (
+                <div>
+                  <p className="mt-2 p-2">
+                    Please check if the backend CUDA is out of memory. 
+                  </p>
+                  <p className="mt-2 p-2">
+                    If you do not wish to regenerate the CT scans that were previously attempted, remove them from the backend cache located in: results/text_embed and results/img_64_standard. If these files remain in the cache, they will be regenerated but not uploaded. 
+                  </p>
+                  <p className="mt-2 p-2">
+                    Otherwise just click "Generate new CT" again and hope the backend server is less used than before. 
+                  </p>
+                </div>
+              );
+            },
+          });
 
-        const showModal = () => {
+        }
+
+        const showSuccessFeedback = () => {
             return new Promise((resolve) => {
                 uiModalService.show({
                     title: 'Info',
@@ -132,7 +134,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
                                   <div className="text-primary-main  mr-2">Name:</div>
                                   <div className="text-blue-300  mr-2">{promptHeaderData}</div>
                                 </div>
-                                <div className="flex items-center mb-8 p-2 ml-8">
+                                <div className="flex flex-col mb-8 p-2 ml-8">
                                   <div className="text-primary-main  mr-2">Prompt:</div>
                                   <div className="mr-2">{promptData}</div>
                                 </div>
@@ -177,7 +179,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
       return () => {
           displaySetSubscription.unsubscribe(displaySetSubscription);
       };
-  }, []);
+    }, []);
 
     const handleGenerateClick = async () => {
 
