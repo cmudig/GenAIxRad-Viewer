@@ -1,5 +1,5 @@
 import { id } from './id';
-import TextInputSidePanelComponent from './TextInputSidePanelComponent.tsx';
+import ReportSidePanelComponent from './ReportSidePanelComponent.tsx';
 import GenerativeAIComponent from './GenerativeAIComponent.tsx';
 import twoOneProtocol from './hangingprotocols/twoOne.ts';
 /**
@@ -36,7 +36,7 @@ export default {
         iconName: 'icon-transferring',
         iconLabel: 'Text Input',
         label: 'Report',
-        component: TextInputSidePanelComponent.bind(null, {
+        component: ReportSidePanelComponent.bind(null, {
           commandsManager,
           extensionManager,
           servicesManager,
