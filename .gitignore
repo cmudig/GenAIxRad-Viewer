@@ -25,6 +25,8 @@ yarn-error.log
 .env
 *.code-workspace
 .directory
+__pycache__/
+*.pyc
 
 # Common Example Data Directories
 sampledata/
@@ -56,3 +58,4 @@ tests/test-results/
 tests/playwright-report/
 /blob-report/
 /playwright/.cache/
+
