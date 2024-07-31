@@ -493,10 +493,6 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
                                 label: 'Clear',
                                 onClick: clearText,
                             },
-                            {
-                                label: 'Reload Page',
-                                onClick: reloadPage,
-                            },
                         ]}
                         disabled={disabled}
                     />
