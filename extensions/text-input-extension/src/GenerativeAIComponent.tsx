@@ -21,7 +21,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
     const [fileID, setFileID] = useState('');
 
     const disabled = false;
-    const serverUrl = 'http://149.165.152.221:5000';
+    const serverUrl = 'http://149.165.154.176:5000';
 
     const [{viewports }] = useViewportGrid();
 

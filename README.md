@@ -46,7 +46,7 @@ Screenshot of Generative AI extension. Left: Findings and Impressions of origina
 3. Install required python packages `conda env create --file environment.yml`
 4. Actiave environment `conda activate medsyn-3-8`
 5. Navigate to src folder
-6. Run flask server `flask run`
+6. Run flask server `python app.py`
 
 #### Add dummy Data
 Add NIfTI files to the folder `data/nifti` (some are available on our google drive) and use the notebook in `backend/nifti_to_orthan.ipynb` to converti files into DICOM and upload to the Orthanc server.
