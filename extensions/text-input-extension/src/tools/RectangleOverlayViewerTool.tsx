@@ -86,9 +86,9 @@ class RectangleOverlayViewerTool extends AnnotationDisplayTool {
           height: overlayBottomRightOnCanvas[1] - overlayTopLeftOnCanvas[1],
           x: overlayTopLeftOnCanvas[0],
           y: overlayTopLeftOnCanvas[1],
-          fill: `rgba(${color.join(',')})`, // Convert color array to CSS rgba string
+          fill: 'none', //`rgba(${color.join(',')})`, // Convert color array to CSS rgba string
           'stroke-width': 2,
-          stroke: 'black',
+          stroke: `rgba(${color.join(',')})`,
       };
 
       // Create or update the rectangle element in the SVG

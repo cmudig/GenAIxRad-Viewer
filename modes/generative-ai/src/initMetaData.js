@@ -1,11 +1,11 @@
 import {classes} from '@ohif/core';
-import studyMetadata from '../../../data/init_metadata.json';
+import studyMetadata from '../../../backend/init_metadata.json';
 const { MetadataProvider } = classes;
 
 
 //TODO: add Interface for MetadataHere
 // slice: important only for scrollbar
-
+// imageId: "wadors:/dicom-web/studies/[StudyInstanceUID]/series/[SeriesInstanceUID]/instances/[SOPInstanceUID]/frames/1",
 const metaData = [
   {
     "imageId": "wadors:/dicom-web/studies/1/series/1/instances/1.2.3.2/frames/1",
@@ -116,7 +116,44 @@ const metaData = [
         }
       }
     ]
+  },/**
+  {
+    "imageId": "wadors:/dicom-web/studies/3.2/series/3.2.2/instances/1.2.826.0.1.3680043.8.498.52446303580485985714866618176921288824/frames/1",
+    "slice": 140,
+    "elements": [
+      {
+        "id": "7",
+        "type": "Rectangle",
+        "attributes": {
+          "x": 92,
+          "y": 203,
+          "width": 50,
+          "height": 25,
+          "color": [255, 51, 102, 1],
+          
+        }
+      }
+    ]
   },
+  {
+    "imageId": "wadors:/dicom-web/studies/3.2/series/3.2.2/instances/1.2.826.0.1.3680043.8.498.12544928690284129766048880761169655126/frames/1",
+    "slice": 139,
+    "elements": [
+      {
+        "id": "7",
+        "type": "Rectangle",
+        "attributes": {
+          "x": 92,
+          "y": 203,
+          "width": 50,
+          "height": 25,
+          "color": [255, 51, 102, 1],
+          
+        }
+      }
+    ]
+  },
+   */
 ]
 
 function addStudyMetadata(){
