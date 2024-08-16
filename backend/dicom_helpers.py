@@ -10,7 +10,8 @@ import requests
 import simple_orthanc
 import json
 from sklearn.preprocessing import RobustScaler
-
+import seaborn as sns
+from scipy import stats
 
 
 
@@ -119,12 +120,25 @@ def nifti_to_dicom(nifti_file,
         ds.WindowCenter = 0
         data = (data - np.min(data)) / (np.max(data) - np.min(data)) * 1624 -1024 # from MedSyn Paper
     else:
+        # clipt to percentile, since data from CT-RATE has many outliers
+        data = stats.mstats.winsorize(data, limits=[0.075, 0.001])
         # set window preset for original imges
-        ds.WindowWidth = 200
+        ds.WindowWidth = 1500
         ds.WindowCenter = 0
-        data = (data - np.min(data)) / (np.max(data) - np.min(data)) * 2000 -1000 # tried out
+        data = (data - np.min(data)) / (np.max(data) - np.min(data)) * 1624 -824 # shifted 200 since data is differnetly distributed
 
+    # plot distribution
+    # Flatten the array to 1D
+    # flattened_array = data.flatten()
     
+    # # Plot the distribution using a histogram
+    # plt.figure(figsize=(10, 6))
+    # plt.hist(flattened_array, bins=150, edgecolor='k', alpha=0.7)
+    # plt.title('Distribution of Values')
+    # plt.xlabel('Value')
+    # plt.ylabel('Frequency')
+    # plt.yscale('log')
+    # plt.show() 
 
     # Scale pixel data if necessary (e.g., to avoid issues with pixel value ranges)
     #data = data - np.min(data)
@@ -197,7 +211,7 @@ def nifti_to_dicom(nifti_file,
 
 
 
-def store_metadata(series_instance_uid, metadata, json_file_path="../data/init_metadata.json"):
+def store_metadata(series_instance_uid, metadata, json_file_path="../backend/init_metadata.json"):
     # Load the existing JSON file
     with open(json_file_path, 'r') as json_file:
         data = json.load(json_file)

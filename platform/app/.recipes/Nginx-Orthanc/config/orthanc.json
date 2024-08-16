@@ -52,7 +52,8 @@
   "UserMetadata": {
     "SeriesPrompt": 1024,
     "Impressions": 1025,
-    "Findings": 1026
+    "Findings": 1026,
+    "Feedback":1027
   },
   "StableAge": 60,
   "StrictAetComparison": false,

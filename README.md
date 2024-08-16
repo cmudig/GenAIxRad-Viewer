@@ -2,22 +2,12 @@
 <!-- markdownlint-disable -->
 <div align="center">
   <h1>A Generative AI Extension for the OHIF Viewer</h1>
-  <p>This Repository contains the <strong>OHIF Viewer</strong> with an <strong>Generative AI </strong> extension, that enables the user to input a text and ganerates a CT scan of the chest. The OHIF Viewer is a zero-footprint medical image viewer
-provided by the <a href="https://ohif.org/">Open Health Imaging Foundation (OHIF)</a>. It is a configurable and extensible progressive web application with out-of-the-box support for image archives which support <a href="https://www.dicomstandard.org/using/dicomweb/">DICOMweb</a>. This extension requires an backend server to run the generative AI model (MedSyn) to convert text input into 3D CT scans.</p>
+  <p>This Repository contains the <strong>OHIF Viewer</strong> with an <strong>Generative AI </strong> extension, that enables the user to input a text and ganerates a CT scan of the chest. The OHIF Viewer is a medical image viewer
+provided by the <a href="https://ohif.org/">Open Health Imaging Foundation (OHIF)</a>.  This extension requires an backend server to run the generative AI model (MedSyn) to convert text input into 3D CT scans.</p>
 </div>
 
 <hr />
 
-
-
-<!-- [![NPM downloads][npm-downloads-image]][npm-url] -->
-<!-- [![Pulls][docker-pulls-img]][docker-image-url] -->
-<!-- [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FOHIF%2FViewers.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FOHIF%2FViewers?ref=badge_shield) -->
-
-<!-- [![Netlify Status][netlify-image]][netlify-url] -->
-<!-- [![CircleCI][circleci-image]][circleci-url] -->
-<!-- [![codecov][codecov-image]][codecov-url] -->
-<!-- [![All Contributors](https://img.shields.io/badge/all_contributors-10-orange.svg?style=flat-square)](#contributors) -->
 <!-- prettier-ignore-end -->
 
 
@@ -30,10 +20,6 @@ Screenshot of Generative AI extension. Left: Findings and Impressions of origina
 
 
 ## Developing
-
-
-
-
 ### Requirements
 
 - [Yarn 1.17.3+](https://yarnpkg.com/en/docs/install)
@@ -41,14 +27,17 @@ Screenshot of Generative AI extension. Left: Findings and Impressions of origina
 - [Docker](https://docs.docker.com/get-docker/)
 - Yarn Workspaces should be enabled on your machine:
   - `yarn config set workspaces-experimental true`
-- To make inference with model GPU with 40GB RAM required
+- To make inference with MedSyn model GPU with 40GB RAM required
+
 
 ### Getting Started
-#### Run Viewer
+#### Run Application
 1. Clone this repository
    - `git clone https://github.com/TomWartm/Viewers.git`
 2. Navigate to the cloned project's directory
 3. `yarn install` to restore dependencies and link projects
+4. Start backend server `yarn orthanc:up`
+5. Start the Application with Orthanc as backend `yarn dev:orthanc` (in a new terminal)
 
 #### Run Backend
 1. Clone the backend repository (on a machine with large GPU RAM)
@@ -57,20 +46,10 @@ Screenshot of Generative AI extension. Left: Findings and Impressions of origina
 3. Install required python packages `conda env create --file environment.yml`
 4. Actiave environment `conda activate medsyn-3-8`
 5. Navigate to src folder
-6. Run flask server `flask run`
+6. Run flask server `python app.py`
 
 #### Add dummy Data
 Add NIfTI files to the folder `data/nifti` (some are available on our google drive) and use the notebook in `backend/nifti_to_orthan.ipynb` to converti files into DICOM and upload to the Orthanc server.
-
-## Commands
-
-These commands are available from the root directory.
-
-| Yarn Commands                | Description                                                   |
-| ---------------------------- | ------------------------------------------------------------- |
-| **Develop**                  |                                                               |
-| `yarn orthanc:up`            | Starts Orthanc server in docker                          |
-| `yarn dev:orthanc`            | Runs the viewer with Orthnac backend                          |
 
 
 
@@ -121,8 +100,12 @@ you'll see the following:
 └── README.md                # This file
 ```
 
+## Howto
+### Manually load images
+To manually load images into the Tool you can drag-and-drop with the Upload feature on the study overview page, opload directly to Orthanc server on its interface (`http://localhost:8042/app/explorer.html`) or programmatically with python (check `backend/nifti_to_orthanc.ipynb`)
 
-
+## Backend
+Images are stored on a the Orthanc server you can open up the Interface running on `http://localhost:8042/app/explorer.html`. 
 
 ## License
 [![MIT License][license-image]][license-url]

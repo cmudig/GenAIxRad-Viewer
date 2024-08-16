@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import UserFeedback from './UserFeedback';
 
 const StudyMetadataDisplay = ({
     description,
@@ -9,11 +10,14 @@ const StudyMetadataDisplay = ({
     modality
  }) => {
   const [promptMetaData, setPromptMetaData] = useState("");
+  const [seriesID, setSeriesID] = useState("");
 
   useEffect(() => {
     if (modality ==='AI'){
       const fetchMetadata = async () => {
         const orthancSeriesID = await _getOrthancSeriesID(seriesInstanceUID);
+        setSeriesID(orthancSeriesID);
+        
         const response = await _getPromptMetadataOfSeries(orthancSeriesID);
         
         setPromptMetaData(response);
@@ -30,8 +34,8 @@ const StudyMetadataDisplay = ({
     <div className="group mb-8 flex flex-1 cursor-pointer flex-col px-3 outline-none"
       onClick={onClick}
       onDoubleClick={onDoubleClick}>
-      <span className="text-primary-main font-bold select-none mb-1">{'Original Image'}</span>
-      <div className="break-all text-base text-blue-300 mb-1">{description}</div>
+      <span className="text-primary-main font-bold select-none mb-1">{description}</span>
+      
       
   </div>
   );
@@ -40,11 +44,12 @@ const StudyMetadataDisplay = ({
     <div className="group mb-8 flex flex-1 cursor-pointer flex-col px-3 outline-none"
           onClick={onClick}
           onDoubleClick={onDoubleClick}>
-      <span className="text-primary-main font-bold select-none mb-1">{'Generated Image'}</span>
-      <div className="break-all text-base text-blue-300 mb-1">{description}</div>
+      <span className="text-primary-main font-bold select-none mb-1">{description}</span>
+      <div className="break-all text-base text-blue-300 mt-1">Prompt: </div>
       <div className="break-words text-base text-white">
         {promptMetaData ? promptMetaData : ''}
       </div>
+      <UserFeedback seriesID={seriesID} />
     </div>
   );
 };

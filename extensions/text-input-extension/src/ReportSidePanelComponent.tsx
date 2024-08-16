@@ -5,7 +5,7 @@ import { DicomMetadataStore, DisplaySetService } from '@ohif/core';
 import TextArea from './components/TextArea';
 import WrappedPreviewStudyBrowser from './components/WrappedPreviewStudyBrowser';
 
-function TextInputSidePanelComponent({ commandsManager, extensionManager, servicesManager }) {
+function ReportSidePanelComponent({ commandsManager, extensionManager, servicesManager }) {
 
 
     return (
@@ -26,4 +26,4 @@ function TextInputSidePanelComponent({ commandsManager, extensionManager, servic
     );
 }
 
-export default TextInputSidePanelComponent;
+export default ReportSidePanelComponent;
