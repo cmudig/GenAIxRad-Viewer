@@ -12,7 +12,7 @@ provided by the <a href="https://ohif.org/">Open Health Imaging Foundation (OHIF
 
 
 
-<img src="Screenshot 2024-07-17 143727.png" alt="Generative AI extension." /> 
+<img src="viewer_overview.png" alt="Generative AI extension." /> 
 
 Screenshot of Generative AI extension. Left: Findings and Impressions of original CT scan. Right: Enter prompt to generate CT and server Status, below already generated images.
 
