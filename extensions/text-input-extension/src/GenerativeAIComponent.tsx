@@ -102,13 +102,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
               return (
                 <div>
                   <p className="mt-2 p-2">
-                    Please check if the backend CUDA is out of memory. 
-                  </p>
-                  <p className="mt-2 p-2">
-                    If you do not wish to regenerate the CT scans that were previously attempted, remove them from the backend cache located in: results/text_embed and results/img_64_standard. If these files remain in the cache, they will be regenerated but not uploaded. 
-                  </p>
-                  <p className="mt-2 p-2">
-                    Otherwise just click "Generate new CT" again and hope the backend server is less used than before. 
+                    The backend CUDA may be out of memory. Please try clicking "Generate new CT" again and hope that the backend server has less load this time. 
                   </p>
                 </div>
               );
@@ -127,8 +121,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
                         return (
                             <div>
                                 <p className="mt-2 p-2 mb-8">
-                                   The CT scan was sucessfull generated:
-                                   
+                                  The CT scan was generated successfully
                                 </p>
                                 <div className="flex items-center p-2 ml-8">
                                   <div className="text-primary-main  mr-2">Name:</div>
