@@ -57,8 +57,18 @@ Screenshot of Generative AI extension. Left: Findings and Impressions of origina
 Add NIfTI files to the folder `data/nifti` (some are available on our google drive) and use the notebook in `backend/nifti_to_orthan.ipynb` to converti files into DICOM and upload to the Orthanc server.
 
 #### Pinging the Model API on PSC
+(this may be helpful: https://www.psc.edu/resources/bridges-2/user-guide/)
 * RunMedSyn.ipnyb in this folder: [https://drive.google.com/drive/u/0/folders/1BW8n9D_nBhsLVCdVsN52JaO72Ky23AdI](https://drive.google.com/drive/u/0/folders/1cnKxtEfCOsOYPCQ2xxBLiIYqnj-2ipZR)
-* You need the whole folder on PSC 
+* You need the whole folder on PSC in your home directory
+* You need to set up the conda environment:
+    - `module load anaconda3`
+    - `conda activate # source /opt/packages/anaconda3/etc/profile.d/conda.sh`
+    - go to MedSyn folder, run `conda env create --file environment.yml`
+    - `conda activate medsyn-3-8`
+    - if you didn't do this, then `conda install ipykernel` and `python3 -m ipykernel install --user --name medsyn-3-8 --display-name "PYTHON-medsyn-3-8"`
+    - When you launch a jupyter notebook, you have to set Extra Slurm Args to --gres=gpu:v100-32:4
+    - partition it to GPU-shared
+    - after you generate an image from there, you can if you want run `nifti-to-orthanic.ipynb` in the GenAIViewer Repo to view image in the UI OR you can use ITK-SNAP program instead
 
 
 ## Project
