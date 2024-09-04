@@ -44,9 +44,14 @@ Screenshot of Generative AI extension. Left: Findings and Impressions of origina
     - `git clone https://github.com/TomWartm/MedsynBackend`
 2. Navigate to the cloned project's directory
 3. Install required python packages `conda env create --file environment.yml`
-4. Actiave environment `conda activate medsyn-3-8`
+4. Activate environment `conda activate medsyn-3-8`
 5. Navigate to src folder
 6. Run flask server `python app.py`
+
+#### Notes about Backend
+- Always shelve the VM when you are done using it
+- Don't release the Public IP Address
+- Open the web desktop to activate conda environment in the terminal (only need to start from step 4)
 
 #### Add dummy Data
 Add NIfTI files to the folder `data/nifti` (some are available on our google drive) and use the notebook in `backend/nifti_to_orthan.ipynb` to converti files into DICOM and upload to the Orthanc server.
