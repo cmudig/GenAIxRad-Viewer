@@ -38,6 +38,7 @@ Screenshot of Generative AI extension. Left: Findings and Impressions of origina
 3. `yarn install` to restore dependencies and link projects
 4. Start backend server `yarn orthanc:up`
 5. Start the Application with Orthanc as backend `yarn dev:orthanc` (in a new terminal)
+6. You may need to update the frontend URL path to blackened located in this file: extensions/text-input-extension/src/GenerativeAIComponent.tsx
 
 #### Run Backend
 1. Clone the backend repository (on a machine with large GPU RAM)
