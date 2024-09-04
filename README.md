@@ -56,6 +56,9 @@ Screenshot of Generative AI extension. Left: Findings and Impressions of origina
 #### Add dummy Data
 Add NIfTI files to the folder `data/nifti` (some are available on our google drive) and use the notebook in `backend/nifti_to_orthan.ipynb` to converti files into DICOM and upload to the Orthanc server.
 
+#### Pinging the Model API on PSC
+* RunMedSyn.ipnyb in this folder: https://drive.google.com/drive/u/0/folders/1BW8n9D_nBhsLVCdVsN52JaO72Ky23AdI
+* You need the whole folder on PSC 
 
 
 ## Project
