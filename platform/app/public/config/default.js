@@ -39,6 +39,19 @@ const config = {
       namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
       sourceName: 'dicomweb',
       configuration: {
+        friendlyName: 'Orthanc DICOMweb Server',
+        wadoUriRoot: 'https://django.katelyncmorrison.com/orthanc/wado',
+        qidoRoot: 'https://django.katelyncmorrison.com/orthanc/dicom-web',
+        wadoRoot: 'https://django.katelyncmorrison.com/orthanc/dicom-web',
+        qidoSupportsIncludeField: true,
+        supportsFuzzyMatching: true,
+        supportsWildcard: true,
+      },
+    },
+    {
+      namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
+      sourceName: 'dicomweb_old',
+      configuration: {
         friendlyName: 'AWS S3 Static wado server',
         name: 'aws',
         wadoUriRoot: 'https://d33do7qe4w26qo.cloudfront.net/dicomweb',
@@ -113,6 +126,23 @@ const config = {
         friendlyName: 'dicom local',
       },
     },
+    {
+      namespace: '@ohif/extension-default.dataSourcesModule.dicomweb',
+      sourceName: 'orthanc',
+      configuration: {
+        friendlyName: 'Orthanc Server',
+        name: 'Orthanc',
+        wadoUriRoot: 'https://django.katelyncmorrison.com/orthanc/wado',
+        qidoRoot: 'https://django.katelyncmorrison.com/orthanc/dicom-web/',
+        wadoRoot: 'https://django.katelyncmorrison.com/orthanc/dicom-web/',
+        qidoSupportsIncludeField: true,
+        imageRendering: 'wadors',
+        thumbnailRendering: 'wadors',
+        enableStudyLazyLoad: true,
+        supportsFuzzyMatching: true,
+        supportsWildcard: true,
+      },
+    }
   ],
   httpErrorHandler: error => {
     // This is 429 when rejected from the public idc sandbox too often.
