@@ -157,7 +157,7 @@ module.exports = (env, argv) => {
         overlay: { errors: true, warnings: false },
       },
       proxy: {
-        '/dicomweb': 'http://localhost:5000',
+        '/dicomweb': 'https://orthanc.katelyncmorrison.com/pacs',
       },
       static: [
         {

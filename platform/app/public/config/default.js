@@ -23,7 +23,7 @@ const config = {
     prefetch: 25,
   },
   // filterQueryParam: false,
-  defaultDataSourceName: 'dicomweb',
+  defaultDataSourceName: 'orthanc',
   /* Dynamic config allows user to pass "configUrl" query string this allows to load config without recompiling application. The regex will ensure valid configuration source */
   // dangerouslyUseDynamicConfig: {
   //   enabled: true,
@@ -40,9 +40,9 @@ const config = {
       sourceName: 'dicomweb',
       configuration: {
         friendlyName: 'Orthanc DICOMweb Server',
-        wadoUriRoot: 'https://django.katelyncmorrison.com/orthanc/wado',
-        qidoRoot: 'https://django.katelyncmorrison.com/orthanc/dicom-web',
-        wadoRoot: 'https://django.katelyncmorrison.com/orthanc/dicom-web',
+        wadoUriRoot: 'https://orthanc.katelyncmorrison.com/wado',
+        qidoRoot: 'https://orthanc.katelyncmorrison.com/pacs',
+        wadoRoot: 'https://orthanc.katelyncmorrison.com/pacs',
         qidoSupportsIncludeField: true,
         supportsFuzzyMatching: true,
         supportsWildcard: true,
@@ -132,9 +132,9 @@ const config = {
       configuration: {
         friendlyName: 'Orthanc Server',
         name: 'Orthanc',
-        wadoUriRoot: 'https://django.katelyncmorrison.com/orthanc/wado',
-        qidoRoot: 'https://django.katelyncmorrison.com/orthanc/dicom-web/',
-        wadoRoot: 'https://django.katelyncmorrison.com/orthanc/dicom-web/',
+        wadoUriRoot: 'https://orthanc.katelyncmorrison.com/wado',
+        qidoRoot: 'https://orthanc.katelyncmorrison.com/dicom-web/',
+        wadoRoot: 'https://orthanc.katelyncmorrison.com/dicom-web/',
         qidoSupportsIncludeField: true,
         imageRendering: 'wadors',
         thumbnailRendering: 'wadors',
