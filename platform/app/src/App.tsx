@@ -37,6 +37,9 @@ let commandsManager: CommandsManager,
   serviceProvidersManager: ServiceProvidersManager,
   hotkeysManager: HotkeysManager;
 
+const requireAuth = false;
+
+
 function App({
   config = {
     routerBaseName: '/',
@@ -143,18 +146,22 @@ function App({
     <CombinedProviders>
       <BrowserRouter basename={routerBasename}>
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                {/* Render the original appRoutes only after authentication */}
-                {authRoutes}
-                {appRoutes}
-              </ProtectedRoute>
-            }
-          />
+          {requireAuth ? (
+            <>
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<SignUp />} />
+              <Route
+                path="/*"
+                element={
+                  <ProtectedRoute>
+                    {appRoutes}
+                  </ProtectedRoute>
+                }
+              />
+            </>
+          ) : (
+            <Route path="/*" element={appRoutes} />
+          )}
         </Routes>
       </BrowserRouter>
     </CombinedProviders>
