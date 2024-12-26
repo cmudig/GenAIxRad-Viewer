@@ -16,7 +16,7 @@
     "npm": ">=6",
     "yarn": ">=1.16.0"
   },
-  "proxy": "https://django.katelyncmorrison.com/orthanc/",
+  "proxy": "https://orthanc.katelyncmorrison.com/pacs/",
   "scripts": {
     "build:viewer": "cross-env NODE_ENV=production yarn run build",
     "build:dev": "cross-env NODE_ENV=development yarn run build",
