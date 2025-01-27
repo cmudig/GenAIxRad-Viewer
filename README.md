@@ -36,9 +36,9 @@ Screenshot of Generative AI extension. Left: Findings and Impressions of origina
    - `git clone https://github.com/TomWartm/Viewers.git`
 2. Navigate to the cloned project's directory
 3. `yarn install` to restore dependencies and link projects
-4. Start backend server `yarn orthanc:up`
+4. [OPTIONAL] Start backend server `yarn orthanc:up` if you are not going to use the deployed Server API
 5. Start the Application with Orthanc as backend `yarn dev:orthanc` (in a new terminal)
-5a. You can also just run yarn dev and it will work
+5a. IF YOU ARE NOT USING LOCAL DOCKER FOR ORTHANC: You can also just run `yarn dev` and it will work
 6. You may need to update the frontend URL path to blackened located in this file: extensions/text-input-extension/src/GenerativeAIComponent.tsx
 7. If you want to deploy the frontend, then you need to
 
