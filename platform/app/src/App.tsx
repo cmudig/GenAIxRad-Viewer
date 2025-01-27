@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import i18n from '@ohif/i18n';
 import { I18nextProvider } from 'react-i18next';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import Login from './components/Login';  // Import Login component
-import SignUp from './components/SignUp';  // Import SignUp component
-import ProtectedRoute from './components/ProtectedRoute';  // Import ProtectedRoute component
+import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
+import Login from './components/Login'; // Import Login component
+import SignUp from './components/SignUp'; // Import SignUp component
+import ProtectedRoute from './components/ProtectedRoute'; // Import ProtectedRoute component
 import Compose from './routes/Mode/Compose';
 import {
   ExtensionManager,
@@ -30,6 +30,7 @@ import { AppConfigProvider } from '@state';
 import createRoutes from './routes';
 import appInit from './appInit.js';
 import OpenIdConnectRoutes from './utils/OpenIdConnectRoutes';
+import SearchHomePage from './components/SearchHomePage'; // Import the new component
 
 let commandsManager: CommandsManager,
   extensionManager: ExtensionManager,
@@ -38,7 +39,6 @@ let commandsManager: CommandsManager,
   hotkeysManager: HotkeysManager;
 
 const requireAuth = false;
-
 
 function App({
   config = {
@@ -148,19 +148,46 @@ function App({
         <Routes>
           {requireAuth ? (
             <>
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<SignUp />} />
               <Route
-                path="/*"
+                path="/login"
+                element={<Login />}
+              />
+              <Route
+                path="/signup"
+                element={<SignUp />}
+              />
+              <Route
+                path="/search"
                 element={
                   <ProtectedRoute>
-                    {appRoutes}
+                    <SearchHomePage />
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/*"
+                element={<ProtectedRoute>{appRoutes}</ProtectedRoute>}
+              />
+              <Route
+                path="/"
+                element={<Navigate to="/search" />}
+              />
             </>
           ) : (
-            <Route path="/*" element={appRoutes} />
+            <>
+              <Route
+                path="/search"
+                element={<SearchHomePage />}
+              />
+              <Route
+                path="/*"
+                element={appRoutes}
+              />
+              <Route
+                path="/"
+                element={<Navigate to="/search" />}
+              />
+            </>
           )}
         </Routes>
       </BrowserRouter>
@@ -184,8 +211,6 @@ App.propTypes = {
 
 export default App;
 export { commandsManager, extensionManager, servicesManager };
-
-
 
 // import React, { useEffect, useState } from 'react';
 // import PropTypes from 'prop-types';
