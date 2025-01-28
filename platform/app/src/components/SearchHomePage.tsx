@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { uploadDicomFolder, addMetadataToStudy } from './dicom_helpers';
 
 const serverUrl = 'https://medsyn.katelyncmorrison.com';
 const orthancServerUrl = 'https://orthanc.katelyncmorrison.com';
@@ -10,10 +11,44 @@ const SearchHomePage = () => {
   const [isModelRunning, setIsModelRunning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
+  const [oldModelIsRunning, setOldModelIsRunning] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [dataIsUploading, setDataIsUploading] = useState(false);
+  const [generateClicked, setGenerateClicked] = useState(false); // Flag to track if generate button was clicked
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkModelStatus = async () => {
+    const checkModelIsRunning = async () => {
+      try {
+        const response = await axios.get(`${serverUrl}/status`);
+
+        if (response.status === 200) {
+          const processIsRunning = response.data['process_is_running'];
+          const progressPercentage = response.data['progress'] || 0;
+          setProgress(progressPercentage);
+          setIsModelRunning(prevModelIsRunning => {
+            if (prevModelIsRunning === false && processIsRunning === true) {
+              console.log('Model started');
+              setLogs(prevLogs => [...prevLogs, 'Model started']);
+            } else if (prevModelIsRunning === true && processIsRunning === false) {
+              console.log('Model ended');
+              setLogs(prevLogs => [...prevLogs, 'Model ended']);
+              console.log('Try to download data');
+              setLogs(prevLogs => [...prevLogs, 'Try to download data']);
+
+              executeDownloadAndUpload();
+            }
+            setOldModelIsRunning(prevModelIsRunning);
+            return processIsRunning;
+          });
+        }
+      } catch (error) {
+        console.log('Error checking for model status:', error);
+        setLogs(prevLogs => [...prevLogs, `Error checking for model status: ${error.message}`]);
+      }
+    };
+
+    const checkServerStatus = async () => {
       try {
         const response = await axios.get(serverUrl);
         console.log('Server status response:', response.data);
@@ -28,11 +63,36 @@ const SearchHomePage = () => {
       }
     };
 
-    checkModelStatus();
-    const interval = setInterval(checkModelStatus, 60000); // Check every 60 seconds
+    checkModelIsRunning();
+    checkServerStatus();
+    const interval = setInterval(() => {
+      checkModelIsRunning();
+      checkServerStatus();
+    }, 60000); // Check every 60 seconds
 
     return () => clearInterval(interval); // Cleanup on component unmount
   }, []);
+
+  useEffect(() => {
+    const getServerLog = async () => {
+      if (isModelRunning) {
+        try {
+          const response = await axios.get(`${serverUrl}/progress`);
+          if (response.status === 200) {
+            if (generateClicked) {
+              setLogs(prevLogs => [...prevLogs, `Model progress: ${response.data}`]);
+            }
+          }
+        } catch (error) {
+          console.log('Error when getting server log:', error);
+        }
+      }
+    };
+
+    const interval = setInterval(getServerLog, 5000); // Check every 5 seconds
+
+    return () => clearInterval(interval); // Cleanup on component unmount
+  }, [isModelRunning, generateClicked]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(event.target.value);
@@ -40,19 +100,28 @@ const SearchHomePage = () => {
 
   const handleGenerateClick = async () => {
     setIsLoading(true);
+    setGenerateClicked(true); // Set the flag to true when generate button is clicked
     setLogs(['Starting CT scan generation...']);
     try {
       const studyId = generateUniqueId();
-      await createStudyInOrthanc(studyId);
+      await addMetadataToStudy(
+        studyId,
+        JSON.stringify({
+          StudyInstanceUID: studyId,
+          PatientName: 'Generated Patient',
+          PatientID: '12345',
+          StudyDescription: 'Generated CT Scan',
+        }),
+        'StudyDescription'
+      );
       const response = await generateCTScan(inputValue, studyId);
       if (response.success) {
         setLogs(prevLogs => [...prevLogs, 'CT scan generation in progress...']);
-        await pollForCompletion(response.studyId);
       } else {
         setLogs(prevLogs => [...prevLogs, 'Failed to generate CT scan']);
       }
     } catch (error) {
-      setLogs(prevLogs => [...prevLogs, 'Error generating CT scan:', error.message]);
+      setLogs(prevLogs => [...prevLogs, `Error generating CT scan: ${error.message}`]);
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +146,11 @@ const SearchHomePage = () => {
     };
 
     try {
-      const response = await axios.post(`${serverUrl}/files/${fileID}`, payload, { headers });
+      const response = await axios.post(
+        `${serverUrl}/media/volume/gen-ai-volume/MedSyn/results/dicom/${fileID}`,
+        payload,
+        { headers }
+      );
       if (response.status === 200) {
         return { success: true, studyId: payload.studyInstanceUID };
       } else {
@@ -90,109 +163,123 @@ const SearchHomePage = () => {
     }
   };
 
-  const createStudyInOrthanc = async (studyId: string) => {
-    const payload = {
-      MainDicomTags: {
-        StudyInstanceUID: studyId,
-        PatientName: 'Generated Patient',
-        PatientID: '12345',
-        StudyDescription: 'Generated CT Scan',
-      },
-    };
-
+  const executeDownloadAndUpload = async () => {
     try {
-      await axios.post(`${orthancServerUrl}/studies`, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        },
-      });
-      setLogs(prevLogs => [...prevLogs, 'Study created in Orthanc']);
+      const studyId = generateUniqueId();
+      await downloadAndUploadImages(studyId);
+      await addMetadataToStudy(
+        studyId,
+        JSON.stringify({
+          StudyInstanceUID: studyId,
+          PatientName: 'Generated Patient',
+          PatientID: '12345',
+          StudyDescription: 'Generated CT Scan',
+        }),
+        'StudyDescription'
+      ); // Add the study to Orthanc
+      await uploadDicomFolder(`/media/volume/gen-ai-volume/MedSyn/results/dicom/${studyId}`); // Upload the DICOM folder
+      navigate(`https://genai-radiology.web.app/generative-ai?StudyInstanceUIDs=${studyId}`);
     } catch (error) {
-      console.error('Error creating study in Orthanc:', error);
-      setLogs(prevLogs => [...prevLogs, 'Error creating study in Orthanc:', error.message]);
+      console.error('Error in executing download and upload:', error);
+      setLogs(prevLogs => [
+        ...prevLogs,
+        `Error in executing download and upload: ${error.message}`,
+      ]);
     }
-  };
-
-  const pollForCompletion = async (studyId: string) => {
-    const interval = setInterval(async () => {
-      try {
-        const response = await axios.get(`${serverUrl}/status/${studyId}`);
-        if (response.data.status === 'completed') {
-          clearInterval(interval);
-          setLogs(prevLogs => [
-            ...prevLogs,
-            'CT scan generated successfully. Redirecting to viewer...',
-          ]);
-          await downloadAndUploadImages(studyId);
-          navigate(`/generative-ai?StudyInstanceUIDs=${studyId}`);
-        }
-      } catch (error) {
-        console.error('Error checking generation status:', error);
-      }
-    }, 5000); // Check every 5 seconds
   };
 
   const downloadAndUploadImages = async (fileID: string) => {
     try {
-      setLogs(prevLogs => [...prevLogs, 'Downloading images...']);
+      console.log('downloadAndUploadImages fileID: ', fileID);
       const files = await getFilesFromFolder(fileID);
+
+      setDataIsUploading(true);
+
       const uploadPromises = files.map(async filename => {
-        const blob = await fetchDicomFile(fileID, filename);
-        if (blob) {
-          await uploadDicomToOrthanc(blob);
+        try {
+          const blob = await fetchDicomFile(fileID, filename);
+          if (blob) {
+            // Upload the DICOM file to the Orthanc server
+            await uploadDicomToOrthanc(blob);
+          }
+        } catch (innerError) {
+          console.error('Error in processing file:', filename, innerError);
+          throw innerError; // Propagate error to stop all uploads
         }
       });
-      await Promise.all(uploadPromises);
-      setLogs(prevLogs => [...prevLogs, 'CT scan uploaded successfully']);
+
+      await Promise.all(uploadPromises); // Wait for all uploads to complete
+      setDataIsUploading(false); // Ensure this is called after all files are processed
+      console.log('All files are uploaded', dataIsUploading);
     } catch (error) {
-      console.error('Error in downloading and uploading images:', error);
-      setLogs(prevLogs => [
-        ...prevLogs,
-        'Error in downloading and uploading images:',
-        error.message,
-      ]);
+      console.error('Error in Downloading dicom images from server:', error);
+      setDataIsUploading(false); // Ensure this is called in case of an error
+      throw error;
     }
   };
 
   const getFilesFromFolder = async (foldername: string) => {
     try {
-      const response = await axios.get(`${serverUrl}/files/${foldername}`);
-      return response.data;
+      console.log(`Fetching files from folder: ${foldername}`);
+      const response = await axios.get(
+        `${serverUrl}/media/volume/gen-ai-volume/MedSyn/results/dicom/${foldername}`
+      );
+      console.log(`Files fetched: ${response.data}`);
+      return response.data; // Assuming the response is a list of files
     } catch (error) {
-      console.error('Error fetching files:', error);
-      throw error;
+      console.error(
+        'Error fetching files:',
+        error.response ? error.response.data.error : error.message
+      );
+      throw error; // Rethrow the error to handle it in the calling code if needed
     }
   };
 
   const fetchDicomFile = async (foldername: string, filename: string) => {
     try {
+      console.log(`Fetching DICOM file: ${foldername}/${filename}`);
+      const headers = {
+        'Content-Type': 'application/json',
+      };
       const response = await axios.post(
-        `${serverUrl}/files/${foldername}/${filename}`,
-        { data: 'example' },
+        `${serverUrl}/media/volume/gen-ai-volume/MedSyn/results/dicom/${foldername}/${filename}`,
         {
-          headers: { 'Content-Type': 'application/json' },
+          data: 'example',
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
           responseType: 'arraybuffer',
         }
       );
+
       const arrayBuffer = response.data;
       const blob = new Blob([arrayBuffer], { type: 'application/dicom' });
+      console.log(`DICOM file fetched: ${filename}`);
       return blob;
     } catch (error) {
-      console.error('Error fetching DICOM file:', error);
+      console.error('There was an error fetching the DICOM file:', error);
       return null;
     }
   };
 
   const uploadDicomToOrthanc = async (blob: Blob) => {
     try {
+      console.log('Uploading DICOM file to Orthanc');
       const formData = new FormData();
       formData.append('file', blob, 'example.dcm');
-      await axios.post(`${orthancServerUrl}/pacs/instances`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+
+      const orthancResponse = await axios.post(
+        'https://orthanc.katelyncmorrison.com/pacs/instances',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      console.log('DICOM file uploaded to Orthanc');
     } catch (error) {
       console.error('Error uploading DICOM file to Orthanc:', error);
     }
@@ -297,7 +384,7 @@ const SearchHomePage = () => {
   return (
     <div style={styles.searchHomepage}>
       <h1 style={styles.title}>MedImaGen</h1>
-      <h3 style={styles.subtitle}>bringing tailored pathologies to your finger tips</h3>
+      <h3 style={styles.subtitle}>bringing custom pathologies to your finger tips</h3>
       <input
         type="text"
         style={styles.searchBar}
@@ -316,7 +403,7 @@ const SearchHomePage = () => {
         <div style={styles.statusDot}></div>
         <span>{isModelRunning ? 'Model is running' : 'Model is off'}</span>
       </div>
-      {isLoading && (
+      {logs.length > 0 && (
         <div style={styles.logs}>
           {logs.map((log, index) => (
             <div key={index}>{log}</div>
