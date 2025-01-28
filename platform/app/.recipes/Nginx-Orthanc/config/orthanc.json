@@ -85,6 +85,13 @@
     "Ssl": false,
     "StowMaxInstances": 10,
     "StowMaxSize": 10,
-    "QidoCaseSensitive": false
+    "QidoCaseSensitive": false,
+    "CorsOrigins": ["https://genai-radiology.web.app","https://orthanc.katelyncmorrison.com","http://localhost:3000"]
+  },
+  "Cors": {
+    "Enable": true,
+    "AllowOrigin": "*",
+    "AllowMethods": "GET, POST, PUT, DELETE, OPTIONS",
+    "AllowHeaders": "Content-Type, Authorization, Accept"
   }
 }
