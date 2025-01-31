@@ -23,7 +23,14 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
   const disabled = false;
   // const serverUrl = 'http://149.165.154.176:5000';
   // const serverUrl = 'https://149.165.174.108:5000';
-  const serverUrl = 'https://medsyn.katelyncmorrison.com';
+  const serverUrl =
+  window.location.hostname === "localhost"
+    ? "https://localhost:3443"
+    : "https://medsyn.katelyncmorrison.com"; // Deployed server
+
+  const orthancServerUrl = window.location.hostname === "localhost"
+    ? "https://localhost:4443"
+    : "https://orthanc.katelyncmorrison.com";
 
   const [{ viewports }] = useViewportGrid();
 
@@ -334,7 +341,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
       const formData = new FormData();
       formData.append('file', blob, 'example.dcm');
 
-      const orthancResponse = await axios.post('https://orthanc.katelyncmorrison.com/pacs/instances', formData, {
+      const orthancResponse = await axios.post(orthancServerUrl+"/pacs/instances", formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -353,7 +360,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
         expand: 1,
         requestedTags: "StudyInstanceUID"
       });
-      const response = await fetch(`https://orthanc.katelyncmorrison.com/pacs/studies?${params.toString()}`);
+      const response = await fetch(orthancServerUrl+`/pacs/studies?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -384,7 +391,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
       });
 
 
-      const response = await fetch(`https://orthanc.katelyncmorrison.com/pacs/series?${params.toString()}`);
+      const response = await fetch(orthancServerUrl+`pacs/series?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -420,7 +427,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
 
       const generatedSeriesOrthancID = generatedSeries.ID;
 
-      const url = `https://orthanc.katelyncmorrison.com/pacs/series/${generatedSeriesOrthancID}/metadata/${type}`;
+      const url = orthancServerUrl+`/pacs/series/${generatedSeriesOrthancID}/metadata/${type}`;
       const headers = {
         'Content-Type': 'text/plain' // Ensure the server expects text/plain content type
       };

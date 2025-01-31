@@ -40,9 +40,11 @@ Screenshot of Generative AI extension. Left: Findings and Impressions of origina
 5. Start the Application with Orthanc as backend `yarn dev:orthanc` (in a new terminal)
 5a. IF YOU ARE NOT USING LOCAL DOCKER FOR ORTHANC: You can also just run `yarn dev` and it will work
 6. You may need to update the frontend URL path to blackened located in this file: extensions/text-input-extension/src/GenerativeAIComponent.tsx
-7. If you want to deploy the frontend, then you need to
+7. If you want to deploy the frontend, then you need to run `npm run build` then `firebase deploy`. Make sure you are in the root directory of the project.
 
 #### Run Backend
+0. For local development with the model: ssh -L 3443:localhost:3443 exouser@149.165.174.17
+0.2 For local development with the orthanc database: gcloud compute ssh --zone "us-central1-c" "genai-radiology-vm" --project "genai-radiology-437413" -- -L 4443:localhost:443
 1. Clone the backend repository (on a machine with large GPU RAM)
     - `git clone https://github.com/TomWartm/MedsynBackend`
 2. Navigate to the cloned project's directory
