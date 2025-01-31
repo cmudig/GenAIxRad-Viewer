@@ -183,10 +183,6 @@ function App({
                 path="/*"
                 element={appRoutes}
               />
-              <Route
-                path="/"
-                element={<Navigate to="/search" />}
-              />
             </>
           )}
         </Routes>
