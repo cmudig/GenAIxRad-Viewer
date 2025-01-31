@@ -24,6 +24,8 @@ const SearchHomePage = () => {
   const [generateClicked, setGenerateClicked] = useState(false);
   const [isServerRunning, setIsServerRunning] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingFileSeriesInstanceUID, setGeneratingFileSeriesInstanceUID] = useState('');
+  const [generatingFilePrompt, setGeneratingFilePrompt] = useState('');
   const [generatedFileID, setGeneratedFileID] = useState(''); // Store the generated file ID
   const [studyID, setStudyId] = useState('');
   const navigate = useNavigate();
@@ -131,10 +133,11 @@ const SearchHomePage = () => {
     const newStudyId = generateUniqueId(); // Generate a new unique ID
     setStudyId(newStudyId); // Set the new unique ID to the state
 
+    console.log('OUR INPUT VALUE:', inputValue);
     const payload = {
       filename: `${newGeneratedFileID}.npy`,
       prompt: inputValue || null,
-      description: 'Generated CT Scan',
+      description: inputValue || null,
       studyID: newStudyId, // Use the new unique ID
       studyInstanceUID: newStudyId, // Use the new unique ID
       patient_name: `Generated Patient ${newStudyId}`,
@@ -153,6 +156,8 @@ const SearchHomePage = () => {
     try {
       const response = await axios.post(url, payload, { headers });
       console.log('✅ Response:', response.data);
+      setGeneratingFilePrompt(response.data.prompt);
+      setGeneratingFileSeriesInstanceUID(response.data.seriesInstanceUID);
     } catch (error) {
       setLogs(prevLogs => [...prevLogs, `Error generating CT scan: ${error.message}`]);
     } finally {
@@ -184,15 +189,21 @@ const SearchHomePage = () => {
       await Promise.all(uploadPromises); // Wait for all uploads to complete
       setDataIsUploading(false); // After all uploads are finished, set the uploading status to false
       console.log('All files uploaded successfully!');
+      setLogs(prevLogs => [...prevLogs, 'All files uploaded successfully']);
 
+      await addDummyMetadata(newStudyId);
+
+      setLogs(prevLogs => [...prevLogs, 'Navigating you to your generation.']);
       // Ensure studyID is correctly set before navigating
       if (studyID) {
+        console.error(studyID);
         navigate(`/generative-ai?StudyInstanceUIDs=${studyID}`);
       } else {
         console.error('Study ID is not set');
       }
     } catch (error) {
       console.error('Error in downloading and uploading images:', error);
+      setLogs(prevLogs => [...prevLogs, 'ERROR IN NAVIGATION.']);
       setDataIsUploading(false); // Ensure uploading status is updated in case of an error
       throw error;
     }
@@ -242,6 +253,135 @@ const SearchHomePage = () => {
       });
     } catch (error) {
       console.error('Error uploading DICOM file to Orthanc:', error);
+    }
+  };
+
+  const _getOrthancSeriesByID = async seriesInstanceUID => {
+    try {
+      // Parameters to include in the request
+      const params = new URLSearchParams({
+        expand: 1,
+        requestedTags: 'SeriesInstanceUID',
+      });
+
+      const response = await fetch(orthancServerUrl + `pacs/series?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const data = await response.json();
+
+      // Filter the data to find the study with the given seriesInstanceUID
+      const study = data.find(item => item.RequestedTags.SeriesInstanceUID === seriesInstanceUID);
+
+      if (study) {
+        return study;
+      } else {
+        console.error('No series found with no seriesInstanceUID: ', seriesInstanceUID);
+        return null;
+      }
+    } catch (error) {
+      // Log any errors that occur during the fetch operation
+      console.error('There has been a problem with your fetch operation:', error);
+      return null;
+    }
+  };
+  const _addMetadataToSeries = async (seriesInstanceUid, data, type) => {
+    if (type !== 'SeriesPrompt') {
+      console.log(`Invalid metadata type: ${type}.`);
+      return;
+    }
+
+    try {
+      const generatedSeries = await _getOrthancSeriesByID(seriesInstanceUid);
+      const generatedSeriesOrthancID = generatedSeries?.ID;
+
+      if (!generatedSeriesOrthancID) {
+        console.log('Series not found, skipping metadata update.');
+        return;
+      }
+
+      const url = orthancServerUrl + `/pacs/series/${generatedSeriesOrthancID}/metadata/${type}`;
+      const headers = {
+        'Content-Type': 'text/plain', // Ensure the server expects text/plain content type
+      };
+
+      const response = await axios.put(url, data, { headers });
+
+      if (response.status !== 200) {
+        console.log(
+          `Response not ok. Status: ${response.status}, Response text: ${response.statusText}`
+        );
+        return;
+      }
+    } catch (error) {
+      console.log(`There was a problem with your fetch operation: ${error}`);
+      return error;
+    }
+  };
+
+  const _getOrthancStudyId = async studyInstanceUid => {
+    try {
+      const response = await axios.get(
+        `${orthancServerUrl}/pacs/studies?StudyInstanceUID=${studyInstanceUid}`
+      );
+      if (response.data && response.data.length > 0) {
+        return response.data[0].ID; // Assuming the response contains a list with the study ID
+      } else {
+        console.log('Study not found.');
+        return null;
+      }
+    } catch (error) {
+      console.log(`Error fetching study ID: ${error}`);
+      return null;
+    }
+  };
+
+  const addDummyMetadata = async studyInstanceUid => {
+    const findings = `Dummy Findings for study ${studyInstanceUid}`;
+    const impressions = `Dummy Impressions for study ${studyInstanceUid}`;
+
+    await _addMetadataToStudy(studyInstanceUid, findings, 'Findings');
+    await _addMetadataToStudy(studyInstanceUid, impressions, 'Impressions');
+  };
+
+  const _addMetadataToStudy = async (studyInstanceUid, data, type) => {
+    // Validate the metadata type
+    if (type !== 'Findings' && type !== 'Impressions') {
+      console.log(`Invalid metadata type: ${type}. Must be either 'Findings' or 'Impressions'.`);
+      return;
+    }
+
+    try {
+      // Step 1: Get the Study ID
+      const studyId = await _getOrthancStudyId(studyInstanceUid);
+      if (!studyId) {
+        console.log(`Study with UID ${studyInstanceUid} not found.`);
+        return;
+      }
+
+      // Step 2: Prepare the metadata URL
+      const url = `${orthancServerUrl}/pacs/studies/${studyId}/metadata/${type}`;
+
+      // Step 3: Set headers
+      const headers = {
+        'Content-Type': 'text/plain', // Ensure text content type
+      };
+
+      // Step 4: Send the PUT request with the data
+      const response = await axios.put(url, data, { headers });
+
+      // Step 5: Check if the request was successful
+      if (response.status !== 200) {
+        console.log(
+          `Failed to add metadata. Status: ${response.status}, Response: ${response.statusText}`
+        );
+      } else {
+        console.log(`Successfully added metadata for ${type}.`);
+      }
+    } catch (error) {
+      console.log(`Error in adding metadata: ${error}`);
     }
   };
 
@@ -322,8 +462,8 @@ const SearchHomePage = () => {
       color: 'indigo',
       fontSize: '1rem',
       textAlign: 'left' as const,
-      width: '50%',
-      maxHeight: '20vh',
+      width: '40%', // Adjusted size
+      maxHeight: '15vh', // Adjusted height
       overflowY: 'auto' as const,
       backgroundColor: 'rgba(255, 255, 255, 0.8)',
       padding: '10px',
@@ -370,7 +510,7 @@ const SearchHomePage = () => {
       <button
         style={styles.searchButton}
         onClick={handleGenerateClick}
-        disabled={isLoading}
+        disabled={isModelRunning || dataIsUploading}
       >
         {isGenerating ? 'Stop Generation' : isLoading ? 'Generating...' : 'Generate'}
       </button>
@@ -385,9 +525,8 @@ const SearchHomePage = () => {
       )}
       {logs.length > 0 && (
         <div style={styles.logs}>
-          {logs.map((log, index) => (
-            <div key={index}>{log}</div>
-          ))}
+          {/* Only show the latest log */}
+          <div>{logs[logs.length - 1]}</div>
         </div>
       )}
     </div>
