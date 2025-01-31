@@ -191,29 +191,28 @@ const SearchHomePage = () => {
       console.log('All files uploaded successfully!');
       setLogs(prevLogs => [...prevLogs, 'All files uploaded successfully']);
 
-      await addDummyMetadata(newStudyId);
+      await addDummyMetadata(studyID);
 
       setLogs(prevLogs => [...prevLogs, 'Navigating you to your generation.']);
       // Ensure studyID is correctly set before navigating
+    } catch (error) {
+      console.error('Error in downloading and uploading images:', error);
+      setLogs(prevLogs => [...prevLogs, 'ERROR IN NAVIGATION.']);
+      setDataIsUploading(false); // Ensure uploading status is updated in case of an error
+      throw error;
+    } finally {
       if (studyID) {
         console.error(studyID);
         navigate(`/generative-ai?StudyInstanceUIDs=${studyID}`);
       } else {
         console.error('Study ID is not set');
       }
-    } catch (error) {
-      console.error('Error in downloading and uploading images:', error);
-      setLogs(prevLogs => [...prevLogs, 'ERROR IN NAVIGATION.']);
-      setDataIsUploading(false); // Ensure uploading status is updated in case of an error
-      throw error;
     }
   };
 
   const _getFilesFromFolder = async foldername => {
     setLogs(prevLogs => [...prevLogs, `Fetching files from folder: ${foldername}`]);
     try {
-      // const folderWithSuffix = `${foldername}_sample_0`;
-      // console.log('Fetching files from folder:', folderWithSuffix);
       const response = await axios.get(`${serverUrl}/files/${foldername}`);
       console.log('GET FILES RESPONSE:', response.data);
       return response.data; // Assuming the response contains a list of file names
@@ -256,71 +255,6 @@ const SearchHomePage = () => {
     }
   };
 
-  const _getOrthancSeriesByID = async seriesInstanceUID => {
-    try {
-      // Parameters to include in the request
-      const params = new URLSearchParams({
-        expand: 1,
-        requestedTags: 'SeriesInstanceUID',
-      });
-
-      const response = await fetch(orthancServerUrl + `pacs/series?${params.toString()}`);
-
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-
-      const data = await response.json();
-
-      // Filter the data to find the study with the given seriesInstanceUID
-      const study = data.find(item => item.RequestedTags.SeriesInstanceUID === seriesInstanceUID);
-
-      if (study) {
-        return study;
-      } else {
-        console.error('No series found with no seriesInstanceUID: ', seriesInstanceUID);
-        return null;
-      }
-    } catch (error) {
-      // Log any errors that occur during the fetch operation
-      console.error('There has been a problem with your fetch operation:', error);
-      return null;
-    }
-  };
-  const _addMetadataToSeries = async (seriesInstanceUid, data, type) => {
-    if (type !== 'SeriesPrompt') {
-      console.log(`Invalid metadata type: ${type}.`);
-      return;
-    }
-
-    try {
-      const generatedSeries = await _getOrthancSeriesByID(seriesInstanceUid);
-      const generatedSeriesOrthancID = generatedSeries?.ID;
-
-      if (!generatedSeriesOrthancID) {
-        console.log('Series not found, skipping metadata update.');
-        return;
-      }
-
-      const url = orthancServerUrl + `/pacs/series/${generatedSeriesOrthancID}/metadata/${type}`;
-      const headers = {
-        'Content-Type': 'text/plain', // Ensure the server expects text/plain content type
-      };
-
-      const response = await axios.put(url, data, { headers });
-
-      if (response.status !== 200) {
-        console.log(
-          `Response not ok. Status: ${response.status}, Response text: ${response.statusText}`
-        );
-        return;
-      }
-    } catch (error) {
-      console.log(`There was a problem with your fetch operation: ${error}`);
-      return error;
-    }
-  };
-
   const _getOrthancStudyId = async studyInstanceUid => {
     try {
       const response = await axios.get(
@@ -339,11 +273,31 @@ const SearchHomePage = () => {
   };
 
   const addDummyMetadata = async studyInstanceUid => {
+    console.log('OUR ID STUDY ID PASSED IN IS: ', studyInstanceUid);
     const findings = `Dummy Findings for study ${studyInstanceUid}`;
     const impressions = `Dummy Impressions for study ${studyInstanceUid}`;
 
-    await _addMetadataToStudy(studyInstanceUid, findings, 'Findings');
-    await _addMetadataToStudy(studyInstanceUid, impressions, 'Impressions');
+    try {
+      console.log(`Adding Dummy Findings to study ${studyInstanceUid}...`);
+      await _addMetadataToStudy(studyInstanceUid, findings, 'Findings');
+      setLogs(prevLogs => [
+        ...prevLogs,
+        `Successfully added dummy Findings for study ${studyInstanceUid}`,
+      ]);
+
+      console.log(`Adding Dummy Impressions to study ${studyInstanceUid}...`);
+      await _addMetadataToStudy(studyInstanceUid, impressions, 'Impressions');
+      setLogs(prevLogs => [
+        ...prevLogs,
+        `Successfully added dummy Impressions for study ${studyInstanceUid}`,
+      ]);
+    } catch (error) {
+      console.error(`Failed to add dummy metadata for study ${studyInstanceUid}: ${error}`);
+      setLogs(prevLogs => [
+        ...prevLogs,
+        `Error adding dummy metadata for study ${studyInstanceUid}: ${error.message}`,
+      ]);
+    }
   };
 
   const _addMetadataToStudy = async (studyInstanceUid, data, type) => {
