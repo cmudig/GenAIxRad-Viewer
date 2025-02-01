@@ -192,11 +192,6 @@ const SearchHomePage = () => {
       setLogs(prevLogs => [...prevLogs, 'All files uploaded successfully']);
 
       await addDummyMetadata(studyID);
-      await _addMetadataToSeries(
-        generatingFileSeriesInstanceUID,
-        generatingFilePrompt,
-        'SeriesPrompt'
-      );
 
       setLogs(prevLogs => [...prevLogs, 'Navigating you to your generation.']);
       // Ensure studyID is correctly set before navigating
@@ -296,6 +291,13 @@ const SearchHomePage = () => {
         ...prevLogs,
         `Successfully added dummy Impressions for study ${studyInstanceUid}`,
       ]);
+
+      console.log(`Adding SeriesData to study ${studyInstanceUid}...`);
+      await _addMetadataToSeries(
+        generatingFileSeriesInstanceUID,
+        generatingFilePrompt,
+        'SeriesPrompt'
+      );
     } catch (error) {
       console.error(`Failed to add dummy metadata for study ${studyInstanceUid}: ${error}`);
       setLogs(prevLogs => [
@@ -313,7 +315,7 @@ const SearchHomePage = () => {
         requestedTags: 'SeriesInstanceUID',
       });
 
-      const response = await fetch(orthancServerUrl + `pacs/series?${params.toString()}`);
+      const response = await fetch(orthancServerUrl + `/pacs/series?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -359,6 +361,8 @@ const SearchHomePage = () => {
           `Response not ok. Status: ${response.status}, Response text: ${response.statusText}`
         );
         return;
+      } else {
+        console.log('Metadata added successfully!', response.data);
       }
     } catch (error) {
       console.log(`There was a problem with your fetch operation: ${error}`);

@@ -391,7 +391,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
       });
 
 
-      const response = await fetch(orthancServerUrl+`pacs/series?${params.toString()}`);
+      const response = await fetch(orthancServerUrl+`/pacs/series?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -437,6 +437,8 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
       if (response.status !== 200) {
         console.log(`Response not ok. Status: ${response.status}, Response text: ${response.statusText}`);
         return;
+      } else {
+        console.log('Metadata added successfully!', response.data);
       }
     } catch (error) {
       console.log(`There was a problem with your fetch operation: ${error}`);
