@@ -192,6 +192,11 @@ const SearchHomePage = () => {
       setLogs(prevLogs => [...prevLogs, 'All files uploaded successfully']);
 
       await addDummyMetadata(studyID);
+      await _addMetadataToSeries(
+        generatingFileSeriesInstanceUID,
+        generatingFilePrompt,
+        'SeriesPrompt'
+      );
 
       setLogs(prevLogs => [...prevLogs, 'Navigating you to your generation.']);
       // Ensure studyID is correctly set before navigating
