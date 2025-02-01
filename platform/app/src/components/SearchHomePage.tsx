@@ -10,7 +10,7 @@ const serverUrl =
     : 'https://medsyn.katelyncmorrison.com'; // Deployed server
 const orthancServerUrl =
   window.location.hostname === 'localhost'
-    ? 'https://localhost:4443'
+    ? 'http://localhost:8042'
     : 'https://orthanc.katelyncmorrison.com';
 
 const SearchHomePage = () => {
@@ -297,6 +297,67 @@ const SearchHomePage = () => {
         ...prevLogs,
         `Error adding dummy metadata for study ${studyInstanceUid}: ${error.message}`,
       ]);
+    }
+  };
+
+  const _getOrthancSeriesByID = async seriesInstanceUID => {
+    try {
+      // Parameters to include in the request
+      const params = new URLSearchParams({
+        expand: 1,
+        requestedTags: 'SeriesInstanceUID',
+      });
+
+      const response = await fetch(orthancServerUrl + `pacs/series?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const data = await response.json();
+
+      // Filter the data to find the study with the given seriesInstanceUID
+      const study = data.find(item => item.RequestedTags.SeriesInstanceUID === seriesInstanceUID);
+
+      if (study) {
+        return study;
+      } else {
+        console.error('No series found with no seriesInstanceUID: ', seriesInstanceUID);
+        return null;
+      }
+    } catch (error) {
+      // Log any errors that occur during the fetch operation
+      console.error('There has been a problem with your fetch operation:', error);
+      return null;
+    }
+  };
+  const _addMetadataToSeries = async (seriesInstanceUid, data, type) => {
+    if (type !== 'SeriesPrompt') {
+      console.log(`Invalid metadata type: ${type}.`);
+      return;
+    }
+
+    try {
+      const generatedSeries = await _getOrthancSeriesByID(seriesInstanceUid);
+
+      const generatedSeriesOrthancID = generatedSeries.ID;
+
+      const url = orthancServerUrl + `/pacs/series/${generatedSeriesOrthancID}/metadata/${type}`;
+      const headers = {
+        'Content-Type': 'text/plain', // Ensure the server expects text/plain content type
+      };
+
+      const response = await axios.put(url, data, { headers });
+
+      if (response.status !== 200) {
+        console.log(
+          `Response not ok. Status: ${response.status}, Response text: ${response.statusText}`
+        );
+        return;
+      }
+    } catch (error) {
+      console.log(`There was a problem with your fetch operation: ${error}`);
+      return error;
     }
   };
 

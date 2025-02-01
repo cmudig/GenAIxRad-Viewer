@@ -44,7 +44,6 @@ Screenshot of Generative AI extension. Left: Findings and Impressions of origina
 
 #### Run Backend
 0. For local development with the model: ssh -L 3443:localhost:3443 exouser@149.165.174.17
-0.2 For local development with the orthanc database: gcloud compute ssh --zone "us-central1-c" "genai-radiology-vm" --project "genai-radiology-437413" -- -L 4443:localhost:443
 1. Clone the backend repository (on a machine with large GPU RAM)
     - `git clone https://github.com/TomWartm/MedsynBackend`
 2. Navigate to the cloned project's directory

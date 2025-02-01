@@ -29,7 +29,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
     : "https://medsyn.katelyncmorrison.com"; // Deployed server
 
   const orthancServerUrl = window.location.hostname === "localhost"
-    ? "https://localhost:4443"
+    ? "http://localhost:8042"
     : "https://orthanc.katelyncmorrison.com";
 
   const [{ viewports }] = useViewportGrid();
