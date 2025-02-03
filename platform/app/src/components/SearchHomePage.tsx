@@ -142,6 +142,8 @@ const SearchHomePage = () => {
       studyInstanceUID: newStudyId, // Use the new unique ID
       patient_name: `Generated Patient ${newStudyId}`,
       patient_id: `Patient ${newStudyId}`,
+      read_img_flag: false,
+      num_series_in_study: 0,
     };
 
     const headers = {
@@ -166,17 +168,32 @@ const SearchHomePage = () => {
     }
   };
 
+  const waitForStudyID = async () => {
+    let retries = 10; // Maximum retries
+    while (!studyID && retries > 0) {
+      console.log('Waiting for studyID...');
+      await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
+      retries--;
+    }
+    if (studyID) {
+      console.log('✅ Study ID available:', studyID);
+      navigate(`/generative-ai?StudyInstanceUIDs=${studyID}`);
+    } else {
+      console.error('❌ Timed out waiting for studyID');
+    }
+  };
+
   // Function to download and upload images only after model is done generating
   const executeDownloadAndUpload = async generatedfileID => {
     try {
       console.log('Download and upload started for fileID: ', generatedfileID);
-      const files = await _getFilesFromFolder(generatedfileID);
+      const files = await _getFilesFromFolder(generatedfileID, 0);
 
       setDataIsUploading(true);
 
       const uploadPromises = files.map(async filename => {
         try {
-          const blob = await _fetchDicomFile(generatedfileID, filename);
+          const blob = await _fetchDicomFile(generatedfileID, filename, 0);
           if (blob) {
             await _uploadDicomToOrthanc(blob);
           }
@@ -191,8 +208,7 @@ const SearchHomePage = () => {
       console.log('All files uploaded successfully!');
       setLogs(prevLogs => [...prevLogs, 'All files uploaded successfully']);
 
-      await addDummyMetadata(studyID);
-
+      // const metadataPromise = await addDummyMetadata(studyID);
       setLogs(prevLogs => [...prevLogs, 'Navigating you to your generation.']);
       // Ensure studyID is correctly set before navigating
     } catch (error) {
@@ -201,19 +217,15 @@ const SearchHomePage = () => {
       setDataIsUploading(false); // Ensure uploading status is updated in case of an error
       throw error;
     } finally {
-      if (studyID) {
-        console.error(studyID);
-        navigate(`/generative-ai?StudyInstanceUIDs=${studyID}`);
-      } else {
-        console.error('Study ID is not set');
-      }
+      console.log('OUR STUDY ID TO NAVIGATE TO IS', studyID);
+      waitForStudyID();
     }
   };
 
-  const _getFilesFromFolder = async foldername => {
+  const _getFilesFromFolder = async (foldername, sampleNumber) => {
     setLogs(prevLogs => [...prevLogs, `Fetching files from folder: ${foldername}`]);
     try {
-      const response = await axios.get(`${serverUrl}/files/${foldername}`);
+      const response = await axios.get(`${serverUrl}/files/${foldername}/${sampleNumber}`);
       console.log('GET FILES RESPONSE:', response.data);
       return response.data; // Assuming the response contains a list of file names
     } catch (error) {
@@ -223,10 +235,10 @@ const SearchHomePage = () => {
     }
   };
 
-  const _fetchDicomFile = async (foldername, filename) => {
+  const _fetchDicomFile = async (foldername, filename, sampleNumber) => {
     try {
       const response = await axios.post(
-        `${serverUrl}/files/${foldername}/${filename}`,
+        `${serverUrl}/files/${foldername}/${filename}/${sampleNumber}`,
         { data: 'example' },
         { responseType: 'arraybuffer' }
       );
@@ -250,15 +262,16 @@ const SearchHomePage = () => {
           'Content-Type': 'multipart/form-data',
         },
       });
+      console.log('uploaded successfully');
     } catch (error) {
       console.error('Error uploading DICOM file to Orthanc:', error);
     }
   };
 
-  const _getOrthancStudyId = async studyInstanceUid => {
+  const _getOrthancStudyId = async (studyInstanceUid, sampleNumber) => {
     try {
       const response = await axios.get(
-        `${orthancServerUrl}/pacs/studies?StudyInstanceUID=${studyInstanceUid}`
+        `${orthancServerUrl}/pacs/studies?StudyInstanceUID=${studyInstanceUid}/${sampleNumber}`
       );
       if (response.data && response.data.length > 0) {
         return response.data[0].ID; // Assuming the response contains a list with the study ID
@@ -291,82 +304,12 @@ const SearchHomePage = () => {
         ...prevLogs,
         `Successfully added dummy Impressions for study ${studyInstanceUid}`,
       ]);
-
-      console.log(`Adding SeriesData to study ${studyInstanceUid}...`);
-      await _addMetadataToSeries(
-        generatingFileSeriesInstanceUID,
-        generatingFilePrompt,
-        'SeriesPrompt'
-      );
     } catch (error) {
       console.error(`Failed to add dummy metadata for study ${studyInstanceUid}: ${error}`);
       setLogs(prevLogs => [
         ...prevLogs,
         `Error adding dummy metadata for study ${studyInstanceUid}: ${error.message}`,
       ]);
-    }
-  };
-
-  const _getOrthancSeriesByID = async seriesInstanceUID => {
-    try {
-      // Parameters to include in the request
-      const params = new URLSearchParams({
-        expand: 1,
-        requestedTags: 'SeriesInstanceUID',
-      });
-
-      const response = await fetch(orthancServerUrl + `/pacs/series?${params.toString()}`);
-
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-
-      const data = await response.json();
-
-      // Filter the data to find the study with the given seriesInstanceUID
-      const study = data.find(item => item.RequestedTags.SeriesInstanceUID === seriesInstanceUID);
-
-      if (study) {
-        return study;
-      } else {
-        console.error('No series found with no seriesInstanceUID: ', seriesInstanceUID);
-        return null;
-      }
-    } catch (error) {
-      // Log any errors that occur during the fetch operation
-      console.error('There has been a problem with your fetch operation:', error);
-      return null;
-    }
-  };
-  const _addMetadataToSeries = async (seriesInstanceUid, data, type) => {
-    if (type !== 'SeriesPrompt') {
-      console.log(`Invalid metadata type: ${type}.`);
-      return;
-    }
-
-    try {
-      const generatedSeries = await _getOrthancSeriesByID(seriesInstanceUid);
-
-      const generatedSeriesOrthancID = generatedSeries.ID;
-
-      const url = orthancServerUrl + `/pacs/series/${generatedSeriesOrthancID}/metadata/${type}`;
-      const headers = {
-        'Content-Type': 'text/plain', // Ensure the server expects text/plain content type
-      };
-
-      const response = await axios.put(url, data, { headers });
-
-      if (response.status !== 200) {
-        console.log(
-          `Response not ok. Status: ${response.status}, Response text: ${response.statusText}`
-        );
-        return;
-      } else {
-        console.log('Metadata added successfully!', response.data);
-      }
-    } catch (error) {
-      console.log(`There was a problem with your fetch operation: ${error}`);
-      return error;
     }
   };
 
@@ -379,7 +322,7 @@ const SearchHomePage = () => {
 
     try {
       // Step 1: Get the Study ID
-      const studyId = await _getOrthancStudyId(studyInstanceUid);
+      const studyId = await _getOrthancStudyId(studyInstanceUid, 0);
       if (!studyId) {
         console.log(`Study with UID ${studyInstanceUid} not found.`);
         return;

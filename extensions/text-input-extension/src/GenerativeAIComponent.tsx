@@ -19,6 +19,8 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
   const [generatingFileSeriesInstanceUID, setGeneratingFileSeriesInstanceUID] = useState('');
   const [generatingFilePrompt, setGeneratingFilePrompt] = useState('');
   const [fileID, setFileID] = useState('');
+  const [studyID, setStudyId] = useState('');
+  const [num_samp, setNumSamp] = useState(0);
 
   const disabled = false;
   // const serverUrl = 'http://149.165.154.176:5000';
@@ -73,7 +75,8 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
               console.log("Model ended");
               console.log("Try to download data");
 
-              executeDownloadAndUpload();
+              console.log("OUR NUMBER OF SERIES IS: ", num_samp)
+              executeDownloadAndUpload(num_samp);
             }
             setOldModelIsRunning(prevModelIsRunning);
             return processIsRunning;
@@ -83,9 +86,9 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
         console.log('Error checking for model status:', error);
       }
     };
-    const executeDownloadAndUpload = async () => {
+    const executeDownloadAndUpload = async (sampleNumber) => {
       try {
-        await _downloadAndUploadImages(fileID);
+        await _downloadAndUploadImages(fileID, sampleNumber);
 
         await _addMetadataToSeries(generatingFileSeriesInstanceUID, generatingFilePrompt, 'SeriesPrompt');
 
@@ -196,14 +199,16 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
     const formattedDate = _generateUniqueTimestamp();
     let currentFileID = `${formattedDate}${firstTenLetters}` // Generate a unique ID e.g. YYYYMMDDHHMMSSCardiomega
 
-
+    setStudyId(currentStudy.RequestedTags.StudyInstanceUID);
     setFileID(currentFileID);
-
 
     console.log("fileID", currentFileID)
     const url = `${serverUrl}/files/${currentFileID}`;
 
     console.log("promptData: ", promptData);
+    console.log("studyInstanceUID", studyID)
+
+    setNumSamp(currentStudy.Series.length);
 
     const payload = {
       'filename': `${currentFileID}.npy`,
@@ -212,6 +217,8 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
       'studyInstanceUID': studyInstanceUID,
       'patient_name': currentStudy.PatientMainDicomTags.PatientName,
       'patient_id': currentStudy.PatientMainDicomTags.PatientID,
+      'read_img_flag': true,
+      'num_series_in_study': currentStudy.Series.length,
     };
     const headers = {
       'Content-Type': 'application/json'
@@ -266,16 +273,16 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
 
   }
 
-  const _downloadAndUploadImages = async (fileID) => {
+  const _downloadAndUploadImages = async (fileID, sampleNumber) => {
     try {
       console.log("downloadAndUploadImages fileID: ", fileID);
-      const files = await _getFilesFromFolder(fileID);
+      const files = await _getFilesFromFolder(fileID, sampleNumber);
 
       setDataIsUploading(true);
 
       const uploadPromises = files.map(async (filename) => {
         try {
-          const blob = await _fetchDicomFile(fileID, filename);
+          const blob = await _fetchDicomFile(fileID, filename, sampleNumber);
           if (blob) {
             // Upload the DICOM file to the Orthanc server
             await _uploadDicomToOrthanc(blob);
@@ -299,21 +306,21 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
 
 
 
-  const _getFilesFromFolder = async (foldername) => {
+  const _getFilesFromFolder = async (foldername, sampleNumber) => {
     try {
-      const response = await axios.get(`${serverUrl}/files/${foldername}`);
+      const response = await axios.get(`${serverUrl}/files/${foldername}/${sampleNumber}`);
       return response.data;  // Assuming the response is a list of files
     } catch (error) {
       console.error("Error fetching files:", error.response ? error.response.data.error : error.message);
       throw error;  // Rethrow the error to handle it in the calling code if needed
     }
   };
-  const _fetchDicomFile = async (foldername, filename) => {
+  const _fetchDicomFile = async (foldername, filename, sampleNumber) => {
     try {
       const headers = {
         'Content-Type': 'application/json'
       };
-      const response = await axios.post(`${serverUrl}/files/${foldername}/${filename}`, {
+      const response = await axios.post(`${serverUrl}/files/${foldername}/${filename}/${sampleNumber}`, {
         data: 'example'
       }, {
         headers: {
@@ -371,6 +378,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
       const study = data.find(item => item.RequestedTags.StudyInstanceUID === studyInstanceUID);
 
       if (study) {
+        console.log("We found study: ", study)
         return study;
       } else {
         console.error("No study found with studyInstanceUID: ", studyInstanceUID)
