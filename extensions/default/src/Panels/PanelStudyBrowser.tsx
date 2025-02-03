@@ -62,10 +62,12 @@ function PanelStudyBrowser({
     // Fetch all studies for the patient in each primary study
     async function fetchStudiesForPatient(StudyInstanceUID) {
       // current study qido
+      console.log('Fetching studies for patient ', StudyInstanceUID);
       const qidoForStudyUID = await dataSource.query.studies.search({
         studyInstanceUid: StudyInstanceUID,
       });
 
+      console.log('qidoForStudyUID', qidoForStudyUID);
       if (!qidoForStudyUID?.length) {
         navigate('/notfoundstudy', '_self');
         throw new Error('Invalid study URL');
