@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import PropTypes from 'prop-types';
 import classnames from 'classnames';
 import { useDrag } from 'react-dnd';
@@ -41,6 +41,7 @@ const Thumbnail = ({
   seriesDate = formatDate(seriesDate);
 
   const [lastTap, setLastTap] = useState(0);
+  const [overlayActive, setOverlayActive] = useState(false);
 
   const handleTouchEnd = e => {
     const currentTime = new Date().getTime();
@@ -52,6 +53,26 @@ const Thumbnail = ({
     }
     setLastTap(currentTime);
   };
+
+  // const appContext = useContext(AppContext);
+
+  // if (!appContext) {
+  //   console.error('AppContext not found');
+  //   return null
+  // } else {
+  //   console.log(appContext);
+  // }
+
+  // const { commandsManager, servicesManager } = appContext;
+
+  // const toggleOverlay = () => {
+  //   setOverlayActive(!overlayActive);
+  //   if (commandsManager) {
+  //     commandsManager.runCommand('toggleImageOverlay');
+  //   } else {
+  //     console.error('commandsManager is undefined');
+  //   }
+  // };
 
   return (
     <div
@@ -95,7 +116,7 @@ const Thumbnail = ({
           <div className="mr-4">
             {/*<span className="text-primary-main font-bold">{'Series Date: '}</span>*/}
             {seriesDate}
-          </div> 
+          </div>
           <div className="flex flex-1 flex-row items-center">
             <Icon
               name={countIcon || 'group-layers'}
@@ -107,6 +128,14 @@ const Thumbnail = ({
             messages={messages}
             id={`display-set-tooltip-${displaySetInstanceUID}`}
           />
+        </div>
+        <div className="mt-2 flex justify-left">
+          <button
+            className={`px-3 py-1 rounded-md text-white ${overlayActive ? 'bg-blue-500' : 'bg-gray-500'} hover:bg-blue-700 transition`}
+            onClick={console.log("clicked")}
+          >
+            {overlayActive ? 'Hide Explanation' : 'Show Expanation'}
+          </button>
         </div>
         {/*<div className="break-all text-base text-blue-300">{description}</div>*/}
       </div>
