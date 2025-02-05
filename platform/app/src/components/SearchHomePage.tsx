@@ -29,7 +29,6 @@ const SearchHomePage = () => {
   const [generatedFileID, setGeneratedFileID] = useState(''); // Store the generated file ID
   const [studyID, setStudyId] = useState('');
   const navigate = useNavigate();
-  const orthanc_notify = false;
 
   useEffect(() => {
     const checkModelIsRunning = async () => {
@@ -141,7 +140,7 @@ const SearchHomePage = () => {
       studyID: newStudyId, // Use the new unique ID
       studyInstanceUID: newStudyId, // Use the new unique ID
       patient_name: `Generated Patient ${newStudyId}`,
-      patient_id: `Patient ${newStudyId}`,
+      patient_id: newStudyId,
       read_img_flag: false,
       num_series_in_study: 0,
     };
@@ -257,12 +256,31 @@ const SearchHomePage = () => {
       const formData = new FormData();
       formData.append('file', blob, 'example.dcm');
 
-      await axios.post(orthancServerUrl + '/pacs/instances', formData, {
+      const uploadResponse = await axios.post(orthancServerUrl + '/pacs/instances', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      console.log('uploaded successfully');
+      console.log('uploaded successfully', uploadResponse.data);
+
+      const instanceId = uploadResponse.data['ID'];
+      if (!instanceId) {
+        console.log('Error uploading DICOM file to Orthanc:', uploadResponse.data);
+        return;
+      }
+
+      const instanceReponse = await axios.get(`${orthancServerUrl}/pacs/instances/${instanceId}`);
+      const studyInstanceUid = instanceReponse.data['ParentStudy'];
+
+      console.log(`our study instance UID is: `, studyInstanceUid);
+
+      if (studyInstanceUid) {
+        // Step 4: Trigger metadata reconstruction for the study
+        await axios.post(`${orthancServerUrl}/pacs/studies/${studyInstanceUid}/reconstruct`);
+        console.log(`🔄 Reconstructing metadata for study: ${studyInstanceUid}`);
+      } else {
+        console.error('Error fetching study instance UID:', instanceReponse.data);
+      }
     } catch (error) {
       console.error('Error uploading DICOM file to Orthanc:', error);
     }
