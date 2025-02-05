@@ -131,7 +131,7 @@ const Thumbnail = ({
         </div>
         <div className="mt-2 flex justify-left">
           <button
-            className={`px-3 py-1 rounded-md text-white ${overlayActive ? 'bg-blue-500' : 'bg-gray-500'} hover:bg-blue-700 transition`}
+            className={`px-2 py-1 rounded-md text-white ${overlayActive ? 'bg-blue-500' : 'bg-gray-500'} hover:bg-blue-700 transition`}
             onClick={console.log("clicked")}
           >
             {overlayActive ? 'Hide Explanation' : 'Show Expanation'}
