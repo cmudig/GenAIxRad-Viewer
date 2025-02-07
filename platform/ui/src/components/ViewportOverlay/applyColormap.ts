@@ -135,7 +135,7 @@ export async function applyHeatmapOverlay(viewportUid, foldername, sampleNumber)
     const resizedHeatmap = resizeHeatmap(extractedHeatmap, 256, 256);
     console.log('📏 Resized Heatmap Shape:', resizedHeatmap.length, resizedHeatmap[0].length);
 
-    const normalizedHeatmap = normalizeHeatmap(averagedHeatmap);
+    const normalizedHeatmap = normalizeHeatmap(resizedHeatmap);
 
     // 🔹 Overlay heatmap onto viewport
     overlayHeatmapOnViewport(viewport, normalizedHeatmap);
