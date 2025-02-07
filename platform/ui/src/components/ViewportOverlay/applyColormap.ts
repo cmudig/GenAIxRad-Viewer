@@ -9,6 +9,7 @@ const serverUrl =
 
 /**
  * Fetches the heatmap and applies it to the active viewport based on its orientation.
+ * Also sets up an event listener so that the overlay is updated when the slice changes.
  */
 export async function applyHeatmapOverlay(viewportUid, foldername, sampleNumber) {
   console.log('🔍 Inside applyHeatmapOverlay()');
@@ -65,6 +66,7 @@ export async function applyHeatmapOverlay(viewportUid, foldername, sampleNumber)
     }
     console.log('✅ Successfully loaded heatmap:', npyData.data);
     console.log('🔍 Checking npyData Shape:', npyData.shape);
+
     // --- Squeeze out a singleton dimension if it exists ---
     // For example, if npyData.shape is [num_heads, 1, slices, height, width],
     // remove the singleton dimension at index 1.
@@ -85,61 +87,102 @@ export async function applyHeatmapOverlay(viewportUid, foldername, sampleNumber)
     const reshapedHeatmap = reshapeHeatmap(npyData.data, num_heads, slices, height, width);
     console.log('✅ Reshaped Heatmap:', reshapedHeatmap.length, reshapedHeatmap[0].length);
 
-    // 🔹 Extract the correct slice
-    const sliceIndex = Math.floor(slices / 2);
-    let extractedHeatmap;
-    if (viewType === 'Axial') {
-      console.log(`📌 Extracting Axial slice at index ${sliceIndex}`);
-      extractedHeatmap = reshapedHeatmap.map(head => head[sliceIndex]);
-    } else if (viewType === 'Coronal') {
-      console.log(`📌 Extracting Coronal slice at index ${sliceIndex}`);
-      extractedHeatmap = reshapedHeatmap.map(head => head.map(slice => slice[sliceIndex]));
-    } else {
-      console.log(`📌 Extracting Sagittal slice at index ${sliceIndex}`);
-      extractedHeatmap = reshapedHeatmap.map(head =>
-        head.map(slice => slice.map(row => row[sliceIndex]))
-      );
-    }
-    console.log(`📏 Extracted ${viewType} Slice at index ${sliceIndex}`);
-    console.log('📏 Extracted Heatmap Shape:', extractedHeatmap.length, extractedHeatmap[0].length);
-
-    // ✅ Average across attention heads element-wise
-    const numHeads = extractedHeatmap.length;
-    const numRows = extractedHeatmap[0].length;
-    const numCols = extractedHeatmap[0][0].length;
-    const averagedHeatmap = [];
-    for (let r = 0; r < numRows; r++) {
-      averagedHeatmap[r] = [];
-      for (let c = 0; c < numCols; c++) {
-        let sum = 0;
-        for (let h = 0; h < numHeads; h++) {
-          sum += extractedHeatmap[h][r][c];
-        }
-        averagedHeatmap[r][c] = sum / numHeads;
+    // --- Create a function that updates the overlay based on the current slice ---
+    function updateOverlay() {
+      // Try to get the current slice index; otherwise, fallback to the middle slice.
+      let currentSliceIndex = Math.floor(slices / 2);
+      if (typeof viewport.getCurrentImageIdIndex === 'function') {
+        currentSliceIndex = viewport.getCurrentImageIdIndex();
       }
+      console.log(`Updating overlay for slice index: ${currentSliceIndex}`);
+
+      let extractedHeatmap;
+      if (viewType === 'Axial') {
+        extractedHeatmap = reshapedHeatmap.map(head => head[currentSliceIndex]);
+      } else if (viewType === 'Coronal') {
+        extractedHeatmap = reshapedHeatmap.map(head => head.map(slice => slice[currentSliceIndex]));
+      } else {
+        extractedHeatmap = reshapedHeatmap.map(head =>
+          head.map(slice => slice.map(row => row[currentSliceIndex]))
+        );
+      }
+      console.log(`📏 Extracted ${viewType} Slice at index ${currentSliceIndex}`);
+      console.log(
+        '📏 Extracted Heatmap Shape:',
+        extractedHeatmap.length,
+        extractedHeatmap[0].length
+      );
+
+      // ✅ Average across attention heads element-wise
+      const numHeadsLocal = extractedHeatmap.length;
+      const numRows = extractedHeatmap[0].length;
+      const numCols = extractedHeatmap[0][0].length;
+      const averagedHeatmap = [];
+      for (let r = 0; r < numRows; r++) {
+        averagedHeatmap[r] = [];
+        for (let c = 0; c < numCols; c++) {
+          let sum = 0;
+          for (let h = 0; h < numHeadsLocal; h++) {
+            sum += extractedHeatmap[h][r][c];
+          }
+          averagedHeatmap[r][c] = sum / numHeadsLocal;
+        }
+      }
+      console.log(
+        '📏 Extracted Heatmap Shape AFTER Averaging:',
+        averagedHeatmap.length,
+        averagedHeatmap[0]?.length
+      );
+
+      // Resize and normalize the averaged heatmap
+      const resizedHeatmap = resizeHeatmap(averagedHeatmap, 256, 256);
+      console.log('📏 Resized Heatmap Shape:', resizedHeatmap.length, resizedHeatmap[0].length);
+      const normalizedHeatmap = normalizeHeatmap(resizedHeatmap);
+
+      // Remove any existing overlay canvas
+      const existingOverlay = viewport.element.querySelector('.heatmap-overlay');
+      if (existingOverlay) {
+        existingOverlay.remove();
+      }
+
+      // Create the overlay canvas and ensure it overlays the entire viewport.
+      const canvasSize = 256;
+      const overlayCanvas = document.createElement('canvas');
+      overlayCanvas.width = canvasSize;
+      overlayCanvas.height = canvasSize;
+      overlayCanvas.classList.add('heatmap-overlay');
+      // Position absolutely so it sits on top of the CT image.
+      overlayCanvas.style.position = 'absolute';
+      overlayCanvas.style.top = '0';
+      overlayCanvas.style.left = '0';
+      overlayCanvas.style.width = '100%';
+      overlayCanvas.style.height = '100%';
+      overlayCanvas.style.pointerEvents = 'none';
+
+      const ctx = overlayCanvas.getContext('2d');
+      const imageData = ctx.createImageData(canvasSize, canvasSize);
+
+      for (let y = 0; y < canvasSize; y++) {
+        for (let x = 0; x < canvasSize; x++) {
+          const value = normalizedHeatmap[y][x];
+          const idx = (y * canvasSize + x) * 4;
+          imageData.data[idx] = value; // Red channel
+          imageData.data[idx + 1] = 0; // Green channel
+          imageData.data[idx + 2] = 255 - value; // Blue channel (inverted for effect)
+          imageData.data[idx + 3] = 180; // Alpha (transparency)
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+      viewport.element.appendChild(overlayCanvas);
+      console.log('✅ Heatmap overlay updated for current slice');
     }
-    extractedHeatmap = averagedHeatmap;
-    console.log(
-      '📏 Extracted Heatmap Shape AFTER Averaging:',
-      extractedHeatmap.length,
-      extractedHeatmap[0]?.length
-    );
 
-    // 🔹 Ensure the heatmap is 2D before resizing
-    if (!Array.isArray(extractedHeatmap[0])) {
-      console.log('🔄 Reshaping 1D Heatmap to 2D before resizing...');
-      extractedHeatmap = [extractedHeatmap];
-    }
+    // Initial update of the overlay.
+    updateOverlay();
 
-    // 🔹 Resize heatmap to 256×256 using the corrected scale factors
-    const resizedHeatmap = resizeHeatmap(extractedHeatmap, 256, 256);
-    console.log('📏 Resized Heatmap Shape:', resizedHeatmap.length, resizedHeatmap[0].length);
-
-    const normalizedHeatmap = normalizeHeatmap(resizedHeatmap);
-
-    // 🔹 Overlay heatmap onto viewport
-    overlayHeatmapOnViewport(viewport, normalizedHeatmap);
-    console.log('✅ Heatmap overlay applied successfully');
+    // Add an event listener so the overlay updates when the slice changes.
+    // (The event name may vary depending on your Cornerstone/ OHIF configuration.)
+    viewport.element.addEventListener('cornerstoneimagerendered', updateOverlay);
   } catch (error) {
     console.error('❌ Error applying heatmap overlay:', error);
   }
@@ -185,34 +228,6 @@ function reshapeHeatmap(data, num_heads, slices, height, width) {
   return reshaped;
 }
 
-function overlayHeatmapOnViewport(viewport, heatmap) {
-  const canvasSize = 256;
-  const overlayCanvas = document.createElement('canvas');
-  overlayCanvas.width = canvasSize;
-  overlayCanvas.height = canvasSize;
-  const ctx = overlayCanvas.getContext('2d');
-
-  const imageData = ctx.createImageData(canvasSize, canvasSize);
-
-  for (let y = 0; y < canvasSize; y++) {
-    for (let x = 0; x < canvasSize; x++) {
-      // Get the heatmap value at this pixel (make sure it is in 0-255 range,
-      // or adjust accordingly)
-      const value = heatmap[y][x];
-      // Calculate the index in the flat ImageData array.
-      const idx = (y * canvasSize + x) * 4;
-      imageData.data[idx] = value; // Red channel
-      imageData.data[idx + 1] = 0; // Green channel
-      imageData.data[idx + 2] = 255 - value; // Blue channel (inverted for effect)
-      imageData.data[idx + 3] = 180; // Alpha (transparency)
-    }
-  }
-
-  ctx.putImageData(imageData, 0, 0);
-  viewport.element.appendChild(overlayCanvas);
-  console.log('✅ Heatmap overlay added to viewport');
-}
-
 function normalizeHeatmap(heatmap) {
   let min = Infinity;
   let max = -Infinity;
@@ -232,7 +247,6 @@ function normalizeHeatmap(heatmap) {
   // Normalize each value in the heatmap to the 0-255 range
   const normalized = heatmap.map(row =>
     row.map(value => {
-      // Prevent division by zero in case min and max are the same
       if (max === min) {
         return 0;
       }
