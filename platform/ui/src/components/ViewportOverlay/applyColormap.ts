@@ -9,7 +9,7 @@ const serverUrl =
 
 /**
  * Fetches the heatmap and applies it to the active viewport based on its orientation.
- * Also sets up an event listener so that the overlay is updated when the slice changes.
+ * Also sets up an event listener so that the overlay updates when the slice changes.
  */
 export async function applyHeatmapOverlay(viewportUid, foldername, sampleNumber) {
   console.log('🔍 Inside applyHeatmapOverlay()');
@@ -66,7 +66,6 @@ export async function applyHeatmapOverlay(viewportUid, foldername, sampleNumber)
     }
     console.log('✅ Successfully loaded heatmap:', npyData.data);
     console.log('🔍 Checking npyData Shape:', npyData.shape);
-
     // --- Squeeze out a singleton dimension if it exists ---
     // For example, if npyData.shape is [num_heads, 1, slices, height, width],
     // remove the singleton dimension at index 1.
@@ -134,8 +133,15 @@ export async function applyHeatmapOverlay(viewportUid, foldername, sampleNumber)
         averagedHeatmap[0]?.length
       );
 
-      // Resize and normalize the averaged heatmap
-      const resizedHeatmap = resizeHeatmap(averagedHeatmap, 256, 256);
+      // --- Get the image canvas dimensions ---
+      const imageCanvas = viewport.element.querySelector('canvas');
+      // If found, use its width/height; otherwise, fall back to 256×256.
+      const overlayWidth = imageCanvas ? imageCanvas.width : 256;
+      const overlayHeight = imageCanvas ? imageCanvas.height : 256;
+      console.log(`Overlay dimensions: ${overlayWidth} x ${overlayHeight}`);
+
+      // Resize and normalize the averaged heatmap to match the image canvas dimensions.
+      const resizedHeatmap = resizeHeatmap(averagedHeatmap, overlayWidth, overlayHeight);
       console.log('📏 Resized Heatmap Shape:', resizedHeatmap.length, resizedHeatmap[0].length);
       const normalizedHeatmap = normalizeHeatmap(resizedHeatmap);
 
@@ -145,27 +151,37 @@ export async function applyHeatmapOverlay(viewportUid, foldername, sampleNumber)
         existingOverlay.remove();
       }
 
-      // Create the overlay canvas and ensure it overlays the entire viewport.
-      const canvasSize = 256;
+      // Create the overlay canvas
       const overlayCanvas = document.createElement('canvas');
-      overlayCanvas.width = canvasSize;
-      overlayCanvas.height = canvasSize;
+      overlayCanvas.width = overlayWidth;
+      overlayCanvas.height = overlayHeight;
       overlayCanvas.classList.add('heatmap-overlay');
-      // Position absolutely so it sits on top of the CT image.
-      overlayCanvas.style.position = 'absolute';
-      overlayCanvas.style.top = '0';
-      overlayCanvas.style.left = '0';
-      overlayCanvas.style.width = '100%';
-      overlayCanvas.style.height = '100%';
+
+      // Position the overlay canvas to cover just the image canvas.
+      if (imageCanvas) {
+        // Use the image canvas's offset to position the overlay
+        overlayCanvas.style.position = 'absolute';
+        overlayCanvas.style.top = imageCanvas.offsetTop + 'px';
+        overlayCanvas.style.left = imageCanvas.offsetLeft + 'px';
+        // Also match its displayed dimensions
+        overlayCanvas.style.width = imageCanvas.style.width || overlayWidth + 'px';
+        overlayCanvas.style.height = imageCanvas.style.height || overlayHeight + 'px';
+      } else {
+        overlayCanvas.style.position = 'absolute';
+        overlayCanvas.style.top = '0';
+        overlayCanvas.style.left = '0';
+        overlayCanvas.style.width = '100%';
+        overlayCanvas.style.height = '100%';
+      }
       overlayCanvas.style.pointerEvents = 'none';
 
+      // Draw the heatmap onto the overlay canvas
       const ctx = overlayCanvas.getContext('2d');
-      const imageData = ctx.createImageData(canvasSize, canvasSize);
-
-      for (let y = 0; y < canvasSize; y++) {
-        for (let x = 0; x < canvasSize; x++) {
+      const imageData = ctx.createImageData(overlayWidth, overlayHeight);
+      for (let y = 0; y < overlayHeight; y++) {
+        for (let x = 0; x < overlayWidth; x++) {
           const value = normalizedHeatmap[y][x];
-          const idx = (y * canvasSize + x) * 4;
+          const idx = (y * overlayWidth + x) * 4;
           imageData.data[idx] = value; // Red channel
           imageData.data[idx + 1] = 0; // Green channel
           imageData.data[idx + 2] = 255 - value; // Blue channel (inverted for effect)
