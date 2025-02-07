@@ -129,14 +129,6 @@ const Thumbnail = ({
             id={`display-set-tooltip-${displaySetInstanceUID}`}
           />
         </div>
-        <div className="mt-2 flex justify-left">
-          <button
-            className={`px-2 py-1 rounded-md text-white ${overlayActive ? 'bg-blue-500' : 'bg-gray-500'} hover:bg-blue-700 transition`}
-            onClick={console.log("clicked")}
-          >
-            {overlayActive ? 'Hide Explanation' : 'Show Expanation'}
-          </button>
-        </div>
         {/*<div className="break-all text-base text-blue-300">{description}</div>*/}
       </div>
     </div>
