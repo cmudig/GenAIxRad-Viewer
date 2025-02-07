@@ -64,6 +64,8 @@
     "@kitware/vtk.js": "30.4.1",
     "core-js": "^3.2.1",
     "firebase": "^10.14.0",
+    "numjs": "^0.16.1",
+    "numpy-parser": "^1.2.3",
     "react-firebase-hooks": "^5.1.1",
     "react-icons": "^5.2.1"
   },

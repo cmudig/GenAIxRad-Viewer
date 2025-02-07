@@ -1,5 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
+import { applyHeatmapOverlay } from './applyColormap';
+import axios from 'axios';
 
 import './ViewportOverlay.css';
 
@@ -15,6 +17,9 @@ const classes = {
   bottomLeft: 'overlay-bottom left-viewport',
 };
 
+const foldername = 'test_rightpleur_noleft';
+const sampleNumber = 0;
+
 export type ViewportOverlayProps = {
   topLeft: React.ReactNode;
   topRight: React.ReactNode;
@@ -22,7 +27,6 @@ export type ViewportOverlayProps = {
   bottomLeft: React.ReactNode;
   color?: string;
 };
-
 const ViewportOverlay = ({
   topLeft,
   topRight,
@@ -31,6 +35,7 @@ const ViewportOverlay = ({
   color = 'text-primary-light',
 }: ViewportOverlayProps) => {
   const overlay = 'absolute pointer-events-none viewport-overlay';
+
   return (
     <div
       className={classnames(
@@ -52,6 +57,51 @@ const ViewportOverlay = ({
         style={{ transform: 'translateX(-8px)' }} // shift right side overlays by 4px for better alignment with ViewportActionCorners' icons
       >
         {topRight}
+
+        {/* Add Your Button Here */}
+        <button
+          style={{
+            padding: '5px 10px',
+            backgroundColor: '#00bcd4',
+            border: 'none',
+            color: 'white',
+            cursor: 'pointer',
+            borderRadius: '5px',
+            pointerEvents: 'all', // Allow interactions
+          }}
+          onClick={event => {
+            console.log('🟢 Explain button clicked!');
+
+            // 🔍 Find all possible viewport elements
+            const allViewports = document.querySelectorAll('.cornerstone-viewport-element'); // 🔹 Use cornerstone-specific class
+            console.log('🔍 All Viewports Found:', allViewports);
+
+            // 🔹 Try to find the correct viewport element based on its relationship in the DOM
+            let viewportElement = event.currentTarget
+              .closest('.viewport-wrapper')
+              ?.querySelector('.cornerstone-viewport-element');
+
+            if (!viewportElement) {
+              console.warn('❌ No viewport element found! Trying another method...');
+              viewportElement = document.querySelector('.cornerstone-viewport-element'); // 🔹 Fallback selector
+            }
+
+            console.log('🖼️ Found Viewport Element:', viewportElement);
+
+            if (!viewportElement) {
+              console.warn('❌ Still could not find a viewport!');
+              return;
+            }
+
+            const viewportId = viewportElement.getAttribute('data-viewport-uid');
+            console.log('🖼️ Viewport ID:', viewportId);
+
+            console.log('🚀 Calling applyHeatmapOverlay()...');
+            applyHeatmapOverlay(viewportId, foldername, sampleNumber);
+          }}
+        >
+          Explain
+        </button>
       </div>
       <div
         data-cy={'viewport-overlay-bottom-right'}
