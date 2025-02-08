@@ -140,6 +140,7 @@ const SearchHomePage = () => {
       studyID: newStudyId, // Use the new unique ID
       studyInstanceUID: newStudyId, // Use the new unique ID
       patient_name: `Generated Patient ${newStudyId}`,
+      seriesInstanceUID: newStudyId + '.0',
       patient_id: newStudyId,
       read_img_flag: false,
       num_series_in_study: 0,

@@ -215,6 +215,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
       'prompt': promptData || null,
       'description': promptHeaderData,
       'studyInstanceUID': studyInstanceUID,
+      'seriesInstanceUID': studyInstanceUID+'.'+(currentStudy.Series.length+1),
       'patient_name': currentStudy.PatientMainDicomTags.PatientName,
       'patient_id': currentStudy.PatientMainDicomTags.PatientID,
       'read_img_flag': true,
