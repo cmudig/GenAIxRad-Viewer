@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import UserFeedback from './UserFeedback';
+import { getRenderingEngine, metaData, StackViewport } from '@cornerstonejs/core';
+
+
+const orthancServerUrl =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost'
+    : 'https://orthanc.katelyncmorrison.com';
 
 const StudyMetadataDisplay = ({
   description,
@@ -15,17 +22,23 @@ const StudyMetadataDisplay = ({
   useEffect(() => {
     if (modality === 'AI') {
       const fetchMetadata = async () => {
-        const orthancSeriesID = await _getOrthancSeriesID(seriesInstanceUID);
-        setSeriesID(orthancSeriesID);
+        console.log("we are checking for: ", seriesInstanceUID);
+        const orthancSeriesID = await _getOrthancSeriesByID(seriesInstanceUID);
+        console.log("WHAT WE GOT IN RETURN: ", orthancSeriesID);
 
-        const response = await _getPromptMetadataOfSeries(orthancSeriesID);
+        const seriesUid = orthancSeriesID?.ID;
 
-        setPromptMetaData(response);
+        console.log("Now we're checking for seriesID: ", seriesUid);
+
+        if (seriesUid) {
+          const response = await _getPromptMetadataOfSeries(seriesUid);
+          console.log("what was our prompt response: ", response)
+          setPromptMetaData(response || "No metadata found.");
+        }
       };
 
       fetchMetadata();
     }
-
   }, [seriesInstanceUID, modality]);
 
 
@@ -49,7 +62,7 @@ const StudyMetadataDisplay = ({
       <div className="break-words text-base text-white">
         {promptMetaData ? promptMetaData : ''}
       </div>
-      <UserFeedback seriesID={seriesID} />
+      {/* <UserFeedback seriesID={seriesID} /> */}
     </div>
   );
 };
@@ -60,58 +73,91 @@ StudyMetadataDisplay.propTypes = {
 
 
 const _getPromptMetadataOfSeries = async (seriesID) => {
+
   try {
-    const url = `https://orthanc.katelyncmorrison.com/pacs/series/${seriesID}/metadata/SeriesPrompt`;
+    const url = `${orthancServerUrl}/pacs/series/${seriesID}/metadata/SeriesPrompt`;
+    console.log("📡 Fetching metadata from:", url);
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Content-Type': 'text/plain'  // Ensure the server expects text/plain content type
-      }
+        'Content-Type': 'text/plain',
+      },
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.log("Response not ok. Status:", response.status, "Response text:", errorText);
-      return;
-    } else {
-      return response.text();
+      console.warn(`❌ Metadata fetch failed. Status: ${response.status}. Response: ${errorText}`);
+      return null;
     }
 
+    const metadataText = await response.text();
+    console.log("✅ Retrieved SeriesPrompt metadata:", metadataText);
+    return metadataText;
   } catch (error) {
-    console.error('There was a problem with your fetch operation:', error);
+    console.error("❌ Error fetching SeriesPrompt metadata:", error);
+    return null;
   }
 };
-const _getOrthancSeriesID = async (seriesInstanceUID) => {
+
+const _getOrthancSeriesByID = async seriesInstanceUID => {
   try {
     // Parameters to include in the request
     const params = new URLSearchParams({
       expand: 1,
-      requestedTags: "SeriesInstanceUID"
+      requestedTags: 'SeriesInstanceUID',
     });
 
-    // Fetching DICOM studies from the PACS server with query parameters
-    const response = await fetch(`https://orthanc.katelyncmorrison.com/pacs/series?${params.toString()}`);
+    const response = await fetch(orthancServerUrl + `/pacs/series?${params.toString()}`);
 
-    // Check if the response is ok (status code 200-299)
     if (!response.ok) {
       throw new Error('Network response was not ok');
     }
 
-    // Parse the response as JSON
     const data = await response.json();
 
-    // Filter the data to find the study with the given StudyInstanceUID
-    const series = data.find(item => item.RequestedTags.SeriesInstanceUID === seriesInstanceUID);
+    // Filter the data to find the study with the given seriesInstanceUID
+    const study = data.find(item => item.RequestedTags.SeriesInstanceUID === seriesInstanceUID);
 
-    // Check if the study was found
-    if (series) {
-      return series.ID;
+    if (study) {
+      return study;
     } else {
+      console.error('No series found with no seriesInstanceUID: ', seriesInstanceUID);
       return null;
     }
   } catch (error) {
     // Log any errors that occur during the fetch operation
     console.error('There has been a problem with your fetch operation:', error);
+    return null;
+  }
+};
+
+const _getOrthancStudyByID = async studyInstanceUID => {
+  try {
+    // Parameters to include in the request
+    const params = new URLSearchParams({
+      expand: 1,
+      requestedTags: 'StudyInstanceUID',
+    });
+    const response = await fetch(orthancServerUrl + `/pacs/studies?${params.toString()}`);
+
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+
+    const data = await response.json();
+    // Filter the data to find the study with the given StudyInstanceUID
+    const study = data.find(item => item.RequestedTags.StudyInstanceUID === studyInstanceUID);
+
+    if (study) {
+      console.log('We found study: ', study);
+      return study;
+    } else {
+      console.error('No study found with studyInstanceUID: ', studyInstanceUID);
+      return null;
+    }
+  } catch (error) {
+    console.error('There has been a problem with _getOrthancStudyByID:', error);
     return null;
   }
 };
