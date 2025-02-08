@@ -63,6 +63,7 @@
     "@babel/runtime": "^7.20.13",
     "@kitware/vtk.js": "30.4.1",
     "core-js": "^3.2.1",
+    "cornerstone-wado-image-loader": "^4.13.2",
     "firebase": "^10.14.0",
     "numjs": "^0.16.1",
     "numpy-parser": "^1.2.3",
