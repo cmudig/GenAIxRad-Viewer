@@ -30,6 +30,7 @@ const SearchHomePage = () => {
   const [studyID, setStudyId] = useState('');
   const navigate = useNavigate();
 
+
   useEffect(() => {
     const checkModelIsRunning = async () => {
       try {
@@ -450,10 +451,43 @@ const SearchHomePage = () => {
           'linear-gradient(190deg, rgb(220, 220, 220), rgb(240, 240, 240), rgb(210, 210, 210))',
       },
     },
+    cornerContainer: {
+      position: 'absolute' as const,
+      top: '10px',
+      right: '10px',
+      display: 'flex',
+      alignItems: 'right',
+    },
+    cornerIcon: {
+      width: '30px',
+      height: '30px',
+      marginTop: '10px',
+      marginRight: '25px',
+    },
   };
 
   return (
     <div style={styles.searchHomepage}>
+      <div style={styles.cornerContainer}>
+        <img
+          style={styles.cornerIcon}
+          src="../../assets/stack-icon.png"
+          alt="stack icon"
+          onClick={() => navigate('/')}>
+        </img>
+        <img
+          style={styles.cornerIcon}
+          src="../../assets/message-icon.png"
+          alt="profile icon"
+          onClick={() => navigate('/')}>
+        </img>
+        <img
+          style={styles.cornerIcon}
+          src="../../assets/profile-icon.png"
+          alt="stack icon"
+          onClick={() => navigate('/')}>
+        </img>
+      </div>
       <img
         src={'/assets/logo.png'} // Ensure the path is correct relative to the public directory
         alt="Logo"

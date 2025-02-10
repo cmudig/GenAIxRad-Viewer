@@ -54,13 +54,17 @@ const StudyListFilter = ({
                   </div>
                 )}
                 {/* New Generation Button */}
-                <LegacyButton
-                  variant="contained"
-                  color="primary"
-                  onClick={() => navigate('/search')}
-                >
-                  New Generation
-                </LegacyButton>
+                <div>
+
+                  <LegacyButton
+                    variant="contained"
+                    color="primary"
+                    onClick={() => navigate('/search')}
+                    startIcon={<Icon name="icon-new-generation" />}
+                  >
+                    New Generation
+                  </LegacyButton>
+                </div>
               </div>
               <div className="flex h-[34px] flex-row items-center">
                 {/* TODO revisit the completely rounded style of button used for clearing the study list filter - for now use LegacyButton*/}
