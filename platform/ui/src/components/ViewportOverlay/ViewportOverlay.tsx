@@ -242,7 +242,7 @@ const ViewportOverlay = ({
             const currentStudy = await _getOrthancStudyByID(studyInstanceUID);
             const series = currentStudy.Series;
             console.log('SERIES', series);
-            console.log('SERIES', currentStudy);
+            console.log('SERIES', currentStudy.MainDicomTags.AccessionNumber);
 
             (async () => {
               // Assume studyInstanceUID and seriesInstanceUID have been retrieved earlier.
@@ -260,11 +260,12 @@ const ViewportOverlay = ({
               }
             })();
 
-            // try {
-            //   await applyHeatmapOverlay(viewportId, studyInstanceUID, 0);
-            // } catch (error) {
-            //   console.error('❌ Error applying heatmap overlay:', error);
-            // }
+            try {
+              // await applyHeatmapOverlay(viewportId, currentStudy.MainDicomTags.AccessionNumber, 0);
+              await applyHeatmapOverlay(viewportId, 'test_rightpleur_noleft', 0);
+            } catch (error) {
+              console.error('❌ Error applying heatmap overlay:', error);
+            }
           }}
         >
           Explain
