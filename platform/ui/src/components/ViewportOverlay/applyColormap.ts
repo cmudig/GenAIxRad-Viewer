@@ -29,6 +29,8 @@ async function applyHeatmapOverlay(viewportUid, foldername, sampleNumber) {
 
   try {
     // ✅ Fetch heatmap DICOM URLs from backend
+    console.log('Our folder name is: ', foldername);
+    console.log('Our sample number is: ', sampleNumber);
     const dicomResponse = await axios.get(
       `${serverUrl}/attention-maps/${foldername}/${sampleNumber}`
     );
@@ -36,6 +38,8 @@ async function applyHeatmapOverlay(viewportUid, foldername, sampleNumber) {
     if (!dicomResponse.data || !dicomResponse.data.dicom_files.length) {
       console.error('❌ No heatmap DICOMs found.');
       return;
+    } else {
+      console.log('✅ Fetched heatmap DICOMs:', dicomResponse.data.dicom_files);
     }
 
     // ✅ Construct full paths for `wadouri`
@@ -63,25 +67,13 @@ async function applyHeatmapOverlay(viewportUid, foldername, sampleNumber) {
       return console.error('Not a StackViewport.');
     }
 
-    // Fetch heatmap DICOM paths
-    const res = await axios.get(`${serverUrl}/attention-maps/${foldername}/${sampleNumber}`);
-    if (!res.data?.dicom_files?.length) {
-      return console.error('No heatmap DICOMs.');
-    }
-
-    // Construct `wadouri` image IDs
-    const basePath = `${serverUrl}${dicom_server_path}${foldername}/${sampleNumber}`;
-    const dicomurls = res.data.dicom_files.map(file => `wadouri:${basePath}/${file}`);
-    // ✅ Ensure all heatmap image IDs are strings
-    const heatmapStr = dicomurls.map(id => (typeof id === 'string' ? id : String(id)));
-
     // Swap the current CT stack for the composite stack.
-    (viewport as any).setStack([{ imageIds: heatmapStr, opacity: 1 }]);
+    (viewport as any).setStack([{ imageIds: dicomUrls, opacity: 1 }]);
 
     viewport.render();
     console.log('✅ Heatmap overlay applied successfully!');
   } catch (error) {
-    console.error('❌ Error applying heatmap overlay:', error);
+    console.error('❌ Error applying heatmap overlay from ColorMap:', error);
   }
 }
 
