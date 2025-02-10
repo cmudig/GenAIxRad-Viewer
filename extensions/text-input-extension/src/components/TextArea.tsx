@@ -18,6 +18,11 @@ import * as cornerstoneTools from '@cornerstonejs/tools';
 import * as cornerstone from '@cornerstonejs/core';
 import RectangleOverlayViewerTool from '../tools/RectangleOverlayViewerTool';
 import debounce from 'lodash.debounce';
+
+const orthancServerUrl =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost'
+    : 'https://orthanc.katelyncmorrison.com';
 //import Icon from '../../../../platform/ui/src/components/Icon'
 
 /**
@@ -163,7 +168,7 @@ function TextArea({ servicesManager, commandsManager }) {
             });
 
             // Fetching DICOM studies from the PACS server with query parameters
-            const response = await fetch(`https://orthanc.katelyncmorrison.com/pacs/studies?${params.toString()}`);
+            const response = await fetch(`${orthancServerUrl}/pacs/studies?${params.toString()}`);
 
             // Check if the response is ok (status code 200-299)
             if (!response.ok) {
@@ -196,7 +201,7 @@ function TextArea({ servicesManager, commandsManager }) {
             return;
         }
         try {
-            const url = `https://orthanc.katelyncmorrison.com/pacs/studies/${studyID}/metadata/${type}`;
+            const url = `${orthancServerUrl}/pacs/studies/${studyID}/metadata/${type}`;
             const response = await fetch(url, {
                 method: 'PUT',
                 headers: {
@@ -231,7 +236,7 @@ function TextArea({ servicesManager, commandsManager }) {
             return;
         }
         try {
-            const url = `https://orthanc.katelyncmorrison.com/pacs/studies/${studyID}/metadata/${type}`;
+            const url = `${orthancServerUrl}/pacs/studies/${studyID}/metadata/${type}`;
             const response = await fetch(url, {
                 method: 'GET',
                 headers: {

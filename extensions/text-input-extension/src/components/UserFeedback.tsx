@@ -3,6 +3,11 @@ import PropTypes from 'prop-types';
 import UserFeedbackRow from './UserFeedbackRow';
 import debounce from 'lodash.debounce';
 
+const orthancServerUrl =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost'
+    : 'https://orthanc.katelyncmorrison.com';
+
 const UserFeedback = ({ seriesID }) => {
   const [feedback, setFeedback] = useState({
     'Anatomically realistic?': { thumbsUp: false, thumbsDown: false },
@@ -65,7 +70,7 @@ const UserFeedback = ({ seriesID }) => {
       return;
     }
     try {
-      const url = `https://orthanc.katelyncmorrison.com/pacs/series/${seriesID}/metadata/${type}`;
+      const url = `${orthancServerUrl}/pacs/series/${seriesID}/metadata/${type}`;
       const response = await fetch(url, {
         method: 'PUT',
         headers: {
@@ -98,7 +103,7 @@ const UserFeedback = ({ seriesID }) => {
       return;
     }
     try {
-      const url = `https://orthanc.katelyncmorrison.com/pacs/series/${seriesID}/metadata/${type}`;
+      const url = `${orthancServerUrl}/pacs/series/${seriesID}/metadata/${type}`;
       console.log("url", url);
       const response = await fetch(url, {
         method: 'GET',

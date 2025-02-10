@@ -169,10 +169,10 @@ const SearchHomePage = () => {
   };
 
   const waitForStudyID = async () => {
-    let retries = 10; // Maximum retries
+    let retries = 20; // Maximum retries
     while (!studyID && retries > 0) {
       console.log('Waiting for studyID...');
-      await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 500ms
       retries--;
     }
     if (studyID) {
@@ -211,6 +211,10 @@ const SearchHomePage = () => {
       // const metadataPromise = await addDummyMetadata(studyID);
       setLogs(prevLogs => [...prevLogs, 'Navigating you to your generation.']);
       // Ensure studyID is correctly set before navigating
+      const response = await addMetadataToStudy(studyID, '', 'Findings');
+      console.log('Findings metadata response,', response);
+      const response_impressions = await addMetadataToStudy(studyID, '', 'Impressions');
+      console.log('Impressions metadata response,', response_impressions);
     } catch (error) {
       console.error('Error in downloading and uploading images:', error);
       setLogs(prevLogs => [...prevLogs, 'ERROR IN NAVIGATION.']);
@@ -304,34 +308,6 @@ const SearchHomePage = () => {
     }
   };
 
-  const addDummyMetadata = async studyInstanceUid => {
-    console.log('OUR ID STUDY ID PASSED IN IS: ', studyInstanceUid);
-    const findings = `Dummy Findings for study ${studyInstanceUid}`;
-    const impressions = `Dummy Impressions for study ${studyInstanceUid}`;
-
-    try {
-      console.log(`Adding Dummy Findings to study ${studyInstanceUid}...`);
-      await _addMetadataToStudy(studyInstanceUid, findings, 'Findings');
-      setLogs(prevLogs => [
-        ...prevLogs,
-        `Successfully added dummy Findings for study ${studyInstanceUid}`,
-      ]);
-
-      console.log(`Adding Dummy Impressions to study ${studyInstanceUid}...`);
-      await _addMetadataToStudy(studyInstanceUid, impressions, 'Impressions');
-      setLogs(prevLogs => [
-        ...prevLogs,
-        `Successfully added dummy Impressions for study ${studyInstanceUid}`,
-      ]);
-    } catch (error) {
-      console.error(`Failed to add dummy metadata for study ${studyInstanceUid}: ${error}`);
-      setLogs(prevLogs => [
-        ...prevLogs,
-        `Error adding dummy metadata for study ${studyInstanceUid}: ${error.message}`,
-      ]);
-    }
-  };
-
   const _addMetadataToStudy = async (studyInstanceUid, data, type) => {
     // Validate the metadata type
     if (type !== 'Findings' && type !== 'Impressions') {
@@ -365,6 +341,7 @@ const SearchHomePage = () => {
         );
       } else {
         console.log(`Successfully added metadata for ${type}.`);
+        return response.data;
       }
     } catch (error) {
       console.log(`Error in adding metadata: ${error}`);
