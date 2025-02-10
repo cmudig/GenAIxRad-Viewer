@@ -3,6 +3,10 @@ import PropTypes from 'prop-types';
 import UserFeedback from './UserFeedback';
 import { getRenderingEngine, metaData, StackViewport } from '@cornerstonejs/core';
 
+// example of setting the SeriesPrompt via the terminal:
+// curl -X PUT "http://localhost:8042/series/b5da4164-106f1d99-2c273087-9c764fd8-ae12f84d/metadata/SeriesPrompt" \
+// -d 'left rib fractures left bloody pleural effusion adjacent peripheral lung contusion small left pneumothorax' \
+// -H "Content-Type: application/json"
 
 const orthancServerUrl =
   window.location.hostname === 'localhost'
@@ -128,36 +132,6 @@ const _getOrthancSeriesByID = async seriesInstanceUID => {
   } catch (error) {
     // Log any errors that occur during the fetch operation
     console.error('There has been a problem with your fetch operation:', error);
-    return null;
-  }
-};
-
-const _getOrthancStudyByID = async studyInstanceUID => {
-  try {
-    // Parameters to include in the request
-    const params = new URLSearchParams({
-      expand: 1,
-      requestedTags: 'StudyInstanceUID',
-    });
-    const response = await fetch(orthancServerUrl + `/pacs/studies?${params.toString()}`);
-
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
-    }
-
-    const data = await response.json();
-    // Filter the data to find the study with the given StudyInstanceUID
-    const study = data.find(item => item.RequestedTags.StudyInstanceUID === studyInstanceUID);
-
-    if (study) {
-      console.log('We found study: ', study);
-      return study;
-    } else {
-      console.error('No study found with studyInstanceUID: ', studyInstanceUID);
-      return null;
-    }
-  } catch (error) {
-    console.error('There has been a problem with _getOrthancStudyByID:', error);
     return null;
   }
 };

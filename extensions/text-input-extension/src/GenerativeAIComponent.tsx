@@ -304,9 +304,6 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
     }
   };
 
-
-
-
   const _getFilesFromFolder = async (foldername, sampleNumber) => {
     try {
       const response = await axios.get(`${serverUrl}/files/${foldername}/${sampleNumber}`);
