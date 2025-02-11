@@ -474,6 +474,26 @@ class MetadataProvider {
     if (!imageId) {
       throw new Error('MetadataProvider::Empty imageId');
     }
+    if (typeof imageId !== 'string') {
+      if (Array.isArray(imageId.imageIds)) {
+        console.log('📡 Received stack of images, selecting first image:', imageId.imageIds[0]);
+        imageId = imageId.imageIds[0]; // Select first slice
+      } else {
+        console.error('❌ imageId is not a string or valid array!', imageId);
+        return null;
+      }
+    }
+
+    // ✅ Handle `wadouri:` image format
+    if (imageId.startsWith('wadouri:')) {
+      const strippedImageId = imageId.replace('wadouri:', ''); // Remove the prefix
+      console.log('✅ Processed wadouri image:', strippedImageId);
+
+      return {
+        imageURI: strippedImageId,
+      };
+    }
+
     // TODO: adding csiv here is not really correct. Probably need to use
     // metadataProvider.addImageIdToUIDs(imageId, {
     //   StudyInstanceUID,
