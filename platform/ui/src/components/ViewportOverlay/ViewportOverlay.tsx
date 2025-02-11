@@ -261,8 +261,13 @@ const ViewportOverlay = ({
             })();
 
             try {
-              // await applyHeatmapOverlay(viewportId, currentStudy.MainDicomTags.AccessionNumber, 0);
-              await applyHeatmapOverlay(viewportId, 'test_rightpleur_noleft', 0);
+              await applyHeatmapOverlay(
+                viewportId,
+                currentStudy.MainDicomTags.AccessionNumber,
+                0,
+                studyInstanceUID
+              );
+              // await applyHeatmapOverlay(viewportId, 'test_rightpleur_noleft', 0, studyInstanceUID);
             } catch (error) {
               console.error('❌ Error applying heatmap overlay:', error);
             }

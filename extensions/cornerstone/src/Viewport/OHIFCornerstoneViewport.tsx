@@ -27,12 +27,9 @@ import { useAppConfig } from '@state';
 
 import { LutPresentation, PositionPresentation } from '../types/Presentation';
 
-import CustomScrollbar from './CustomScrollbar';
-
-
+// import CustomScrollbar from './CustomScrollbar';
 
 const STACK = 'stack';
-
 
 /**
  * Caches the jump to measurement operation, so that if display set is shown,
@@ -428,16 +425,17 @@ const OHIFCornerstoneViewport = React.memo((props: withAppTypes) => {
   return (
     <React.Fragment>
       <div className="viewport-and-scrollbar-container">
-        <div className="viewport-wrapper" style={{ width: 'calc(100% - 10px)', height:'100%' }}>
+        <div
+          className="viewport-wrapper"
+          style={{ width: 'calc(100% - 10px)', height: '100%' }}
+        >
           <div
             className="cornerstone-viewport-element"
             style={{ height: '90%', width: '90%' }}
             onContextMenu={e => e.preventDefault()}
             onMouseDown={e => e.preventDefault()}
             ref={elementRef}
-          >
-
-          </div>
+          ></div>
           <CornerstoneOverlays
             viewportId={viewportId}
             toolBarService={toolbarService}
@@ -450,16 +448,17 @@ const OHIFCornerstoneViewport = React.memo((props: withAppTypes) => {
             viewportId={viewportId}
             servicesManager={servicesManager}
           />
-
         </div>
-        <div className="scrollbar-wrapper" style={{ width: '10px', height:'100%' }}>
-            <CustomScrollbar
-                servicesManager={servicesManager}
-                viewportId={viewportId}
-                element={elementRef.current}
-              />
-          </div>
-
+        <div
+          className="scrollbar-wrapper"
+          style={{ width: '10px', height: '100%' }}
+        >
+          {/* <CustomScrollbar
+            servicesManager={servicesManager}
+            viewportId={viewportId}
+            element={elementRef.current}
+          /> */}
+        </div>
       </div>
 
       {/* top offset of 24px to account for ViewportActionCorners. */}
