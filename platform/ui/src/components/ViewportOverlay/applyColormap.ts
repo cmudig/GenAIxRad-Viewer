@@ -39,64 +39,7 @@ async function applyHeatmapOverlay(viewportUid, foldername, sampleNumber, studyI
     const dicom_path_prefix = `${serverUrl}/dicom_files/${foldername}/${sampleNumber}`;
 
     const dicomResponse = await axios.get(dicom_path_prefix);
-
-    if (!dicomResponse.data || !dicomResponse.data.dicom_files.length) {
-      console.error('❌ No heatmap DICOMs found.');
-      return;
-    } else {
-      console.log('✅ Fetched heatmap DICOMs:', dicomResponse.data.dicom_files);
-    }
-
-    // ✅ Construct full paths for `wadouri`
-    const dicomUrls = dicomResponse.data.dicom_files.map(
-      fileName => `wadouri:${dicom_path_prefix}/${fileName}`
-    );
-
-    console.log('📡 Constructed heatmap `wadouri` URLs:', dicomUrls);
-
-    // ✅ Get rendering engine and viewport
-    const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
-    if (!renderingEngine) {
-      console.error('❌ Rendering Engine not found!');
-      return;
-    }
-
-    const viewport = renderingEngine.getViewport(viewportUid);
-    if (!viewport) {
-      console.error('❌ Viewport not found!');
-      return;
-    }
-
-    if (!(viewport instanceof StackViewport)) {
-      return console.error('Not a StackViewport.');
-    }
-
-    const studyMetadata = DicomMetadataStore.getStudy(studyInstanceUID);
-
-    console.log('📝 Registering new temporary series in OHIF metadata store...');
-    const newSeriesMetadata = {
-      StudyInstanceUID: studyInstanceUID,
-      SeriesInstanceUID: seriesInstanceUID,
-      SeriesDescription: 'Temporary Heatmap Overlay',
-      Modality: 'OT',
-      NumberOfSeriesRelatedInstances: dicomUrls.length,
-      ImageIds: dicomUrls,
-    };
-
-    studyMetadata.series.push(newSeriesMetadata);
-    DicomMetadataStore.addSeriesMetadata([newSeriesMetadata], true);
-
-    DicomMetadataStore._broadcastEvent('SERIES_ADDED', {
-      StudyInstanceUID: studyInstanceUID,
-      seriesSummaryMetadata: [newSeriesMetadata],
-      madeInClient: true,
-    });
-
-    viewport.resetCamera();
-    // Swap the current CT stack for the composite stack.
-    await viewport.setStack(dicomUrls); // Start from first slice
-
-    viewport.render();
+    console.log('Our dicom response is: ', dicomResponse);
 
     console.log('✅ Heatmap overlay applied successfully!');
   } catch (error) {

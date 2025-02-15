@@ -30,7 +30,6 @@ const SearchHomePage = () => {
   const [studyID, setStudyId] = useState('');
   const navigate = useNavigate();
 
-
   useEffect(() => {
     const checkModelIsRunning = async () => {
       try {
@@ -48,7 +47,7 @@ const SearchHomePage = () => {
               console.log('Model ended');
               console.log('Try to download data');
               console.log('Generated File ID:', generatedFileID);
-              executeDownloadAndUpload(generatedFileID);
+              executeDownloadAndUpload(studyID);
             }
             setOldModelIsRunning(prevModelIsRunning);
             return processIsRunning;
@@ -65,7 +64,7 @@ const SearchHomePage = () => {
     }, 5000); // Check every 5 seconds
 
     return () => clearInterval(interval); // Cleanup on component unmount
-  }, [generatedFileID]); // Add generatedFileID as a dependency
+  }, [studyID]); // Add generatedFileID as a dependency
 
   useEffect(() => {
     const checkServerStatus = async () => {
@@ -473,20 +472,20 @@ const SearchHomePage = () => {
           style={styles.cornerIcon}
           src="../../assets/stack-icon.png"
           alt="stack icon"
-          onClick={() => navigate('/')}>
-        </img>
+          onClick={() => navigate('/')}
+        ></img>
         <img
           style={styles.cornerIcon}
           src="../../assets/message-icon.png"
           alt="profile icon"
-          onClick={() => navigate('/')}>
-        </img>
+          onClick={() => navigate('/')}
+        ></img>
         <img
           style={styles.cornerIcon}
           src="../../assets/profile-icon.png"
           alt="stack icon"
-          onClick={() => navigate('/')}>
-        </img>
+          onClick={() => navigate('/')}
+        ></img>
       </div>
       <img
         src={'/assets/logo.png'} // Ensure the path is correct relative to the public directory

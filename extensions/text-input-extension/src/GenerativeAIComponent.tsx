@@ -199,7 +199,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
     const formattedDate = _generateUniqueTimestamp();
     let currentFileID = `${formattedDate}${firstTenLetters}` // Generate a unique ID e.g. YYYYMMDDHHMMSSCardiomega
 
-    setStudyId(currentStudy.RequestedTags.StudyInstanceUID);
+    setStudyId(currentStudy.MainDicomTags.AccessionNumber);
     setFileID(currentFileID);
 
     console.log("fileID", currentFileID)
@@ -211,10 +211,10 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
     setNumSamp(currentStudy.Series.length);
 
     const payload = {
-      'filename': `${currentFileID}.npy`,
+      'filename': `${currentStudy.MainDicomTags.AccessionNumber}.npy`,
       'prompt': promptData || null,
       'description': promptHeaderData,
-      'studyInstanceUID': studyInstanceUID,
+      'studyInstanceUID': currentStudy.MainDicomTags.AccessionNumber,
       'seriesInstanceUID': studyInstanceUID+'.'+(currentStudy.Series.length+1),
       'patient_name': currentStudy.PatientMainDicomTags.PatientName,
       'patient_id': currentStudy.PatientMainDicomTags.PatientID,
@@ -274,16 +274,16 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
 
   }
 
-  const _downloadAndUploadImages = async (fileID, sampleNumber) => {
+  const _downloadAndUploadImages = async (studyID, sampleNumber) => {
     try {
       console.log("downloadAndUploadImages fileID: ", fileID);
-      const files = await _getFilesFromFolder(fileID, sampleNumber);
+      const files = await _getFilesFromFolder(studyID, sampleNumber);
 
       setDataIsUploading(true);
 
       const uploadPromises = files.map(async (filename) => {
         try {
-          const blob = await _fetchDicomFile(fileID, filename, sampleNumber);
+          const blob = await _fetchDicomFile(studyID, filename, sampleNumber);
           if (blob) {
             // Upload the DICOM file to the Orthanc server
             await _uploadDicomToOrthanc(blob);
