@@ -244,29 +244,14 @@ const ViewportOverlay = ({
             console.log('SERIES', series);
             console.log('SERIES', currentStudy.MainDicomTags.AccessionNumber);
 
-            (async () => {
-              // Assume studyInstanceUID and seriesInstanceUID have been retrieved earlier.
-              console.log(`📋 Study Instance UID: ${studyInstanceUID}`);
-              console.log(`📋 Series Instance UID: ${seriesInstanceUID}`);
-
-              const seriesIndex = await getSeriesIndex(studyInstanceUID, seriesInstanceUID);
-              if (seriesIndex !== null) {
-                console.log('🔍 Found series index in study:', seriesIndex);
-              } else {
-                console.error(
-                  '❌ Series not found in study for SeriesInstanceUID:',
-                  seriesInstanceUID
-                );
-              }
-            })();
-
             try {
-              await applyHeatmapOverlay(
-                viewportId,
-                currentStudy.MainDicomTags.AccessionNumber,
-                0,
-                studyInstanceUID
-              );
+              await applyHeatmapOverlay();
+              // await applyHeatmapOverlay(
+              //   viewportId,
+              //   currentStudy.MainDicomTags.AccessionNumber,
+              //   0,
+              //   studyInstanceUID
+              // );
               // await applyHeatmapOverlay(viewportId, 'test_rightpleur_noleft', 0, studyInstanceUID);
             } catch (error) {
               console.error('❌ Error applying heatmap overlay:', error);
