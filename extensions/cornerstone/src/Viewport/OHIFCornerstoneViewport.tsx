@@ -405,7 +405,6 @@ const OHIFCornerstoneViewport = React.memo((props: withAppTypes) => {
       element: elementRef.current,
       displaySets,
       servicesManager,
-      commandsManager,
       verticalDirection: AllInOneMenu.VerticalDirection.TopToBottom,
       horizontalDirection: AllInOneMenu.HorizontalDirection.RightToLeft,
     });
@@ -417,11 +416,15 @@ const OHIFCornerstoneViewport = React.memo((props: withAppTypes) => {
       location: viewportActionCornersService.LOCATIONS.topRight,
       indexPriority: -100,
     });
-  }, [displaySets, viewportId, viewportActionCornersService, servicesManager, commandsManager]);
+  }, [
+    displaySets,
+    viewportId,
+    viewportActionCornersService,
+    servicesManager,
+    appConfig.addWindowLevelActionMenu,
+  ]);
 
-  const { ref: resizeRef } = useResizeDetector({
-    onResize,
-  });
+  const { ref: resizeRef } = useResizeDetector({ onResize });
   return (
     <React.Fragment>
       <div className="viewport-and-scrollbar-container">
@@ -634,9 +637,7 @@ function _jumpToMeasurement(
       return;
     }
 
-    cs3DTools.utilities.jumpToSlice(targetElement, {
-      imageIndex: imageIdIndex,
-    });
+    cs3DTools.utilities.jumpToSlice(targetElement, { imageIndex: imageIdIndex });
 
     cs3DTools.annotation.selection.setAnnotationSelected(measurement.uid);
     // Jump to measurement consumed, remove.
