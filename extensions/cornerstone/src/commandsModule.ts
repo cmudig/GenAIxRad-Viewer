@@ -12,6 +12,7 @@ import {
   utilities as cstUtils,
   ReferenceLinesTool,
 } from '@cornerstonejs/tools';
+import { jumpToSlice } from '@cornerstonejs/core/utilities';
 
 import { Types as OhifTypes } from '@ohif/core';
 import {
@@ -30,10 +31,7 @@ import getActiveViewportEnabledElement from './utils/getActiveViewportEnabledEle
 import toggleVOISliceSync from './utils/toggleVOISliceSync';
 import { usePositionPresentationStore, useSegmentationPresentationStore } from './stores';
 
-const toggleSyncFunctions = {
-  imageSlice: toggleImageSliceSync,
-  voi: toggleVOISliceSync,
-};
+const toggleSyncFunctions = { imageSlice: toggleImageSliceSync, voi: toggleVOISliceSync };
 
 function commandsModule({
   servicesManager,
@@ -195,13 +193,7 @@ function commandsModule({
       const measurement = measurementService.getMeasurement(uid);
       showLabelAnnotationPopup(measurement, uiDialogService, labelConfig).then(
         (val: Map<any, any>) => {
-          measurementService.update(
-            uid,
-            {
-              ...val,
-            },
-            true
-          );
+          measurementService.update(uid, { ...val }, true);
         }
       );
     },
@@ -233,9 +225,7 @@ function commandsModule({
     updateMeasurement: props => {
       const { code, uid, textLabel, label } = props;
       const measurement = measurementService.getMeasurement(uid);
-      const updatedMeasurement = {
-        ...measurement,
-      };
+      const updatedMeasurement = { ...measurement };
       // Call it textLabel as the label value
       // TODO - remove the label setting when direct rendering of findingSites is enabled
       if (textLabel !== undefined) {
@@ -300,12 +290,7 @@ function commandsModule({
 
       const { lower, upper } = csUtils.windowLevel.toLowHighRange(windowWidthNum, windowCenterNum);
 
-      viewport.setProperties({
-        voiRange: {
-          upper,
-          lower,
-        },
-      });
+      viewport.setProperties({ voiRange: { upper, lower } });
       viewport.render();
     },
 
@@ -432,11 +417,7 @@ function commandsModule({
 
       // Set the new toolName to be active
       toolGroup.setToolActive(toolName, {
-        bindings: [
-          {
-            mouseButton: Enums.MouseBindings.Primary,
-          },
-        ],
+        bindings: [{ mouseButton: Enums.MouseBindings.Primary }],
       });
     },
     showDownloadViewportModal: () => {
@@ -604,7 +585,7 @@ function commandsModule({
 
       // Set slice to last slice
       const options = { imageIndex: jumpIndex };
-      csUtils.jumpToSlice(viewport.element, options);
+      jumpToSlice(viewport.element, options);
     },
     scroll: ({ direction }) => {
       const enabledElement = _getActiveViewportEnabledElement();
@@ -695,11 +676,7 @@ function commandsModule({
       const fn = toggleSyncFunctions[type];
 
       if (fn) {
-        fn({
-          servicesManager,
-          viewports,
-          syncId,
-        });
+        fn({ servicesManager, viewports, syncId });
       }
     },
     setSourceViewportForReferenceLinesTool: ({ viewportId }) => {
@@ -712,9 +689,7 @@ function commandsModule({
 
       toolGroup?.setToolConfiguration(
         ReferenceLinesTool.toolName,
-        {
-          sourceViewportId: viewportId,
-        },
+        { sourceViewportId: viewportId },
         true // overwrite
       );
 
@@ -757,9 +732,7 @@ function commandsModule({
       if (!viewport) {
         return;
       }
-      viewport.setProperties({
-        preset,
-      });
+      viewport.setProperties({ preset });
       viewport.render();
     },
 
@@ -899,14 +872,7 @@ function commandsModule({
         {
           label,
           segmentationId,
-          segments: options.createInitialSegment
-            ? {
-                1: {
-                  label: 'Segment 1',
-                  active: true,
-                },
-              }
-            : {},
+          segments: options.createInitialSegment ? { 1: { label: 'Segment 1', active: true } } : {},
         }
       );
 
@@ -1192,12 +1158,7 @@ function commandsModule({
       const viewportId = viewportGridService.getActiveViewportId();
       const color = segmentationService.getSegmentColor(viewportId, segmentationId, segmentIndex);
 
-      const rgbaColor = {
-        r: color[0],
-        g: color[1],
-        b: color[2],
-        a: color[3] / 255.0,
-      };
+      const rgbaColor = { r: color[0], g: color[1], b: color[2], a: color[3] / 255.0 };
 
       colorPickerDialog(uiDialogService, rgbaColor, (newRgbaColor, actionId) => {
         if (actionId === 'cancel') {
@@ -1224,243 +1185,92 @@ function commandsModule({
       commandFn: actions.showCornerstoneContextMenu,
       options: {
         menuCustomizationId: 'measurementsContextMenu',
-        commands: [
-          {
-            commandName: 'showContextMenu',
-          },
-        ],
+        commands: [{ commandName: 'showContextMenu' }],
       },
     },
 
-    getNearbyToolData: {
-      commandFn: actions.getNearbyToolData,
-    },
-    getNearbyAnnotation: {
-      commandFn: actions.getNearbyAnnotation,
-      storeContexts: [],
-      options: {},
-    },
-    toggleViewportColorbar: {
-      commandFn: actions.toggleViewportColorbar,
-    },
-    deleteMeasurement: {
-      commandFn: actions.deleteMeasurement,
-    },
-    setMeasurementLabel: {
-      commandFn: actions.setMeasurementLabel,
-    },
-    updateMeasurement: {
-      commandFn: actions.updateMeasurement,
-    },
-    setViewportWindowLevel: {
-      commandFn: actions.setViewportWindowLevel,
-    },
-    setWindowLevel: {
-      commandFn: actions.setWindowLevel,
-    },
-    setToolActive: {
-      commandFn: actions.setToolActive,
-    },
-    setToolActiveToolbar: {
-      commandFn: actions.setToolActiveToolbar,
-    },
-    setToolEnabled: {
-      commandFn: actions.setToolEnabled,
-    },
-    rotateViewportCW: {
-      commandFn: actions.rotateViewport,
-      options: { rotation: 90 },
-    },
-    rotateViewportCCW: {
-      commandFn: actions.rotateViewport,
-      options: { rotation: -90 },
-    },
-    incrementActiveViewport: {
-      commandFn: actions.changeActiveViewport,
-    },
+    getNearbyToolData: { commandFn: actions.getNearbyToolData },
+    getNearbyAnnotation: { commandFn: actions.getNearbyAnnotation, storeContexts: [], options: {} },
+    toggleViewportColorbar: { commandFn: actions.toggleViewportColorbar },
+    deleteMeasurement: { commandFn: actions.deleteMeasurement },
+    setMeasurementLabel: { commandFn: actions.setMeasurementLabel },
+    updateMeasurement: { commandFn: actions.updateMeasurement },
+    setViewportWindowLevel: { commandFn: actions.setViewportWindowLevel },
+    setWindowLevel: { commandFn: actions.setWindowLevel },
+    setToolActive: { commandFn: actions.setToolActive },
+    setToolActiveToolbar: { commandFn: actions.setToolActiveToolbar },
+    setToolEnabled: { commandFn: actions.setToolEnabled },
+    rotateViewportCW: { commandFn: actions.rotateViewport, options: { rotation: 90 } },
+    rotateViewportCCW: { commandFn: actions.rotateViewport, options: { rotation: -90 } },
+    incrementActiveViewport: { commandFn: actions.changeActiveViewport },
     decrementActiveViewport: {
       commandFn: actions.changeActiveViewport,
       options: { direction: -1 },
     },
-    flipViewportHorizontal: {
-      commandFn: actions.flipViewportHorizontal,
-    },
-    flipViewportVertical: {
-      commandFn: actions.flipViewportVertical,
-    },
-    invertViewport: {
-      commandFn: actions.invertViewport,
-    },
-    resetViewport: {
-      commandFn: actions.resetViewport,
-    },
-    scaleUpViewport: {
-      commandFn: actions.scaleViewport,
-      options: { direction: 1 },
-    },
-    scaleDownViewport: {
-      commandFn: actions.scaleViewport,
-      options: { direction: -1 },
-    },
-    fitViewportToWindow: {
-      commandFn: actions.scaleViewport,
-      options: { direction: 0 },
-    },
-    nextImage: {
-      commandFn: actions.scroll,
-      options: { direction: 1 },
-    },
-    previousImage: {
-      commandFn: actions.scroll,
-      options: { direction: -1 },
-    },
-    firstImage: {
-      commandFn: actions.jumpToImage,
-      options: { imageIndex: 0 },
-    },
-    lastImage: {
-      commandFn: actions.jumpToImage,
-      options: { imageIndex: -1 },
-    },
-    jumpToImage: {
-      commandFn: actions.jumpToImage,
-    },
-    showDownloadViewportModal: {
-      commandFn: actions.showDownloadViewportModal,
-    },
-    toggleCine: {
-      commandFn: actions.toggleCine,
-    },
-    arrowTextCallback: {
-      commandFn: actions.arrowTextCallback,
-    },
-    setViewportActive: {
-      commandFn: actions.setViewportActive,
-    },
-    setViewportColormap: {
-      commandFn: actions.setViewportColormap,
-    },
+    flipViewportHorizontal: { commandFn: actions.flipViewportHorizontal },
+    flipViewportVertical: { commandFn: actions.flipViewportVertical },
+    invertViewport: { commandFn: actions.invertViewport },
+    resetViewport: { commandFn: actions.resetViewport },
+    scaleUpViewport: { commandFn: actions.scaleViewport, options: { direction: 1 } },
+    scaleDownViewport: { commandFn: actions.scaleViewport, options: { direction: -1 } },
+    fitViewportToWindow: { commandFn: actions.scaleViewport, options: { direction: 0 } },
+    nextImage: { commandFn: actions.scroll, options: { direction: 1 } },
+    previousImage: { commandFn: actions.scroll, options: { direction: -1 } },
+    firstImage: { commandFn: actions.jumpToImage, options: { imageIndex: 0 } },
+    lastImage: { commandFn: actions.jumpToImage, options: { imageIndex: -1 } },
+    jumpToImage: { commandFn: actions.jumpToImage },
+    showDownloadViewportModal: { commandFn: actions.showDownloadViewportModal },
+    toggleCine: { commandFn: actions.toggleCine },
+    arrowTextCallback: { commandFn: actions.arrowTextCallback },
+    setViewportActive: { commandFn: actions.setViewportActive },
+    setViewportColormap: { commandFn: actions.setViewportColormap },
     setSourceViewportForReferenceLinesTool: {
       commandFn: actions.setSourceViewportForReferenceLinesTool,
     },
-    storePresentation: {
-      commandFn: actions.storePresentation,
-    },
-    attachProtocolViewportDataListener: {
-      commandFn: actions.attachProtocolViewportDataListener,
-    },
-    setViewportPreset: {
-      commandFn: actions.setViewportPreset,
-    },
-    setVolumeRenderingQulaity: {
-      commandFn: actions.setVolumeRenderingQulaity,
-    },
-    shiftVolumeOpacityPoints: {
-      commandFn: actions.shiftVolumeOpacityPoints,
-    },
-    setVolumeLighting: {
-      commandFn: actions.setVolumeLighting,
-    },
-    resetCrosshairs: {
-      commandFn: actions.resetCrosshairs,
-    },
-    toggleSynchronizer: {
-      commandFn: actions.toggleSynchronizer,
-    },
-    updateVolumeData: {
-      commandFn: actions.updateVolumeData,
-    },
-    toggleEnabledDisabledToolbar: {
-      commandFn: actions.toggleEnabledDisabledToolbar,
-    },
-    toggleActiveDisabledToolbar: {
-      commandFn: actions.toggleActiveDisabledToolbar,
-    },
-    updateStoredPositionPresentation: {
-      commandFn: actions.updateStoredPositionPresentation,
-    },
+    storePresentation: { commandFn: actions.storePresentation },
+    attachProtocolViewportDataListener: { commandFn: actions.attachProtocolViewportDataListener },
+    setViewportPreset: { commandFn: actions.setViewportPreset },
+    setVolumeRenderingQulaity: { commandFn: actions.setVolumeRenderingQulaity },
+    shiftVolumeOpacityPoints: { commandFn: actions.shiftVolumeOpacityPoints },
+    setVolumeLighting: { commandFn: actions.setVolumeLighting },
+    resetCrosshairs: { commandFn: actions.resetCrosshairs },
+    toggleSynchronizer: { commandFn: actions.toggleSynchronizer },
+    updateVolumeData: { commandFn: actions.updateVolumeData },
+    toggleEnabledDisabledToolbar: { commandFn: actions.toggleEnabledDisabledToolbar },
+    toggleActiveDisabledToolbar: { commandFn: actions.toggleActiveDisabledToolbar },
+    updateStoredPositionPresentation: { commandFn: actions.updateStoredPositionPresentation },
     updateStoredSegmentationPresentation: {
       commandFn: actions.updateStoredSegmentationPresentation,
     },
-    createLabelmapForViewport: {
-      commandFn: actions.createLabelmapForViewport,
-    },
-    setActiveSegmentation: {
-      commandFn: actions.setActiveSegmentation,
-    },
-    addSegment: {
-      commandFn: actions.addSegmentCommand,
-    },
-    setActiveSegmentAndCenter: {
-      commandFn: actions.setActiveSegmentAndCenterCommand,
-    },
-    toggleSegmentVisibility: {
-      commandFn: actions.toggleSegmentVisibilityCommand,
-    },
-    toggleSegmentLock: {
-      commandFn: actions.toggleSegmentLockCommand,
-    },
-    toggleSegmentationVisibility: {
-      commandFn: actions.toggleSegmentationVisibilityCommand,
-    },
-    downloadSegmentation: {
-      commandFn: actions.downloadSegmentationCommand,
-    },
-    storeSegmentation: {
-      commandFn: actions.storeSegmentationCommand,
-    },
-    downloadRTSS: {
-      commandFn: actions.downloadRTSSCommand,
-    },
-    setSegmentationStyle: {
-      commandFn: actions.setSegmentationStyleCommand,
-    },
-    deleteSegment: {
-      commandFn: actions.deleteSegmentCommand,
-    },
-    deleteSegmentation: {
-      commandFn: actions.deleteSegmentationCommand,
-    },
-    removeSegmentationFromViewport: {
-      commandFn: actions.removeSegmentationFromViewportCommand,
-    },
+    createLabelmapForViewport: { commandFn: actions.createLabelmapForViewport },
+    setActiveSegmentation: { commandFn: actions.setActiveSegmentation },
+    addSegment: { commandFn: actions.addSegmentCommand },
+    setActiveSegmentAndCenter: { commandFn: actions.setActiveSegmentAndCenterCommand },
+    toggleSegmentVisibility: { commandFn: actions.toggleSegmentVisibilityCommand },
+    toggleSegmentLock: { commandFn: actions.toggleSegmentLockCommand },
+    toggleSegmentationVisibility: { commandFn: actions.toggleSegmentationVisibilityCommand },
+    downloadSegmentation: { commandFn: actions.downloadSegmentationCommand },
+    storeSegmentation: { commandFn: actions.storeSegmentationCommand },
+    downloadRTSS: { commandFn: actions.downloadRTSSCommand },
+    setSegmentationStyle: { commandFn: actions.setSegmentationStyleCommand },
+    deleteSegment: { commandFn: actions.deleteSegmentCommand },
+    deleteSegmentation: { commandFn: actions.deleteSegmentationCommand },
+    removeSegmentationFromViewport: { commandFn: actions.removeSegmentationFromViewportCommand },
     toggleRenderInactiveSegmentations: {
       commandFn: actions.toggleRenderInactiveSegmentationsCommand,
     },
-    setFillAlpha: {
-      commandFn: actions.setFillAlphaCommand,
-    },
-    setOutlineWidth: {
-      commandFn: actions.setOutlineWidthCommand,
-    },
-    setRenderFill: {
-      commandFn: actions.setRenderFillCommand,
-    },
-    setRenderOutline: {
-      commandFn: actions.setRenderOutlineCommand,
-    },
-    setFillAlphaInactive: {
-      commandFn: actions.setFillAlphaInactiveCommand,
-    },
-    editSegmentLabel: {
-      commandFn: actions.editSegmentLabel,
-    },
-    editSegmentationLabel: {
-      commandFn: actions.editSegmentationLabel,
-    },
-    editSegmentColor: {
-      commandFn: actions.editSegmentColor,
-    },
-    getRenderInactiveSegmentations: {
-      commandFn: actions.getRenderInactiveSegmentations,
-    },
+    setFillAlpha: { commandFn: actions.setFillAlphaCommand },
+    setOutlineWidth: { commandFn: actions.setOutlineWidthCommand },
+    setRenderFill: { commandFn: actions.setRenderFillCommand },
+    setRenderOutline: { commandFn: actions.setRenderOutlineCommand },
+    setFillAlphaInactive: { commandFn: actions.setFillAlphaInactiveCommand },
+    editSegmentLabel: { commandFn: actions.editSegmentLabel },
+    editSegmentationLabel: { commandFn: actions.editSegmentationLabel },
+    editSegmentColor: { commandFn: actions.editSegmentColor },
+    getRenderInactiveSegmentations: { commandFn: actions.getRenderInactiveSegmentations },
   };
 
-  return {
-    actions,
-    definitions,
-    defaultContext: 'CORNERSTONE',
-  };
+  return { actions, definitions, defaultContext: 'CORNERSTONE' };
 }
 
 export default commandsModule;

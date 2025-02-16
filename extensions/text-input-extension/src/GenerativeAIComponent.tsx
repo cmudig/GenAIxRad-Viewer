@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { ActionButtons, InputText, Input, useViewportGrid } from '@ohif/ui'
-import { useNavigate } from 'react-router-dom'
-import { DicomMetadataStore, DisplaySetService } from '@ohif/core'
-import WrappedPreviewStudyBrowser from './components/WrappedPreviewStudyBrowser'
-import ServerStatus from './components/ServerStatus'
+import { ActionButtons, InputText, Input, useViewportGrid } from '@ohif/ui';
+import { useNavigate } from 'react-router-dom';
+import { DicomMetadataStore, DisplaySetService } from '@ohif/core';
+import WrappedPreviewStudyBrowser from './components/WrappedPreviewStudyBrowser';
+import ServerStatus from './components/ServerStatus';
 import axios from 'axios';
 import dicomParser from 'dicom-parser';
 import { metaData } from '@cornerstonejs/core';
@@ -26,20 +26,20 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
   // const serverUrl = 'http://149.165.154.176:5000';
   // const serverUrl = 'https://149.165.174.108:5000';
   const serverUrl =
-  window.location.hostname === "localhost"
-    ? "https://localhost:3443"
-    : "https://medsyn.katelyncmorrison.com"; // Deployed server
+    window.location.hostname === 'localhost'
+      ? 'https://localhost:3443'
+      : 'https://medsyn.katelyncmorrison.com'; // Deployed server
 
-  const orthancServerUrl = window.location.hostname === "localhost"
-    ? "http://localhost"
-    : "https://orthanc.katelyncmorrison.com";
+  const orthancServerUrl =
+    window.location.hostname === 'localhost'
+      ? 'http://localhost'
+      : 'https://orthanc.katelyncmorrison.com';
 
   const [{ viewports }] = useViewportGrid();
 
   // check server status
   useEffect(() => {
     const checkServerStatus = async () => {
-
       try {
         const response = await axios.get(serverUrl);
 
@@ -49,7 +49,6 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
           setIsServerRunning(false);
         }
       } catch (error) {
-
         setIsServerRunning(false);
       }
     };
@@ -68,14 +67,14 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
 
         if (response.status === 200) {
           const processIsRunning = response.data['process_is_running'];
-          setModelIsRunning((prevModelIsRunning) => {
+          setModelIsRunning(prevModelIsRunning => {
             if (prevModelIsRunning === false && processIsRunning === true) {
-              console.log("Model started");
+              console.log('Model started');
             } else if (prevModelIsRunning === true && processIsRunning === false) {
-              console.log("Model ended");
-              console.log("Try to download data");
+              console.log('Model ended');
+              console.log('Try to download data');
 
-              console.log("OUR NUMBER OF SERIES IS: ", num_samp)
+              console.log('OUR NUMBER OF SERIES IS: ', num_samp);
               executeDownloadAndUpload(num_samp);
             }
             setOldModelIsRunning(prevModelIsRunning);
@@ -86,23 +85,24 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
         console.log('Error checking for model status:', error);
       }
     };
-    const executeDownloadAndUpload = async (sampleNumber) => {
+    const executeDownloadAndUpload = async sampleNumber => {
       try {
         await _downloadAndUploadImages(fileID, sampleNumber);
 
-        await _addMetadataToSeries(generatingFileSeriesInstanceUID, generatingFilePrompt, 'SeriesPrompt');
+        await _addMetadataToSeries(
+          generatingFileSeriesInstanceUID,
+          generatingFilePrompt,
+          'SeriesPrompt'
+        );
 
         // Show success window and wait for user to click OK
         await showSuccessFeedback();
-
       } catch (error) {
         console.error('Error in downloading and uploading images:', error);
         showErrorFeedback();
-
       }
     };
     const reloadWindow = () => {
-
       console.log('Modal is closing');
       window.location.reload();
     };
@@ -114,17 +114,17 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
           return (
             <div>
               <p className="mt-2 p-2">
-                The backend CUDA may be out of memory. Please try clicking "Generate new CT" again and hope that the backend server has less load this time.
+                The backend CUDA may be out of memory. Please try clicking "Generate new CT" again
+                and hope that the backend server has less load this time.
               </p>
             </div>
           );
         },
       });
-
-    }
+    };
 
     const showSuccessFeedback = () => {
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         uiModalService.show({
           title: 'Info',
           containerDimensions: 'w-1/2',
@@ -132,33 +132,23 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
           content: () => {
             return (
               <div>
-                <p className="mt-2 p-2 mb-8">
-                  The CT scan was generated successfully
-                </p>
-                <div className="flex items-center p-2 ml-8">
+                <p className="mt-2 mb-8 p-2">The CT scan was generated successfully</p>
+                <div className="ml-8 flex items-center p-2">
                   <div className="text-primary-main  mr-2">Name:</div>
-                  <div className="text-blue-300  mr-2">{promptHeaderData}</div>
+                  <div className="mr-2  text-blue-300">{promptHeaderData}</div>
                 </div>
-                <div className="flex flex-col mb-8 p-2 ml-8">
+                <div className="mb-8 ml-8 flex flex-col p-2">
                   <div className="text-primary-main  mr-2">Prompt:</div>
                   <div className="mr-2">{promptData}</div>
                 </div>
                 <ActionButtons
                   className="bg-primary-dark"
-                  actions={[
-
-                    {
-                      label: 'Ok',
-                      onClick: reloadPage,
-                    },
-                  ]}
+                  actions={[{ label: 'Ok', onClick: reloadPage }]}
                   disabled={disabled}
                 />
-
               </div>
             );
           },
-
         });
       });
     };
@@ -168,7 +158,6 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
 
     return () => clearInterval(interval); // Cleanup on component unmount
   }, [fileID, generatingFileSeriesInstanceUID]);
-
 
   // update text of previews
   useEffect(() => {
@@ -187,7 +176,6 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
   }, []);
 
   const handleGenerateClick = async () => {
-
     // get information about the current study
     const activeDisplaySets = displaySetService.getActiveDisplaySets();
     const studyInstanceUIDs = activeDisplaySets.map(set => set.StudyInstanceUID); // e.g. 3.2 (must be the same for all series in the study)
@@ -197,44 +185,41 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
     const firstTenLetters = promptData.replace(/[^a-zA-Z]/g, '').slice(0, 10);
 
     const formattedDate = _generateUniqueTimestamp();
-    let currentFileID = `${formattedDate}${firstTenLetters}` // Generate a unique ID e.g. YYYYMMDDHHMMSSCardiomega
+    let currentFileID = `${formattedDate}${firstTenLetters}`; // Generate a unique ID e.g. YYYYMMDDHHMMSSCardiomega
 
     setStudyId(currentStudy.MainDicomTags.AccessionNumber);
     setFileID(currentFileID);
 
-    console.log("fileID", currentFileID)
+    console.log('fileID', currentFileID);
     const url = `${serverUrl}/files/${currentFileID}`;
 
-    console.log("promptData: ", promptData);
-    console.log("studyInstanceUID", studyID)
+    console.log('promptData: ', promptData);
+    console.log('studyInstanceUID', studyID);
 
     setNumSamp(currentStudy.Series.length);
 
     const payload = {
-      'filename': `${currentStudy.MainDicomTags.AccessionNumber}.npy`,
-      'prompt': promptData || null,
-      'description': promptHeaderData,
-      'studyInstanceUID': currentStudy.MainDicomTags.AccessionNumber,
-      'seriesInstanceUID': studyInstanceUID+'.'+(currentStudy.Series.length+1),
-      'patient_name': currentStudy.PatientMainDicomTags.PatientName,
-      'patient_id': currentStudy.PatientMainDicomTags.PatientID,
-      'read_img_flag': true,
-      'num_series_in_study': currentStudy.Series.length,
+      filename: `${currentStudy.MainDicomTags.AccessionNumber}.npy`,
+      prompt: promptData || null,
+      description: promptHeaderData,
+      studyInstanceUID: currentStudy.MainDicomTags.AccessionNumber,
+      seriesInstanceUID: studyInstanceUID + '.' + (currentStudy.Series.length + 1),
+      patient_name: currentStudy.PatientMainDicomTags.PatientName,
+      patient_id: currentStudy.PatientMainDicomTags.PatientID,
+      read_img_flag: true,
+      num_series_in_study: currentStudy.Series.length,
     };
-    const headers = {
-      'Content-Type': 'application/json'
-    };
+    const headers = { 'Content-Type': 'application/json' };
 
     try {
       const response = await axios.post(url, payload, { headers });
       console.log('Start model');
       //console.log('response', response)
-      setGeneratingFilePrompt(response.data.prompt)
-      setGeneratingFileSeriesInstanceUID(response.data.seriesInstanceUID)
-
+      setGeneratingFilePrompt(response.data.prompt);
+      setGeneratingFileSeriesInstanceUID(response.data.seriesInstanceUID);
     } catch (error) {
       if (error.response && error.response.data && error.response.data['error']) {
-        console.log(error.response)
+        console.log(error.response);
         uiModalService.show({
           title: 'Error with Image Generation ',
           containerDimensions: 'w-1/2',
@@ -245,7 +230,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
                   Please ensure that the Text for Image generation is not empty.
                 </p>
 
-                <div className="text-red-600 mt-2 p-2">Error: {error.response.data['error']}</div>
+                <div className="mt-2 p-2 text-red-600">Error: {error.response.data['error']}</div>
               </div>
             );
           },
@@ -253,35 +238,32 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
       } else {
         console.log('An unexpected error occurred.');
       }
-
     }
-
   };
 
-  const handlePromptHeaderChange = (event) => {
+  const handlePromptHeaderChange = event => {
     setPromptHeaderData(event.target.value);
   };
 
-  const handlePromptChange = (event) => {
+  const handlePromptChange = event => {
     setPromptData(event.target.value);
   };
-  const clearText = (event) => {
+  const clearText = event => {
     setPromptData('');
-  }
+  };
 
-  const reloadPage = async (event) => {
+  const reloadPage = async event => {
     window.location.reload(); // TODO: change this dirty hack
-
-  }
+  };
 
   const _downloadAndUploadImages = async (studyID, sampleNumber) => {
     try {
-      console.log("downloadAndUploadImages fileID: ", fileID);
+      console.log('downloadAndUploadImages fileID: ', fileID);
       const files = await _getFilesFromFolder(studyID, sampleNumber);
 
       setDataIsUploading(true);
 
-      const uploadPromises = files.map(async (filename) => {
+      const uploadPromises = files.map(async filename => {
         try {
           const blob = await _fetchDicomFile(studyID, filename, sampleNumber);
           if (blob) {
@@ -300,72 +282,61 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
     } catch (error) {
       console.error('Error in Downloading dicom images from server:', error);
       setDataIsUploading(false); // Ensure this is called in case of an error
-      throw error
+      throw error;
     }
   };
 
   const _getFilesFromFolder = async (foldername, sampleNumber) => {
     try {
       const response = await axios.get(`${serverUrl}/files/${foldername}/${sampleNumber}`);
-      return response.data;  // Assuming the response is a list of files
+      return response.data; // Assuming the response is a list of files
     } catch (error) {
-      console.error("Error fetching files:", error.response ? error.response.data.error : error.message);
-      throw error;  // Rethrow the error to handle it in the calling code if needed
+      console.error(
+        'Error fetching files:',
+        error.response ? error.response.data.error : error.message
+      );
+      throw error; // Rethrow the error to handle it in the calling code if needed
     }
   };
   const _fetchDicomFile = async (foldername, filename, sampleNumber) => {
     try {
-      const headers = {
-        'Content-Type': 'application/json'
-      };
-      const response = await axios.post(`${serverUrl}/files/${foldername}/${filename}/${sampleNumber}`, {
-        data: 'example'
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        responseType: 'arraybuffer'
-      });
+      const headers = { 'Content-Type': 'application/json' };
+      const response = await axios.post(
+        `${serverUrl}/files/${foldername}/${filename}/${sampleNumber}`,
+        { data: 'example' },
+        { headers: { 'Content-Type': 'application/json' }, responseType: 'arraybuffer' }
+      );
 
-      const arrayBuffer = response.data
+      const arrayBuffer = response.data;
       const dataSet = dicomParser.parseDicom(new Uint8Array(arrayBuffer));
       // const patientName = dataSet.string('x00100010'); // Extract the patient's name as an example
       // console.log(`Patient Name: ${patientName}`);
       const blob = new Blob([arrayBuffer], { type: 'application/dicom' });
       return blob;
-
-
     } catch (error) {
       console.error('There was an error!', error);
       return null;
     }
   };
 
-  const _uploadDicomToOrthanc = async (blob) => {
+  const _uploadDicomToOrthanc = async blob => {
     try {
       const formData = new FormData();
       formData.append('file', blob, 'example.dcm');
 
-      const orthancResponse = await axios.post(orthancServerUrl+"/pacs/instances", formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+      const orthancResponse = await axios.post(orthancServerUrl + '/pacs/instances', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-
-
     } catch (error) {
       console.error('Error uploading DICOM file to Orthanc:', error);
     }
   };
 
-  const _getOrthancStudyByID = async (studyInstanceUID) => {
+  const _getOrthancStudyByID = async studyInstanceUID => {
     try {
       // Parameters to include in the request
-      const params = new URLSearchParams({
-        expand: 1,
-        requestedTags: "StudyInstanceUID"
-      });
-      const response = await fetch(orthancServerUrl+`/pacs/studies?${params.toString()}`);
+      const params = new URLSearchParams({ expand: 1, requestedTags: 'StudyInstanceUID' });
+      const response = await fetch(orthancServerUrl + `/pacs/studies?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -376,28 +347,23 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
       const study = data.find(item => item.RequestedTags.StudyInstanceUID === studyInstanceUID);
 
       if (study) {
-        console.log("We found study: ", study)
+        console.log('We found study: ', study);
         return study;
       } else {
-        console.error("No study found with studyInstanceUID: ", studyInstanceUID)
+        console.error('No study found with studyInstanceUID: ', studyInstanceUID);
         return null;
       }
-
     } catch (error) {
       console.error('There has been a problem with _getOrthancStudyByID:', error);
       return null;
     }
   };
-  const _getOrthancSeriesByID = async (seriesInstanceUID) => {
+  const _getOrthancSeriesByID = async seriesInstanceUID => {
     try {
       // Parameters to include in the request
-      const params = new URLSearchParams({
-        expand: 1,
-        requestedTags: "SeriesInstanceUID"
-      });
+      const params = new URLSearchParams({ expand: 1, requestedTags: 'SeriesInstanceUID' });
 
-
-      const response = await fetch(orthancServerUrl+`/pacs/series?${params.toString()}`);
+      const response = await fetch(orthancServerUrl + `/pacs/series?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -408,11 +374,10 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
       // Filter the data to find the study with the given seriesInstanceUID
       const study = data.find(item => item.RequestedTags.SeriesInstanceUID === seriesInstanceUID);
 
-
       if (study) {
         return study;
       } else {
-        console.error("No series found with no seriesInstanceUID: ", seriesInstanceUID)
+        console.error('No series found with no seriesInstanceUID: ', seriesInstanceUID);
         return null;
       }
     } catch (error) {
@@ -428,49 +393,47 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
     }
 
     try {
-
       const generatedSeries = await _getOrthancSeriesByID(seriesInstanceUid);
 
       const generatedSeriesOrthancID = generatedSeries.ID;
 
-      const url = orthancServerUrl+`/pacs/series/${generatedSeriesOrthancID}/metadata/${type}`;
+      const url = orthancServerUrl + `/pacs/series/${generatedSeriesOrthancID}/metadata/${type}`;
       const headers = {
-        'Content-Type': 'text/plain' // Ensure the server expects text/plain content type
+        'Content-Type': 'text/plain', // Ensure the server expects text/plain content type
       };
 
       const response = await axios.put(url, data, { headers });
 
       if (response.status !== 200) {
-        console.log(`Response not ok. Status: ${response.status}, Response text: ${response.statusText}`);
+        console.log(
+          `Response not ok. Status: ${response.status}, Response text: ${response.statusText}`
+        );
         return;
       } else {
         console.log('Metadata added successfully!', response.data);
       }
     } catch (error) {
       console.log(`There was a problem with your fetch operation: ${error}`);
-      return error
+      return error;
     }
   };
-  const _handleDisplaySetsChanged = async (changedDisplaySets) => {
+  const _handleDisplaySetsChanged = async changedDisplaySets => {
     const activeDisplaySets = displaySetService.getActiveDisplaySets();
     // set initial prompt header to "Generated, NOT_USED_NUMBER"
     const seriesDescriptions = activeDisplaySets.map(set => set.SeriesDescription);
     const seriesDescriptionNumbers = _extractNumbers(seriesDescriptions);
     const maxNumber = Math.max(...seriesDescriptionNumbers);
-    setPromptHeaderData(`Generated, ${maxNumber + 1}`)
-
+    setPromptHeaderData(`Generated, ${maxNumber + 1}`);
   };
-
 
   return (
     <div className="ohif-scrollbar flex flex-col">
-      <div className="flex flex-col justify-center p-4 bg-primary-dark">
-
-        <div className="flex items-center mb-2">
+      <div className="bg-primary-dark flex flex-col justify-center p-4">
+        <div className="mb-2 flex items-center">
           <div className="text-primary-main  mr-2">Name:</div>
           <input
             id="promptHeader"
-            className="bg-transparent break-all text-base text-blue-300"
+            className="break-all bg-transparent text-base text-blue-300"
             type="text"
             value={promptHeaderData}
             onChange={handlePromptHeaderChange}
@@ -482,27 +445,23 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
           rows={6}
           label="Enter prompt:"
           placeholder="Enter Text to generate CT..."
-          className="text-white text-[14px] leading-[1.2] border-primary-main bg-black align-top sshadow transition duration-300 appearance-none border border-inputfield-main focus:border-inputfield-focus focus:outline-none disabled:border-inputfield-disabled rounded w-full py-2 px-3 text-sm text-white placeholder-inputfield-placeholder leading-tight"
+          className="border-primary-main sshadow border-inputfield-main focus:border-inputfield-focus disabled:border-inputfield-disabled placeholder-inputfield-placeholder w-full appearance-none rounded border bg-black py-2 px-3 align-top text-[14px] text-sm leading-[1.2] leading-tight text-white text-white transition duration-300 focus:outline-none"
           type="text"
           value={promptData}
           onChange={handlePromptChange}
           disabled={modelIsRunning || dataIsUploading}
-        >
-        </textarea>
+        ></textarea>
 
-        <div className="flex justify-center p-2 pb-8 bg-primary-dark">
+        <div className="bg-primary-dark flex justify-center p-2 pb-8">
           <ActionButtons
             className="bg-primary-dark"
             actions={[
               {
                 label: 'Generate new CT',
                 onClick: handleGenerateClick,
-                disabled: modelIsRunning || !isServerRunning || dataIsUploading
+                disabled: modelIsRunning || !isServerRunning || dataIsUploading,
               },
-              {
-                label: 'Clear',
-                onClick: clearText,
-              },
+              { label: 'Clear', onClick: clearText },
             ]}
             disabled={disabled}
           />
@@ -514,12 +473,11 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
           isServerRunning={isServerRunning}
           serverUrl={serverUrl}
         />
-
       </div>
 
       {/* dif line */}
-      <div className="border border-primary-main"> </div>
-      <div className="mx-auto w-9/10">
+      <div className="border-primary-main border"> </div>
+      <div className="w-9/10 mx-auto">
         <WrappedPreviewStudyBrowser
           commandsManager={commandsManager}
           extensionManager={extensionManager}
@@ -528,22 +486,24 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
         />
       </div>
     </div>
-
   );
 
   // Function to extract numbers from the array
   function _extractNumbers(arr) {
     // Use reduce to accumulate numbers in a single array
-    return arr.reduce((acc, str) => {
-      // Match all sequences of digits
-      const matches = str.match(/\d+/g);
-      if (matches) {
-        // Convert matched strings to numbers and add to accumulator
-        return acc.concat(matches.map(Number));
-      }
-      return acc;
-    }, [0]);
-  };
+    return arr.reduce(
+      (acc, str) => {
+        // Match all sequences of digits
+        const matches = str.match(/\d+/g);
+        if (matches) {
+          // Convert matched strings to numbers and add to accumulator
+          return acc.concat(matches.map(Number));
+        }
+        return acc;
+      },
+      [0]
+    );
+  }
   function _generateUniqueTimestamp() {
     const date = new Date();
     const year = date.getFullYear();
@@ -556,6 +516,5 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
     return formattedDate;
   }
 }
-
 
 export default GenerativeAIComponent;

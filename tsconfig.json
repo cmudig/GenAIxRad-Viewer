@@ -9,8 +9,8 @@
     "esModuleInterop": true,
     "sourceMap": true,
     "declaration": true,
-    "moduleResolution": "bundler",
-    "module": "esnext",
+    "moduleResolution": "node16",
+    "module": "node16",
     "target": "ES2022",
     "outDir": "./dist",
     "paths": {
