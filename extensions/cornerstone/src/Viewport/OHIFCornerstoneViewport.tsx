@@ -373,33 +373,42 @@ const OHIFCornerstoneViewport = React.memo(
 
     return (
       <React.Fragment>
-        <div className="viewport-wrapper">
-          <div
-            className="cornerstone-viewport-element"
-            style={{ height: '90%', width: '90%' }}
-            onContextMenu={e => e.preventDefault()}
-            onMouseDown={e => e.preventDefault()}
-            ref={el => {
-              resizeRef.current = el;
-              elementRef.current = el;
-            }}
-          ></div>
-          <CornerstoneOverlays
-            viewportId={viewportId}
-            toolBarService={toolbarService}
-            element={elementRef.current}
-            scrollbarHeight={scrollbarHeight}
-            servicesManager={servicesManager}
-          />
-          <CinePlayer
-            enabledVPElement={enabledVPElement}
-            viewportId={viewportId}
-            servicesManager={servicesManager}
-          />
-          <ActiveViewportBehavior
-            viewportId={viewportId}
-            servicesManager={servicesManager}
-          />
+        <div className="viewport-and-scrollbar-container">
+          <div className="viewport-wrapper">
+            <div
+              className="cornerstone-viewport-element"
+              style={{ height: '100%', width: '100%' }}
+              onContextMenu={e => e.preventDefault()}
+              onMouseDown={e => e.preventDefault()}
+              ref={el => {
+                resizeRef.current = el;
+                elementRef.current = el;
+              }}
+            ></div>
+            <CornerstoneOverlays
+              viewportId={viewportId}
+              toolBarService={toolbarService}
+              element={elementRef.current}
+              scrollbarHeight={scrollbarHeight}
+              servicesManager={servicesManager}
+            />
+            <CinePlayer
+              enabledVPElement={enabledVPElement}
+              viewportId={viewportId}
+              servicesManager={servicesManager}
+            />
+            <ActiveViewportBehavior
+              viewportId={viewportId}
+              servicesManager={servicesManager}
+            />
+          </div>
+          {/* <div className="scrollbar-wrapper" style={{ width: '10px', height:'100%' }}>
+            <CustomScrollbar
+                servicesManager={servicesManager}
+                viewportId={viewportId}
+                element={elementRef.current}
+              />
+          </div> */}
         </div>
         {/* top offset of 24px to account for ViewportActionCorners. */}
         <div className="absolute top-[24px] w-full">
