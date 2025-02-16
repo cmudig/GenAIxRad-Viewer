@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Enums, VolumeViewport3D, utilities as csUtils } from '@cornerstonejs/core';
 import { ImageScrollbar } from '@ohif/ui';
+import { jumpToSlice } from '@cornerstonejs/core/utilities';
 
 function CornerstoneImageScrollbar({
   viewportData,
@@ -11,9 +12,7 @@ function CornerstoneImageScrollbar({
   setImageSliceData,
   scrollbarHeight,
   servicesManager,
-}: withAppTypes<{
-  element: HTMLElement;
-}>) {
+}: withAppTypes<{ element: HTMLElement }>) {
   const { cineService, cornerstoneViewportService } = servicesManager.services;
 
   const onImageScrollbarChange = (imageIndex, viewportId) => {
@@ -27,10 +26,7 @@ function CornerstoneImageScrollbar({
       cineService.setCine({ id: viewportId, isPlaying: false });
     }
 
-    csUtils.jumpToSlice(viewport.element, {
-      imageIndex,
-      debounceLoading: true,
-    });
+    jumpToSlice(viewport.element, { imageIndex, debounceLoading: true });
   };
 
   useEffect(() => {
@@ -47,10 +43,7 @@ function CornerstoneImageScrollbar({
     const imageIndex = viewport.getCurrentImageIdIndex();
     const numberOfSlices = viewport.getNumberOfSlices();
 
-    setImageSliceData({
-      imageIndex: imageIndex,
-      numberOfSlices,
-    });
+    setImageSliceData({ imageIndex: imageIndex, numberOfSlices });
   }, [viewportId, viewportData]);
 
   useEffect(() => {
@@ -71,10 +64,7 @@ function CornerstoneImageScrollbar({
       const { imageIndex, newImageIdIndex = imageIndex } = event.detail;
       const numberOfSlices = viewport.getNumberOfSlices();
       // find the index of imageId in the imageIds
-      setImageSliceData({
-        imageIndex: newImageIdIndex,
-        numberOfSlices,
-      });
+      setImageSliceData({ imageIndex: newImageIdIndex, numberOfSlices });
     };
 
     element.addEventListener(eventId, updateIndex);

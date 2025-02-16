@@ -12,6 +12,7 @@ import {
   Enums as csEnums,
   BaseVolumeViewport,
 } from '@cornerstonejs/core';
+import { jumpToSlice } from '@cornerstonejs/core/utilities';
 
 import { utilities as csToolsUtils, Enums as csToolsEnums } from '@cornerstonejs/tools';
 import { IViewportService } from './IViewportService';
@@ -285,11 +286,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     const lutPresentation = this._getLutPresentation(viewportId);
     const segmentationPresentation = this._getSegmentationPresentation(viewportId);
 
-    return {
-      positionPresentation,
-      lutPresentation,
-      segmentationPresentation,
-    };
+    return { positionPresentation, lutPresentation, segmentationPresentation };
   }
 
   private getPresentationIds(viewportId: string): AppTypes.PresentationIds | null {
@@ -349,10 +346,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
 
     const viewportInfo = this.viewportsById.get(viewportId);
 
-    return {
-      viewportType: viewportInfo.getViewportType(),
-      properties,
-    };
+    return { viewportType: viewportInfo.getViewportType(), properties };
   }
 
   private _getSegmentationPresentation(viewportId: string): SegmentationPresentation {
@@ -428,11 +422,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
       viewportId,
       element,
       type,
-      defaultOptions: {
-        background,
-        orientation,
-        displayArea,
-      },
+      defaultOptions: { background, orientation, displayArea },
     };
 
     // Rendering Engine Id set should happen before enabling the element
@@ -467,10 +457,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     // viewport to access.  Doing it too early can result in exceptions or
     // invalid data.
     displaySetPromise.then(() => {
-      this._broadcastEvent(this.EVENTS.VIEWPORT_DATA_CHANGED, {
-        viewportData,
-        viewportId,
-      });
+      this._broadcastEvent(this.EVENTS.VIEWPORT_DATA_CHANGED, { viewportData, viewportId });
     });
   }
 
@@ -854,16 +841,12 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     const imageIndex = this._getInitialImageIndexForViewport(viewportInfo);
 
     if (imageIndex !== undefined) {
-      csUtils.jumpToSlice(viewport.element, {
-        imageIndex,
-      });
+      jumpToSlice(viewport.element, { imageIndex });
     }
 
     viewport.render();
 
-    this._broadcastEvent(this.EVENTS.VIEWPORT_VOLUMES_CHANGED, {
-      viewportInfo,
-    });
+    this._broadcastEvent(this.EVENTS.VIEWPORT_VOLUMES_CHANGED, { viewportInfo });
   }
 
   private _processExtraDisplaySetsForViewport(
@@ -946,10 +929,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
     }
 
     displaySetPromise.then(() => {
-      this._broadcastEvent(this.EVENTS.VIEWPORT_DATA_CHANGED, {
-        viewportData,
-        viewportId,
-      });
+      this._broadcastEvent(this.EVENTS.VIEWPORT_DATA_CHANGED, { viewportData, viewportId });
     });
   }
 
@@ -1092,9 +1072,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
       // Reset the camera for all viewports using position presentation to maintain relative size/position
       // which means only those viewports that have a zoom level of 1.
       this.beforeResizePositionPresentations.forEach((positionPresentation, viewportId) => {
-        this.setPresentations(viewportId, {
-          positionPresentation,
-        });
+        this.setPresentations(viewportId, { positionPresentation });
       });
 
       // Resize and render the rendering engine again.
@@ -1164,10 +1142,7 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
       const { segmentationId, type, hydrated } = presentationItem;
 
       if (hydrated) {
-        segmentationService.addSegmentationRepresentation(viewport.id, {
-          segmentationId,
-          type,
-        });
+        segmentationService.addSegmentationRepresentation(viewport.id, { segmentationId, type });
       }
     });
   }
