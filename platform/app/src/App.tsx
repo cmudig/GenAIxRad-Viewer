@@ -17,7 +17,6 @@ import {
   DialogProvider,
   Modal,
   ModalProvider,
-  SnackbarProvider,
   ThemeWrapper,
   ViewportDialogProvider,
   ViewportGridProvider,
@@ -25,12 +24,17 @@ import {
   UserAuthenticationProvider,
   ToolboxProvider,
 } from '@ohif/ui';
-import { ThemeWrapper as ThemeWrapperNext, NotificationProvider } from '@ohif/ui-next';
+import {
+  ThemeWrapper as ThemeWrapperNext,
+  NotificationProvider,
+  TooltipProvider,
+} from '@ohif/ui-next';
 import { AppConfigProvider } from '@state';
 import createRoutes from './routes';
 import appInit from './appInit.js';
 import OpenIdConnectRoutes from './utils/OpenIdConnectRoutes';
 import SearchHomePage from './components/SearchHomePage'; // Import the new component
+import { ShepherdJourneyProvider } from 'react-shepherd';
 
 let commandsManager: CommandsManager,
   extensionManager: ExtensionManager,
@@ -84,11 +88,11 @@ function App({
   const {
     uiDialogService,
     uiModalService,
-    uiNotificationService,
     uiViewportDialogService,
     viewportGridService,
     cineService,
     userAuthenticationService,
+    uiNotificationService,
     customizationService,
   } = servicesManager.services;
 
@@ -103,8 +107,11 @@ function App({
     [ViewportDialogProvider, { service: uiViewportDialogService }],
     [CineProvider, { service: cineService }],
     [SnackbarProvider, { service: uiNotificationService }],
+    [NotificationProvider, { service: uiNotificationService }],
+    [TooltipProvider],
     [DialogProvider, { service: uiDialogService }],
     [ModalProvider, { service: uiModalService, modal: Modal }],
+    [ShepherdJourneyProvider],
   ];
 
   // Loop through and register each of the service providers registered with the ServiceProvidersManager.

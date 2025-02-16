@@ -20,6 +20,32 @@ Screenshot of Generative AI extension. Left: Findings and Impressions of origina
 
 
 ## Developing
+
+### Branches
+
+#### `master` branch - The latest dev (beta) release
+
+- `master` - The latest dev release
+
+This is typically where the latest development happens. Code that is in the master branch has passed code reviews and automated tests, but it may not be deemed ready for production. This branch usually contains the most recent changes and features being worked on by the development team. It's often the starting point for creating feature branches (where new features are developed) and hotfix branches (for urgent fixes).
+
+Each package is tagged with beta version numbers, and published to npm such as `@ohif/ui@3.6.0-beta.1`
+
+### `release/*` branches - The latest stable releases
+Once the `master` branch code reaches a stable, release-ready state, we conduct a comprehensive code review and QA testing. Upon approval, we create a new release branch from `master`. These branches represent the latest stable version considered ready for production.
+
+For example, `release/3.5` is the branch for version 3.5.0, and `release/3.6` is for version 3.6.0. After each release, we wait a few days to ensure no critical bugs. If any are found, we fix them in the release branch and create a new release with a minor version bump, e.g., 3.5.1 in the `release/3.5` branch.
+
+Each package is tagged with version numbers and published to npm, such as `@ohif/ui@3.5.0`. Note that `master` is always ahead of the `release` branch. We publish docker builds for both beta and stable releases.
+
+Here is a schematic representation of our development workflow:
+
+![alt text](platform/docs/docs/assets/img/github-readme-branches-Jun2024.png)
+
+
+
+
+
 ### Requirements
 
 - [Yarn 1.17.3+](https://yarnpkg.com/en/docs/install)
@@ -74,6 +100,26 @@ Add NIfTI files to the folder `data/nifti` (some are available on our google dri
     - partition it to GPU-shared
     - after you generate an image from there, you can if you want run `nifti-to-orthanic.ipynb` in the GenAIViewer Repo to view image in the UI OR you can use ITK-SNAP program instead
 
+# Restore dependencies
+yarn install
+```
+
+## Commands
+
+These commands are available from the root directory. Each project directory
+also supports a number of commands that can be found in their respective
+`README.md` and `package.json` files.
+
+| Commands                | Description                                                   |
+| ---------------------------- | ------------------------------------------------------------- |
+| **Develop**                  |                                                               |
+| `dev` or `start`             | Default development experience for Viewer                     |
+| `test:unit`                  | Jest multi-project test runner; overall coverage              |
+| **Deploy**                   |                                                               |
+| `build`\*                    | Builds production output for our PWA Viewer                   |  |
+
+\* - For more information on our different builds, check out our [Deploy
+Docs][deployment-docs]
 
 ## Project
 
@@ -195,3 +241,5 @@ Images are stored on a the Orthanc server you can open up the Interface running 
 [extension-vtk]: extensions/vtk/README.md
 [vtk-npm]: https://www.npmjs.com/package/@ohif/extension-vtk
 <!-- prettier-ignore-end -->
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FOHIF%2FViewers.svg?type=large&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2FOHIF%2FViewers?ref=badge_large&issueType=license)
