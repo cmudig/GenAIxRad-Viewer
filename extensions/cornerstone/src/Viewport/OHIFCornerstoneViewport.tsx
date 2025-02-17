@@ -88,6 +88,19 @@ const OHIFCornerstoneViewport = React.memo(
     const [scrollbarHeight, setScrollbarHeight] = useState('100px');
     const [enabledVPElement, setEnabledVPElement] = useState(null);
     const elementRef = useRef() as React.MutableRefObject<HTMLDivElement>;
+
+    // useEffect(() => {
+    //   console.log('Bounding rect:', elementRef.current.getBoundingClientRect());
+    // }, []);
+
+    // useEffect(() => {
+    //   let node = elementRef.current;
+    //   while (node) {
+    //     console.log(node, node.getBoundingClientRect());
+    //     node = node.parentNode;
+    //   }
+    // }, []);
+
     const [appConfig] = useAppConfig();
 
     const {
