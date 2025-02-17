@@ -111,10 +111,7 @@ export default function getToolbarModule({ commandsManager, servicesManager }: w
         const toolGroup = toolGroupService.getToolGroupForViewport(viewportId);
 
         if (!toolGroup) {
-          return {
-            primary: button.props.primary,
-            items,
-          };
+          return { primary: button.props.primary, items };
         }
 
         const activeToolName = toolGroup.getActivePrimaryMouseButtonTool();
@@ -129,34 +126,23 @@ export default function getToolbarModule({ commandsManager, servicesManager }: w
         // if there is an active tool in the items dropdown bound to the primary mouse/touch
         // we should show that no matter what
         if (activeToolIndex > -1) {
-          return {
-            primary: items[activeToolIndex],
-            items,
-          };
+          return { primary: items[activeToolIndex], items };
         }
 
         if (!itemId) {
-          return {
-            primary: button.props.primary,
-            items,
-          };
+          return { primary: button.props.primary, items };
         }
 
         // other wise we can move the clicked tool to the primary button
         const clickedItemProps = items.find(item => item.id === itemId || item.itemId === itemId);
 
-        return {
-          primary: clickedItemProps,
-          items,
-        };
+        return { primary: clickedItemProps, items };
       },
     },
     {
       name: 'evaluate.action',
       evaluate: ({ viewportId, button }) => {
-        return {
-          className: '!text-common-bright hover:!bg-primary-dark hover:text-primary-light',
-        };
+        return { className: '!text-common-bright hover:!bg-primary-dark hover:text-primary-light' };
       },
     },
     {
@@ -189,9 +175,7 @@ export default function getToolbarModule({ commandsManager, servicesManager }: w
         let synchronizers = syncGroupService.getSynchronizersForViewport(viewportId);
 
         if (!synchronizers?.length) {
-          return {
-            className: getToggledClassName(false),
-          };
+          return { className: getToggledClassName(false) };
         }
 
         const isArray = Array.isArray(button.commands);
@@ -203,9 +187,7 @@ export default function getToolbarModule({ commandsManager, servicesManager }: w
         synchronizers = syncGroupService.getSynchronizersOfType(synchronizerType);
 
         if (!synchronizers?.length) {
-          return {
-            className: getToggledClassName(false),
-          };
+          return { className: getToggledClassName(false) };
         }
 
         // Todo: we need a better way to find the synchronizers based on their
@@ -215,9 +197,21 @@ export default function getToolbarModule({ commandsManager, servicesManager }: w
 
         const isEnabled = synchronizer?._enabled;
 
-        return {
-          className: getToggledClassName(isEnabled),
-        };
+        return { className: getToggledClassName(isEnabled) };
+      },
+    },
+    {
+      name: 'evaluate.not3D',
+      evaluate: ({ viewportId, disabledText }) => {
+        const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
+
+        if (viewport?.type === 'volume3d') {
+          return {
+            disabled: true,
+            className: '!text-common-bright ohif-disabled',
+            disabledText: disabledText ?? 'Not available on the current viewport',
+          };
+        }
       },
     },
     {
@@ -245,9 +239,7 @@ export default function getToolbarModule({ commandsManager, servicesManager }: w
 
         const isToggled = prop;
 
-        return {
-          className: getToggledClassName(isToggled),
-        };
+        return { className: getToggledClassName(isToggled) };
       },
     },
     {
@@ -273,10 +265,7 @@ export default function getToolbarModule({ commandsManager, servicesManager }: w
 
         const isMpr = protocol?.id === 'mpr';
 
-        return {
-          disabled: false,
-          className: getToggledClassName(isMpr),
-        };
+        return { disabled: false, className: getToggledClassName(isMpr) };
       },
     },
   ];
@@ -303,7 +292,5 @@ function _evaluateToggle({
 
   const isOff = offModes.includes(toolGroup.getToolOptions(toolName).mode);
 
-  return {
-    className: getToggledClassName(!isOff),
-  };
+  return { className: getToggledClassName(!isOff) };
 }
