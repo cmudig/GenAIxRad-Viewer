@@ -1,16 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
 import { getRenderingEngine, metaData, StackViewport } from '@cornerstonejs/core';
-import applyHeatmapOverlay from './applyColormap';
-
 import './ViewportOverlay.css';
-
-// const foldername = 'test_rightpleur_noleft';
-// const sampleNumber = 0;
-const orthancServerUrl =
-  window.location.hostname === 'localhost'
-    ? 'http://localhost'
-    : 'https://orthanc.katelyncmorrison.com';
 
 export type ViewportOverlayProps = {
   topLeft: React.ReactNode;
@@ -18,115 +9,6 @@ export type ViewportOverlayProps = {
   bottomRight: React.ReactNode;
   bottomLeft: React.ReactNode;
   color?: string;
-};
-// Helper to get the series index from the study by matching SeriesInstanceUID
-async function getSeriesIndex(studyInstanceUID, seriesInstanceUID) {
-  console.log('📋 Study Instance UID:', studyInstanceUID);
-  console.log('📋 Series Instance UID:', seriesInstanceUID);
-
-  const currentStudy = await _getOrthancStudyByID(studyInstanceUID);
-  if (!currentStudy || !currentStudy.Series) {
-    console.warn('❌ Study not found or has no series.');
-    return -1; // Return -1 if no series are found
-  }
-
-  console.log('📌 Available Series in Study:', currentStudy.Series);
-
-  // ✅ Fetch each series' real SeriesInstanceUID from Orthanc
-  const seriesMapping = await Promise.all(
-    currentStudy.Series.map(async (seriesOrthancId, index) => {
-      const seriesData = await _getOrthancSeriesByID(seriesOrthancId);
-
-      if (!seriesData || !seriesData.MainDicomTags?.SeriesInstanceUID) {
-        console.warn(`❌ No SeriesInstanceUID found for series UUID: ${seriesOrthancId}`);
-        return null;
-      }
-
-      return {
-        orthancId: seriesOrthancId,
-        dicomSeriesUID: seriesData.MainDicomTags.SeriesInstanceUID,
-        index: index, // Store the position in the array
-      };
-    })
-  );
-
-  // ✅ Remove null values (failed series)
-  const validSeries = seriesMapping.filter(series => series !== null);
-
-  console.log('🔍 Orthanc Series Mapping:', validSeries);
-
-  // ✅ Find the matching series
-  const foundSeries = validSeries.find(series => series.dicomSeriesUID === seriesInstanceUID);
-
-  if (!foundSeries) {
-    console.warn(`❌ Series not found in study for SeriesInstanceUID: ${seriesInstanceUID}`);
-    return -1; // Return -1 if no match is found
-  }
-
-  console.log(`✅ Matched Series at Index: ${foundSeries.index}`);
-  return foundSeries.index; // Return the series index
-}
-
-const _getOrthancSeriesByID = async seriesInstanceUID => {
-  try {
-    // Parameters to include in the request
-    const params = new URLSearchParams({
-      expand: 1,
-      requestedTags: 'SeriesInstanceUID',
-    });
-
-    const response = await fetch(orthancServerUrl + `/pacs/series?${params.toString()}`);
-
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
-    }
-
-    const data = await response.json();
-
-    // Filter the data to find the study with the given seriesInstanceUID
-    const study = data.find(item => item.RequestedTags.SeriesInstanceUID === seriesInstanceUID);
-
-    if (study) {
-      return study;
-    } else {
-      console.error('No series found with no seriesInstanceUID: ', seriesInstanceUID);
-      return null;
-    }
-  } catch (error) {
-    // Log any errors that occur during the fetch operation
-    console.error('There has been a problem with your fetch operation:', error);
-    return null;
-  }
-};
-
-const _getOrthancStudyByID = async studyInstanceUID => {
-  try {
-    // Parameters to include in the request
-    const params = new URLSearchParams({
-      expand: 1,
-      requestedTags: 'StudyInstanceUID',
-    });
-    const response = await fetch(orthancServerUrl + `/pacs/studies?${params.toString()}`);
-
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
-    }
-
-    const data = await response.json();
-    // Filter the data to find the study with the given StudyInstanceUID
-    const study = data.find(item => item.RequestedTags.StudyInstanceUID === studyInstanceUID);
-
-    if (study) {
-      console.log('We found study: ', study);
-      return study;
-    } else {
-      console.error('No study found with studyInstanceUID: ', studyInstanceUID);
-      return null;
-    }
-  } catch (error) {
-    console.error('There has been a problem with _getOrthancStudyByID:', error);
-    return null;
-  }
 };
 
 const ViewportOverlay = ({
@@ -238,24 +120,6 @@ const ViewportOverlay = ({
             console.log(`📋 Study Instance UID: ${studyInstanceUID}`);
             console.log(`📋 Series Instance UID: ${seriesInstanceUID}`);
             console.log(`📋 Instance Number: ${instanceNumber}`);
-
-            const currentStudy = await _getOrthancStudyByID(studyInstanceUID);
-            const series = currentStudy.Series;
-            console.log('SERIES', series);
-            console.log('SERIES', currentStudy.MainDicomTags.AccessionNumber);
-
-            try {
-              await applyHeatmapOverlay();
-              // await applyHeatmapOverlay(
-              //   viewportId,
-              //   currentStudy.MainDicomTags.AccessionNumber,
-              //   0,
-              //   studyInstanceUID
-              // );
-              // await applyHeatmapOverlay(viewportId, 'test_rightpleur_noleft', 0, studyInstanceUID);
-            } catch (error) {
-              console.error('❌ Error applying heatmap overlay:', error);
-            }
           }}
         >
           Explain
