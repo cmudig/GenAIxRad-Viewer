@@ -134,7 +134,7 @@ const SearchHomePage = () => {
 
     console.log('OUR INPUT VALUE:', inputValue);
     const payload = {
-      filename: `${newGeneratedFileID}.npy`,
+      filename: `${newStudyId}.npy`,
       prompt: inputValue || null,
       description: inputValue || null,
       studyID: newStudyId, // Use the new unique ID
@@ -150,7 +150,7 @@ const SearchHomePage = () => {
       'Content-Type': 'application/json',
     };
 
-    const url = `${serverUrl}/files/${newGeneratedFileID}`;
+    const url = `${serverUrl}/files/${newStudyId}`;
 
     console.log('🔵 Sending POST request to:', url);
     console.log('🟢 Payload:', payload);
@@ -171,15 +171,74 @@ const SearchHomePage = () => {
   const waitForStudyID = async () => {
     let retries = 20; // Maximum retries
     while (!studyID && retries > 0) {
-      console.log('Waiting for studyID...');
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 500ms
+      console.log('⏳ Waiting for `studyID` to be set...');
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s
       retries--;
     }
-    if (studyID) {
-      console.log('✅ Study ID available:', studyID);
+
+    if (!studyID) {
+      console.error('❌ Timed out waiting for `studyID` to be set.');
+      return;
+    }
+
+    console.log('✅ Study ID available:', studyID);
+
+    // 🛠 NEW: Wait for Orthanc to confirm study exists before navigating
+    const studyExists = await checkOrthancForStudy(studyID);
+    if (studyExists) {
+      console.log(`✅ Study ${studyID} found in Orthanc! Navigating...`);
       navigate(`/generative-ai?StudyInstanceUIDs=${studyID}`);
     } else {
-      console.error('❌ Timed out waiting for studyID');
+      console.error('❌ Study still not available in Orthanc. Navigation aborted.');
+    }
+  };
+
+  // Function to check if a study exists in Orthanc using `_getOrthancStudyByID`
+  const checkOrthancForStudy = async studyInstanceUID => {
+    let retries = 20; // Max retries to check if Orthanc has indexed the study
+    while (retries > 0) {
+      console.log(`🔍 Checking if study ${studyInstanceUID} exists in Orthanc...`);
+
+      const study = await _getOrthancStudyByID(studyInstanceUID);
+
+      if (study) {
+        console.log('✅ Study found in Orthanc:', study);
+        return true;
+      }
+
+      console.warn('⏳ Study not found yet, retrying...');
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retrying
+      retries--;
+    }
+
+    console.error(`🚨 Study ${studyInstanceUID} not found after multiple attempts.`);
+    return false;
+  };
+
+  const _getOrthancStudyByID = async studyInstanceUID => {
+    try {
+      // Parameters to include in the request
+      const params = new URLSearchParams({ expand: 1, requestedTags: 'StudyInstanceUID' });
+      const response = await fetch(orthancServerUrl + `/pacs/studies?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const data = await response.json();
+      // Filter the data to find the study with the given StudyInstanceUID
+      const study = data.find(item => item.RequestedTags.StudyInstanceUID === studyInstanceUID);
+
+      if (study) {
+        console.log('We found study: ', study);
+        return study;
+      } else {
+        console.error('No study found with studyInstanceUID: ', studyInstanceUID);
+        return null;
+      }
+    } catch (error) {
+      console.error('There has been a problem with _getOrthancStudyByID:', error);
+      return null;
     }
   };
 
@@ -360,7 +419,9 @@ const SearchHomePage = () => {
   };
 
   const generateUniqueId = () => {
-    return Math.random().toString(11).substr(2, 9);
+    // return Math.random().toString(11).substr(2, 9);
+    //generate a random string with 15 numbers - no letters
+    return Math.floor(Math.random() * 1000000000000000).toString();
   };
 
   const styles = {

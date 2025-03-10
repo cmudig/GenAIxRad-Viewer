@@ -32,10 +32,7 @@ interface OverlayItemProps {
   };
 
   // calculated values
-  voi: {
-    windowWidth: number;
-    windowCenter: number;
-  };
+  voi: { windowWidth: number; windowCenter: number };
   instanceNumber?: number;
   scale?: number;
 }
@@ -78,10 +75,7 @@ const topRightItems = { id: 'cornerstoneOverlayTopRight', items: [] };
 const bottomLeftItems = {
   id: 'cornerstoneOverlayBottomLeft',
   items: [
-    {
-      id: 'WindowLevel',
-      customizationType: 'ohif.overlayItem.windowLevel',
-    },
+    { id: 'WindowLevel', customizationType: 'ohif.overlayItem.windowLevel' },
     {
       id: 'ZoomLevel',
       customizationType: 'ohif.overlayItem.zoomLevel',
@@ -95,12 +89,7 @@ const bottomLeftItems = {
 
 const bottomRightItems = {
   id: 'cornerstoneOverlayBottomRight',
-  items: [
-    {
-      id: 'InstanceNumber',
-      customizationType: 'ohif.overlayItem.instanceNumber',
-    },
-  ],
+  items: [{ id: 'InstanceNumber', customizationType: 'ohif.overlayItem.instanceNumber' }],
 };
 
 /**
@@ -327,6 +316,9 @@ function CustomizableViewportOverlay({
       topRight={getContent(topRightCustomization, 'topRightOverlayItem')}
       bottomLeft={getContent(bottomLeftCustomization, 'bottomLeftOverlayItem')}
       bottomRight={getContent(bottomRightCustomization, 'bottomRightOverlayItem')}
+      servicesManager={servicesManager}
+      displaySets={displaySetProps?.displaySets}
+      viewportOptions={{ viewportId }}
     />
   );
 }

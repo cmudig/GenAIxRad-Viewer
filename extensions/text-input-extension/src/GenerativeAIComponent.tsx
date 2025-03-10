@@ -87,7 +87,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
     };
     const executeDownloadAndUpload = async sampleNumber => {
       try {
-        await _downloadAndUploadImages(fileID, sampleNumber);
+        await _downloadAndUploadImages(studyID, sampleNumber);
 
         await _addMetadataToSeries(
           generatingFileSeriesInstanceUID,
@@ -134,11 +134,11 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
               <div>
                 <p className="mt-2 mb-8 p-2">The CT scan was generated successfully</p>
                 <div className="ml-8 flex items-center p-2">
-                  <div className="text-primary-main  mr-2">Name:</div>
-                  <div className="mr-2  text-blue-300">{promptHeaderData}</div>
+                  <div className="text-primary-main mr-2">Name:</div>
+                  <div className="mr-2 text-blue-300">{promptHeaderData}</div>
                 </div>
                 <div className="mb-8 ml-8 flex flex-col p-2">
-                  <div className="text-primary-main  mr-2">Prompt:</div>
+                  <div className="text-primary-main mr-2">Prompt:</div>
                   <div className="mr-2">{promptData}</div>
                 </div>
                 <ActionButtons
@@ -209,6 +209,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
       read_img_flag: true,
       num_series_in_study: currentStudy.Series.length,
     };
+    console.log('payload', payload);
     const headers = { 'Content-Type': 'application/json' };
 
     try {
@@ -430,7 +431,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
     <div className="ohif-scrollbar flex flex-col">
       <div className="bg-primary-dark flex flex-col justify-center p-4">
         <div className="mb-2 flex items-center">
-          <div className="text-primary-main  mr-2">Name:</div>
+          <div className="text-primary-main mr-2">Name:</div>
           <input
             id="promptHeader"
             className="break-all bg-transparent text-base text-blue-300"
@@ -445,7 +446,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
           rows={6}
           label="Enter prompt:"
           placeholder="Enter Text to generate CT..."
-          className="border-primary-main sshadow border-inputfield-main focus:border-inputfield-focus disabled:border-inputfield-disabled placeholder-inputfield-placeholder w-full appearance-none rounded border bg-black py-2 px-3 align-top text-[14px] text-sm leading-[1.2] leading-tight text-white text-white transition duration-300 focus:outline-none"
+          className="border-primary-main sshadow border-inputfield-main focus:border-inputfield-focus disabled:border-inputfield-disabled placeholder-inputfield-placeholder w-full appearance-none rounded border bg-black py-2 px-3 align-top text-[14px] text-sm leading-[1.2] leading-tight text-white transition duration-300 focus:outline-none"
           type="text"
           value={promptData}
           onChange={handlePromptChange}

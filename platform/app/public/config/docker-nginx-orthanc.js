@@ -11,12 +11,12 @@ window.config = {
   experimentalStudyBrowserSort: false,
   strictZSpacingForVolumeViewport: true,
   investigationalUseDialog: { option: 'never' },
-  studyPrefetcher: {
-    enabled: true,
-    displaySetsCount: 2,
-    maxNumPrefetchRequests: 10,
-    order: 'closest',
-  },
+  // studyPrefetcher: {
+  //   enabled: true,
+  //   displaySetsCount: 2,
+  //   maxNumPrefetchRequests: 10,
+  //   order: 'closest',
+  // },
   defaultDataSourceName: 'dicomweb',
   dataSources: [
     {
