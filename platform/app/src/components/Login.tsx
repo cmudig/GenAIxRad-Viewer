@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase'; // Ensure this points to your Firebase configuration
 import BackItem from 'platform/ui/src/components/AllInOneMenu/BackItem';
+import { toEmail, toUsername } from '../utils/authUtils';
+
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -12,7 +14,6 @@ const Login = () => {
   const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
-  const domain = '@indaigomed.com';
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -26,14 +27,6 @@ const Login = () => {
 
     return () => unsubscribe(); // cleanup
   }, []);
-
-  const toEmail = (username: string) : string => {
-    return `${username}${domain}`;
-  }
-
-  const toUsername = (email: string) : string => {
-    return email.replace(domain, '');
-  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,16 +69,18 @@ const Login = () => {
     // Already logged in
     return (
       <div style={styles.container}>
-        <h2 style={styles.title}>Welcome back!</h2>
-        <p style={{ color: '#ffffff' }}>Username: <strong>{userEmail}</strong></p>
-        <img
-          style={styles.cornerIcon}
-          src="../../assets/profile-icon.png"
-          alt="stack icon"
-          onClick={() => navigate('/login')}
-        ></img>
-        <button style={styles.button} onClick={() => navigate('/')}>Go to Homepage</button>
-        <button style={styles.button} onClick={handleLogout}>Log Out</button>
+        <button style={styles.homeButton} onClick={() => navigate('/')}>Go Home</button>
+        <div style={{ marginTop: '200px', ...styles.container}}>
+          <h2 style={styles.title}>Welcome back!</h2>
+          <img
+            style={styles.cornerIcon}
+            src="../../assets/profile-icon.png"
+            alt="stack icon"
+            onClick={() => navigate('/login')}
+          ></img>
+          <p style={{ color: '#ffffff' }}>Username: <strong>{userEmail}</strong></p>
+          <button style={styles.logoutButton} onClick={handleLogout}>Log Out</button>
+        </div>
       </div>
     );
   }
@@ -169,14 +164,14 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    height: '100vh',
+    height: '100%',
+    width: '100%',
     backgroundColor: '#000000',
   },
   mainIcon: {
     width: '120px',
     height: 'auto',
-    marginBottom: '60px',
-    marginRight: '10px',
+    marginBottom: '100px',
   },
   title: {
     fontSize: '32px',
@@ -211,6 +206,24 @@ const styles = {
     color: '#ffffff',
     border: 'none',
     cursor: 'pointer',
+  },
+  homeButton: {
+    padding: '10px',
+    borderRadius: '4px',
+    backgroundColor: 'none',
+    color: '#ffffff',
+    border: 'none',
+    cursor: 'pointer',
+    marginRight: '80%',
+    marginTop: '20px',
+  },
+  logoutButton: {
+    padding: '10px',
+    backgroundColor: '#152A66',
+    color: '#ffffff',
+    border: 'none',
+    cursor: 'pointer',
+    margin: '20px 0',
   },
   demoButton: {
     padding: '15px',
