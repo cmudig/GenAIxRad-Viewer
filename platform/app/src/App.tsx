@@ -43,7 +43,7 @@ let commandsManager: CommandsManager,
   serviceProvidersManager: ServiceProvidersManager,
   hotkeysManager: HotkeysManager;
 
-const requireAuth = false;
+const requireAuth = true;
 
 function App({
   config = {
@@ -171,10 +171,6 @@ function App({
                     <SearchHomePage />
                   </ProtectedRoute>
                 }
-              />
-              <Route
-                path="/*"
-                element={<ProtectedRoute>{appRoutes}</ProtectedRoute>}
               />
               <Route
                 path="/"
