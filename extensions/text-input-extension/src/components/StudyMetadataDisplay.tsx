@@ -18,17 +18,17 @@ const StudyMetadataDisplay = ({
   onClick,
   onDoubleClick,
   seriesInstanceUID,
-  modality
+  modality,
 }) => {
-  const [promptMetaData, setPromptMetaData] = useState("");
-  const [seriesID, setSeriesID] = useState("");
+  const [promptMetaData, setPromptMetaData] = useState('');
+  const [seriesID, setSeriesID] = useState('');
 
   useEffect(() => {
     if (modality === 'AI') {
       const fetchMetadata = async () => {
-        console.log("we are checking for: ", seriesInstanceUID);
+        console.log('we are checking for: ', seriesInstanceUID);
         const orthancSeriesID = await _getOrthancSeriesByID(seriesInstanceUID);
-        console.log("WHAT WE GOT IN RETURN: ", orthancSeriesID);
+        console.log('WHAT WE GOT IN RETURN: ', orthancSeriesID);
 
         const seriesUid = orthancSeriesID?.ID;
 
@@ -36,8 +36,8 @@ const StudyMetadataDisplay = ({
 
         if (seriesUid) {
           const response = await _getPromptMetadataOfSeries(seriesUid);
-          console.log("what was our prompt response: ", response)
-          setPromptMetaData(response || "No metadata found.");
+          console.log('what was our prompt response: ', response);
+          setPromptMetaData(response || 'No metadata found.');
         }
       };
 
@@ -45,28 +45,27 @@ const StudyMetadataDisplay = ({
     }
   }, [seriesInstanceUID, modality]);
 
-
-
-  if (modality !== 'AI') return (
-    <div className="group mb-8 flex flex-1 cursor-pointer flex-col px-3 outline-none"
-      onClick={onClick}
-      onDoubleClick={onDoubleClick}>
-      <span className="text-primary-main font-bold select-none mb-1">{description}</span>
-
-
-    </div>
-  );
+  if (modality !== 'AI')
+    return (
+      <div
+        className="group mb-8 flex flex-1 cursor-pointer flex-col px-3 outline-none"
+        onClick={onClick}
+        onDoubleClick={onDoubleClick}
+      >
+        <span className="text-primary-main mb-1 select-none font-bold">{description}</span>
+      </div>
+    );
 
   return (
-    <div className="group mb-8 flex flex-1 cursor-pointer flex-col px-3 outline-none"
+    <div
+      className="group mb-8 flex flex-1 cursor-pointer flex-col px-3 outline-none"
       onClick={onClick}
-      onDoubleClick={onDoubleClick}>
-      <span className="text-primary-main font-bold select-none mb-1">{description}</span>
-      <div className="break-all text-base text-blue-300 mt-1">Prompt: </div>
-      <div className="break-words text-base text-white">
-        {promptMetaData ? promptMetaData : ''}
-      </div>
-      {/* <UserFeedback seriesID={seriesID} /> */}
+      onDoubleClick={onDoubleClick}
+    >
+      <span className="text-primary-main mb-1 select-none font-bold">{description}</span>
+      <div className="mt-1 break-all text-base text-blue-300">Prompt: </div>
+      <div className="break-words text-base text-white">{promptMetaData ? promptMetaData : ''}</div>
+      {<UserFeedback seriesID={seriesID} />}
     </div>
   );
 };
@@ -75,12 +74,10 @@ StudyMetadataDisplay.propTypes = {
   impressions: PropTypes.string,
 };
 
-
-const _getPromptMetadataOfSeries = async (seriesID) => {
-
+const _getPromptMetadataOfSeries = async seriesID => {
   try {
     const url = `${orthancServerUrl}/pacs/series/${seriesID}/metadata/SeriesPrompt`;
-    console.log("📡 Fetching metadata from:", url);
+    console.log('📡 Fetching metadata from:', url);
 
     const response = await fetch(url, {
       method: 'GET',
@@ -96,10 +93,10 @@ const _getPromptMetadataOfSeries = async (seriesID) => {
     }
 
     const metadataText = await response.text();
-    console.log("✅ Retrieved SeriesPrompt metadata:", metadataText);
+    console.log('✅ Retrieved SeriesPrompt metadata:', metadataText);
     return metadataText;
   } catch (error) {
-    console.error("❌ Error fetching SeriesPrompt metadata:", error);
+    console.error('❌ Error fetching SeriesPrompt metadata:', error);
     return null;
   }
 };
