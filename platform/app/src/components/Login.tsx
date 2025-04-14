@@ -35,46 +35,69 @@ const Login = () => {
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>Login</h2>
-      <form onSubmit={handleLogin} style={styles.form}>
+      <form
+        onSubmit={handleLogin}
+        style={styles.form}
+      >
         <div style={styles.inputContainer}>
-          <label htmlFor="email" style={styles.label}>
+          <label
+            htmlFor="email"
+            style={styles.label}
+          >
             Email
           </label>
           <input
             type="email"
             id="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={e => setEmail(e.target.value)}
             required
             style={styles.input}
           />
         </div>
         <div style={styles.inputContainer}>
-          <label htmlFor="password" style={styles.label}>
+          <label
+            htmlFor="password"
+            style={styles.label}
+          >
             Password
           </label>
           <input
             type="password"
             id="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={e => setPassword(e.target.value)}
             required
             style={styles.input}
           />
         </div>
         {error && <p style={styles.error}>{error}</p>}
-        <button type="submit" style={styles.button}>
+        <button
+          type="submit"
+          style={styles.button}
+        >
           Log In
         </button>
       </form>
 
-      <button onClick={handleDemoLogin} style={styles.demoButton}>
+      <button
+        onClick={handleDemoLogin}
+        style={styles.demoButton}
+      >
         Try Demo Mode
       </button>
 
       <p style={styles.label}>
         Don't have an account?{' '}
-        <button style={{ ...styles.button, backgroundColor: 'transparent', color: '#008aff', textDecoration: 'underline' }} onClick={() => navigate('/signup')}>
+        <button
+          style={{
+            ...styles.button,
+            backgroundColor: 'transparent',
+            color: '#008aff',
+            textDecoration: 'underline',
+          }}
+          onClick={() => navigate('/signup')}
+        >
           Sign Up
         </button>
       </p>
