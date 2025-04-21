@@ -34,7 +34,7 @@ const Login = () => {
     try {
       const emailWithDomain = toEmail(email);
       await signInWithEmailAndPassword(auth, emailWithDomain, password);
-      navigate('/'); // Redirect to the main page after login
+      navigate('/search'); // Redirect to the main page after login
     } catch (error) {
       setError(`Failed to log in. Please check your credentials.`);
     }
@@ -69,7 +69,7 @@ const Login = () => {
     // Already logged in
     return (
       <div style={styles.container}>
-        <button style={styles.homeButton} onClick={() => navigate('/')}>Go Home</button>
+        <button style={styles.homeButton} onClick={() => navigate('/search')}>Go Home</button>
         <div style={{ marginTop: '200px', ...styles.container}}>
           <h2 style={styles.title}>Welcome back!</h2>
           <img

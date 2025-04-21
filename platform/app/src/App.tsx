@@ -154,8 +154,6 @@ function App({
     <CombinedProviders>
       <BrowserRouter basename={routerBasename}>
         <Routes>
-          {requireAuth ? (
-            <>
               <Route
                 path="/login"
                 element={<Login />}
@@ -172,23 +170,17 @@ function App({
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/"
-                element={<Navigate to="/search" />}
-              />
-            </>
-          ) : (
-            <>
-              <Route
-                path="/search"
-                element={<SearchHomePage />}
-              />
-              <Route
-                path="/*"
-                element={appRoutes}
-              />
-            </>
-          )}
+              {requireAuth ? (
+                <>
+                  <Route
+                    path="/"
+                    element={<ProtectedRoute>{appRoutes}</ProtectedRoute>}
+                  />
+                </>
+              ) : (
+                <>
+                </>
+              )}
         </Routes>
       </BrowserRouter>
     </CombinedProviders>

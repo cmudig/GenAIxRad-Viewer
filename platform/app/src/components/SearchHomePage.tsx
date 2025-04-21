@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import dicomParser from 'dicom-parser';
 import { uploadDicomFolder, addMetadataToStudy } from './dicom_helpers';
+import { auth } from '../firebase';
+
+
 
 const serverUrl =
   window.location.hostname === 'localhost'
@@ -533,7 +536,12 @@ const SearchHomePage = () => {
           style={styles.cornerIcon}
           src="../../assets/stack-icon.png"
           alt="stack icon"
-          onClick={() => navigate('/')}
+          onClick={() => {
+            if (auth.currentUser) {
+              console.log("logged in");
+            }
+            else {console.log("logged out");}
+            navigate('/');}}
         ></img>
         <img
           style={styles.cornerIcon}
