@@ -333,7 +333,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
       const formData = new FormData();
       formData.append('file', blob, 'example.dcm');
 
-      const orthancResponse = await axios.post('http://localhost/pacs/instances', formData, {
+      const orthancResponse = await axios.post('https://orthanc.katelyncmorrison.com/instances', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -352,7 +352,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
         expand: 1,
         requestedTags: "StudyInstanceUID"
       });
-      const response = await fetch(`http://localhost/pacs/studies?${params.toString()}`);
+      const response = await fetch(`https://orthanc.katelyncmorrison.com/studies?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -383,7 +383,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
       });
 
 
-      const response = await fetch(`http://localhost/pacs/series?${params.toString()}`);
+      const response = await fetch(`https://orthanc.katelyncmorrison.com/series?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -419,7 +419,7 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
 
       const generatedSeriesOrthancID = generatedSeries.ID;
 
-      const url = `http://localhost/pacs/series/${generatedSeriesOrthancID}/metadata/${type}`;
+      const url = `https://orthanc.katelyncmorrison.com/pacs/series/${generatedSeriesOrthancID}/metadata/${type}`;
       const headers = {
         'Content-Type': 'text/plain' // Ensure the server expects text/plain content type
       };

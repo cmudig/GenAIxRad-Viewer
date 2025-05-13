@@ -1,0 +1,14 @@
+pydicom
+pyyaml
+numpy
+requests
+python-dateutil
+tqdm
+
+[SimpleITK]
+SimpleITK
+sitktools@ git+https://gitlab.com/radiology/medical-physics/sitktools.git
+
+[Viewer]
+SimpleITK
+simple-slice-viewer@ git+https://gitlab.com/radiology/medical-physics/simple-slice-viewer.git

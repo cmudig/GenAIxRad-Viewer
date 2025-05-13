@@ -1,0 +1,29 @@
+Metadata-Version: 2.1
+Name: simple-orthanc
+Version: 0.9.9.6
+Summary: Pythonic interface to access DICOM data on an Orthanc Server
+Home-page: 
+Author: M. Segbers
+Author-email: msegbers@gmail.com
+License: MIT
+Keywords: image images orthanc simpleitk medical dicom
+Classifier: Development Status :: 3 - Alpha
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Topic :: Scientific/Engineering :: Medical Science Apps.
+Classifier: Intended Audience :: Science/Research
+Classifier: Natural Language :: English
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pydicom
+Requires-Dist: pyyaml
+Requires-Dist: numpy
+Requires-Dist: requests
+Requires-Dist: python-dateutil
+Requires-Dist: tqdm
+Provides-Extra: simpleitk
+Requires-Dist: SimpleITK; extra == "simpleitk"
+Requires-Dist: sitktools@ git+https://gitlab.com/radiology/medical-physics/sitktools.git ; extra == "simpleitk"
+Provides-Extra: viewer
+Requires-Dist: SimpleITK; extra == "viewer"
+Requires-Dist: simple-slice-viewer@ git+https://gitlab.com/radiology/medical-physics/simple-slice-viewer.git ; extra == "viewer"

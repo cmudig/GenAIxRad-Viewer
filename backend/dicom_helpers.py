@@ -14,7 +14,7 @@ import seaborn as sns
 from scipy import stats
 
 
-def delete_series(series_to_delete, orthanc_url='https://django.katelyncmorrison.com/orthanc/'):
+def delete_series(series_to_delete, orthanc_url='http://localhost/pacs'):
     series_url = f"{orthanc_url}/series/"
     params = {}
     params['expand'] = 1

@@ -57,6 +57,14 @@ Screenshot of Generative AI extension. Left: Findings and Impressions of origina
 #### Add dummy Data
 Add NIfTI files to the folder `data/nifti` (some are available on our google drive) and use the notebook in `backend/nifti_to_orthan.ipynb` to converti files into DICOM and upload to the Orthanc server.
 
+#### The Orthanc Server on GCP VM
+- The orthanc server is running through a docker setup. To confirm the docker proceses are running you type `docker ps`. To stop the docker from running: `docker-compose down` and to restart it after making changes `docker-compose up -d`. To check its status navigate to `cd platform/app/.recipes/Nginx-Orthanc/` then `docker-compose ps` and you will see the nginx-proxy running (this is for proxying the local host of the VM to the web domain through SSL) and the orthancPACS running which is the database for the images.
+- If the ortahnc.katelyncmorrison.com web domain ssl certificate needs to be renewed, you need to follow the following steps: 
+1. stop the docker `cd GenAIxRad-Viewer/platform/app/.recipes/Nginx-Orthanc/` then `docker-compose down`
+2. renew the cert: `sudo certbot renew --nginx`
+3. restart the docker `docker-compose up -d`
+4. confirm everything is working the way it should be.
+
 #### Pinging the Model API on PSC
 (this may be helpful: https://www.psc.edu/resources/bridges-2/user-guide/)
 * RunMedSyn.ipnyb in this folder: [https://drive.google.com/drive/u/0/folders/1BW8n9D_nBhsLVCdVsN52JaO72Ky23AdI](https://drive.google.com/drive/u/0/folders/1cnKxtEfCOsOYPCQ2xxBLiIYqnj-2ipZR)
