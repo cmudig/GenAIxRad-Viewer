@@ -94,6 +94,11 @@ Here is a schematic representation of our development workflow:
 #### Add dummy Data
 Add NIfTI files to the folder `data/nifti` (some are available on our google drive) and use the notebook in `backend/nifti_to_orthan.ipynb` to converti files into DICOM and upload to the Orthanc server.
 
+#### Deploying to Live Site hosted on Firebase
+- First run `yarn:build` in the root directory `GenAIxRad-Viewer/` which may take several minutes to build if you have made a lot of changes.
+- Once that is completed building then run `firebase deploy` - it should say something like `i  hosting[genai-radiology]: found 442 files in platform/app/dist` - if it doesn't say this then you are in the wrong directory (it may say slightly more or less than 442 files if you added or deleted some files)
+
+
 #### Pinging the Model API on PSC
 (this may be helpful: https://www.psc.edu/resources/bridges-2/user-guide/)
 * RunMedSyn.ipnyb in this folder: [https://drive.google.com/drive/u/0/folders/1BW8n9D_nBhsLVCdVsN52JaO72Ky23AdI](https://drive.google.com/drive/u/0/folders/1cnKxtEfCOsOYPCQ2xxBLiIYqnj-2ipZR)
