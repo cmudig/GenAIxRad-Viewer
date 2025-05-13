@@ -13,6 +13,7 @@
   "ConcurrentJobs": 2,
   "HttpServerEnabled": true,
   "HttpPort": 8042,
+  "ApiRoot": "/",
   "HttpDescribeErrors": true,
   "HttpCompressionEnabled": true,
   "DicomServerEnabled": true,
@@ -86,12 +87,20 @@
     "StowMaxInstances": 10,
     "StowMaxSize": 10,
     "QidoCaseSensitive": false,
-    "CorsOrigins": ["https://genai-radiology.web.app","https://orthanc.katelyncmorrison.com","http://localhost:3000"]
+    "CorsOrigins": [
+      "*"
+    ]
   },
   "Cors": {
     "Enable": true,
     "AllowOrigin": "*",
     "AllowMethods": "GET, POST, PUT, DELETE, OPTIONS",
     "AllowHeaders": "Content-Type, Authorization, Accept"
+  },
+  "HttpHeaders": {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Credentials": true
   }
 }
