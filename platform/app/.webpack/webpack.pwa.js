@@ -86,6 +86,14 @@ module.exports = (env, argv) => {
           __dirname,
           'C:/Users/mot99/Dokumente/GitHub/Viewers/modes/generative-ai/node_modules'
         ),
+        path.resolve(
+          __dirname,
+          '/Users/maggiechen/Downloads/GenAIxRad-Viewer/extensions/user-study-extension/node_modules'
+        ),
+        path.resolve(
+          __dirname,
+          '/Users/maggiechen/Downloads/GenAIxRad-Viewer/modes/user-study-mode/node_modules'
+        ),
       ],
     },
     plugins: [
