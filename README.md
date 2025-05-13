@@ -78,6 +78,14 @@ Here is a schematic representation of our development workflow:
 5. Navigate to src folder
 6. Run flask server `python app.py`
 
+#### The Orthanc Server on GCP VM
+- The orthanc server is running through a docker setup. To confirm the docker proceses are running you type `docker ps`. To stop the docker from running: `docker-compose down` and to restart it after making changes `docker-compose up -d`. To check its status navigate to `cd platform/app/.recipes/Nginx-Orthanc/` then `docker-compose ps` and you will see the nginx-proxy running (this is for proxying the local host of the VM to the web domain through SSL) and the orthancPACS running which is the database for the images.
+- If the ortahnc.katelyncmorrison.com web domain ssl certificate needs to be renewed, you need to follow the following steps:
+1. stop the docker `cd GenAIxRad-Viewer/platform/app/.recipes/Nginx-Orthanc/` then `docker-compose down`
+2. renew the cert: `sudo certbot renew --nginx`
+3. restart the docker `docker-compose up -d`
+4. confirm everything is working the way it should be.
+
 #### Notes about Backend
 - Always shelve the VM when you are done using it
 - Don't release the Public IP Address
@@ -85,6 +93,11 @@ Here is a schematic representation of our development workflow:
 
 #### Add dummy Data
 Add NIfTI files to the folder `data/nifti` (some are available on our google drive) and use the notebook in `backend/nifti_to_orthan.ipynb` to converti files into DICOM and upload to the Orthanc server.
+
+#### Deploying to Live Site hosted on Firebase
+- First run `yarn:build` in the root directory `GenAIxRad-Viewer/` which may take several minutes to build if you have made a lot of changes.
+- Once that is completed building then run `firebase deploy` - it should say something like `i  hosting[genai-radiology]: found 442 files in platform/app/dist` - if it doesn't say this then you are in the wrong directory (it may say slightly more or less than 442 files if you added or deleted some files)
+
 
 #### Pinging the Model API on PSC
 (this may be helpful: https://www.psc.edu/resources/bridges-2/user-guide/)
