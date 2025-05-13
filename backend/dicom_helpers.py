@@ -14,7 +14,8 @@ import seaborn as sns
 from scipy import stats
 
 
-def delete_series(series_to_delete, orthanc_url='http://localhost/pacs'):
+# def delete_series(series_to_delete, orthanc_url='http://localhost/pacs'):
+def delete_series(series_to_delete, orthanc_url='https://orthanc.katelyncmorrison.com/pacs'):
     series_url = f"{orthanc_url}/series/"
     params = {}
     params['expand'] = 1
@@ -37,9 +38,45 @@ def delete_series(series_to_delete, orthanc_url='http://localhost/pacs'):
 def upload_dicom_folder(dicom_folder):
     # Initialize the Orthanc client
     print("Uploading DICOM folder to Orthanc...")
-    orthanc = simple_orthanc.Orthanc()
+    # orthanc = simple_orthanc.Orthanc()
 
-    orthanc.upload_folder(dicom_folder, test_dicom=False, recursive=False)
+    # orthanc.upload_folder(dicom_folder, test_dicom=False, recursive=False)
+
+    print("Uploading DICOM folder to Orthanc...")
+    # Use the proxied URL for your Orthanc server
+    orthanc_url = 'https://orthanc.katelyncmorrison.com/pacs/instances'
+
+    # Define the chunk size (e.g., 5MB)
+    chunk_size = 5 * 1024 * 1024
+
+    for root, _, files in os.walk(dicom_folder):
+        for file in files:
+            if file.endswith(".dcm"):
+                dicom_file_path = os.path.join(root, file)
+                try:
+                    with open(dicom_file_path, 'rb') as f:
+                        while True:
+                            # Read a chunk of the file
+                            chunk = f.read(chunk_size)
+                            if not chunk:
+                                break
+
+                            # Upload the chunk
+                            response = requests.post(
+                                orthanc_url,
+                                headers={'Content-Type': 'application/dicom'},
+                                data=chunk,
+                                # Disable SSL verification if needed (not recommended for production)
+                                verify=False
+                            )
+
+                            if response.status_code != 200:
+                                print(
+                                    f"Failed to upload a chunk of {file}. Status code: {response.status_code}")
+                                print(f"Response: {response.text}")
+                                break  # Stop trying to upload if a chunk fails
+                except Exception as e:
+                    print(f"An error occurred while uploading {file}: {e}")
 
 
 def nifti_to_dicom(nifti_file,
@@ -225,7 +262,8 @@ def _get_orthanc_study_id(study_instance_uid):
         }
 
         # Fetching DICOM studies from the PACS server with query parameters
-        response = requests.get('http://localhost/pacs/studies', params=params)
+        response = requests.get(
+            'https://orthanc.katelyncmorrison.com/pacs/studies', params=params)
 
         # Check if the response is ok (status code 200-299)
         if response.status_code != 200:
@@ -258,7 +296,7 @@ def add_metadata_to_study(study_instance_uid, data, type):
         return
     study_id = _get_orthanc_study_id(study_instance_uid)
     try:
-        url = f'http://localhost/pacs/studies/{study_id}/metadata/{type}'
+        url = f'https://orthanc.katelyncmorrison.com/pacs/studies/{study_id}/metadata/{type}'
         headers = {
             'Content-Type': 'text/plain'  # Ensure the server expects text/plain content type
         }
@@ -285,7 +323,8 @@ def _get_orthanc_series_id(series_instance_uid):
         }
 
         # Fetching DICOM studies from the PACS server with query parameters
-        response = requests.get('http://localhost/pacs/series', params=params)
+        response = requests.get(
+            'https://orthanc.katelyncmorrison.com/pacs/series', params=params)
 
         # Check if the response is ok (status code 200-299)
         if response.status_code != 200:
@@ -318,7 +357,7 @@ def add_metadata_to_series(series_instance_uid, data, type):
     series_id = _get_orthanc_series_id(series_instance_uid)
     print(series_id)
     try:
-        url = f'http://localhost/pacs/series/{series_id}/metadata/{type}'
+        url = f'https://orthanc.katelyncmorrison.com/pacs/series/{series_id}/metadata/{type}'
         headers = {
             'Content-Type': 'text/plain'  # Ensure the server expects text/plain content type
         }

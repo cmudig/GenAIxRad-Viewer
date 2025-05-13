@@ -3,47 +3,47 @@ import PropTypes from 'prop-types';
 import UserFeedback from './UserFeedback';
 
 const StudyMetadataDisplay = ({
-    description,
-    onClick,
-    onDoubleClick,
-    seriesInstanceUID,
-    modality
- }) => {
+  description,
+  onClick,
+  onDoubleClick,
+  seriesInstanceUID,
+  modality
+}) => {
   const [promptMetaData, setPromptMetaData] = useState("");
   const [seriesID, setSeriesID] = useState("");
 
   useEffect(() => {
-    if (modality ==='AI'){
+    if (modality === 'AI') {
       const fetchMetadata = async () => {
         const orthancSeriesID = await _getOrthancSeriesID(seriesInstanceUID);
         setSeriesID(orthancSeriesID);
-        
+
         const response = await _getPromptMetadataOfSeries(orthancSeriesID);
-        
+
         setPromptMetaData(response);
       };
-  
+
       fetchMetadata();
     }
 
   }, [seriesInstanceUID, modality]);
-  
 
-  
+
+
   if (modality !== 'AI') return (
     <div className="group mb-8 flex flex-1 cursor-pointer flex-col px-3 outline-none"
       onClick={onClick}
       onDoubleClick={onDoubleClick}>
       <span className="text-primary-main font-bold select-none mb-1">{description}</span>
-      
-      
-  </div>
+
+
+    </div>
   );
 
   return (
     <div className="group mb-8 flex flex-1 cursor-pointer flex-col px-3 outline-none"
-          onClick={onClick}
-          onDoubleClick={onDoubleClick}>
+      onClick={onClick}
+      onDoubleClick={onDoubleClick}>
       <span className="text-primary-main font-bold select-none mb-1">{description}</span>
       <div className="break-all text-base text-blue-300 mt-1">Prompt: </div>
       <div className="break-words text-base text-white">
@@ -61,7 +61,7 @@ StudyMetadataDisplay.propTypes = {
 
 const _getPromptMetadataOfSeries = async (seriesID) => {
   try {
-    const url = `http://localhost/pacs/series/${seriesID}/metadata/SeriesPrompt`;
+    const url = `https://orthanc.katelyncmorrison.com/pacs/series/${seriesID}/metadata/SeriesPrompt`;
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -83,37 +83,37 @@ const _getPromptMetadataOfSeries = async (seriesID) => {
 };
 const _getOrthancSeriesID = async (seriesInstanceUID) => {
   try {
-      // Parameters to include in the request
-      const params = new URLSearchParams({
-        expand: 1,
-        requestedTags: "SeriesInstanceUID"
-      });
-  
-      // Fetching DICOM studies from the PACS server with query parameters
-      const response = await fetch(`http://localhost/pacs/series?${params.toString()}`);
-  
-      // Check if the response is ok (status code 200-299)
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-  
-      // Parse the response as JSON
-      const data = await response.json();
-  
-      // Filter the data to find the study with the given StudyInstanceUID
-      const series = data.find(item => item.RequestedTags.SeriesInstanceUID === seriesInstanceUID);
+    // Parameters to include in the request
+    const params = new URLSearchParams({
+      expand: 1,
+      requestedTags: "SeriesInstanceUID"
+    });
 
-      // Check if the study was found
-      if (series) {
-        return series.ID;
-      } else {
-        return null;
-      }
-    } catch (error) {
-      // Log any errors that occur during the fetch operation
-      console.error('There has been a problem with your fetch operation:', error);
+    // Fetching DICOM studies from the PACS server with query parameters
+    const response = await fetch(`https://orthanc.katelyncmorrison.com/pacs/series?${params.toString()}`);
+
+    // Check if the response is ok (status code 200-299)
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+
+    // Parse the response as JSON
+    const data = await response.json();
+
+    // Filter the data to find the study with the given StudyInstanceUID
+    const series = data.find(item => item.RequestedTags.SeriesInstanceUID === seriesInstanceUID);
+
+    // Check if the study was found
+    if (series) {
+      return series.ID;
+    } else {
       return null;
     }
-  };
+  } catch (error) {
+    // Log any errors that occur during the fetch operation
+    console.error('There has been a problem with your fetch operation:', error);
+    return null;
+  }
+};
 
 export default StudyMetadataDisplay;

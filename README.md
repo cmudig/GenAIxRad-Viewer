@@ -12,7 +12,7 @@ provided by the <a href="https://ohif.org/">Open Health Imaging Foundation (OHIF
 
 
 
-<img src="viewer_overview.png" alt="Generative AI extension." /> 
+<img src="viewer_overview.png" alt="Generative AI extension." />
 
 Screenshot of Generative AI extension. Left: Findings and Impressions of original CT scan. Right: Enter prompt to generate CT and server Status, below already generated images.
 
@@ -38,7 +38,9 @@ Screenshot of Generative AI extension. Left: Findings and Impressions of origina
 3. `yarn install` to restore dependencies and link projects
 4. Start backend server `yarn orthanc:up`
 5. Start the Application with Orthanc as backend `yarn dev:orthanc` (in a new terminal)
+5a. You can also just run yarn dev and it will work
 6. You may need to update the frontend URL path to blackened located in this file: extensions/text-input-extension/src/GenerativeAIComponent.tsx
+7. If you want to deploy the frontend, then you need to
 
 #### Run Backend
 1. Clone the backend repository (on a machine with large GPU RAM)
@@ -132,7 +134,7 @@ you'll see the following:
 To manually load images into the Tool you can drag-and-drop with the Upload feature on the study overview page, opload directly to Orthanc server on its interface (`http://localhost:8042/app/explorer.html`) or programmatically with python (check `backend/nifti_to_orthanc.ipynb`)
 
 ## Backend
-Images are stored on a the Orthanc server you can open up the Interface running on `http://localhost:8042/app/explorer.html`. 
+Images are stored on a the Orthanc server you can open up the Interface running on `http://localhost:8042/app/explorer.html`.
 
 ## License
 [![MIT License][license-image]][license-url]
