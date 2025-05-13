@@ -65,6 +65,10 @@
     {
       "packageName": "text-input-extension",
       "version": "0.0.1"
+    },
+    {
+      "packageName": "user-study-extension",
+      "version": "0.0.1"
     }
   ],
   "modes": [
@@ -95,6 +99,10 @@
     },
     {
       "packageName": "generative-ai",
+      "version": "0.0.1"
+    },
+    {
+      "packageName": "user-study-mode",
       "version": "0.0.1"
     }
   ],
