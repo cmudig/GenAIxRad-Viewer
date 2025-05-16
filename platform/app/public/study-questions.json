@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "question": "Question 1?",
+    "type": "multiple-choice",
+    "options": ["A1", "A2", "A3", "A4"]
+  },
+  {
+    "id": 2,
+    "question": "Question 2?",
+    "type": "free-response",
+    "options": []
+  },
+  {
+    "id": 3,
+    "question": "Question 3?",
+    "type": "scale",
+    "options": []
+  }
+]
