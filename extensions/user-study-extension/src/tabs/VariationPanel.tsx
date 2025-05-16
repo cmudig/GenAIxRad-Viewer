@@ -1,7 +1,7 @@
 import React from 'react';
 import WrappedPreviewStudyBrowser from '../../../text-input-extension/src/components/WrappedPreviewStudyBrowser';
 import DropdownPanel from '../DropdownPanel';
-import GenerationOptions from '../GenerationOptions';
+import { GenerationOptions, GenerateButtons } from '../GenerationOptions';
 
 const generationOptionsList = [
   { prompt: "Severity", options: ["Small", "Moderate", "Large"] },
@@ -29,6 +29,8 @@ const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) 
             />
           ))}
         </div>
+
+      <GenerateButtons/>
     </DropdownPanel>
     </div>
     <div className="my-4">
