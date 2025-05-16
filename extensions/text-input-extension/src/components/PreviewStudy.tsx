@@ -42,20 +42,30 @@ const PreviewStudy = ({
   const getTabContent = () => {
     const tabData = tabs.find(tab => tab.name === activeTabName);
 
+      if (!tabData.studies || tabData.studies.length === 0) {
+        return (
+          <div className="flex p-10 items-center justify-center">
+            <p className="text-[12px] text-gray-500 italic">
+              No previous studies available
+            </p>
+          </div>
+        );
+      }
+
     return tabData.studies.map(
       ({ studyInstanceUid, date, description, numInstances, modalities, displaySets }) => {
         const isExpanded = expandedStudyInstanceUIDs.includes(studyInstanceUid);
-        
+
         // get study meta data that is stored in data/init_metadata.json
         const seriesInstanceUID = displaySets?.[0]?.SeriesInstanceUID;
 
-        
+
         return (
           <React.Fragment key={seriesInstanceUID}>
             {/*
 
             // TODO: remove this part if not needed
-            
+
             <StudyItem
               date={date}
               description={description}
@@ -76,7 +86,7 @@ const PreviewStudy = ({
                 onThumbnailClick={onClickThumbnail}
                 onThumbnailDoubleClick={onDoubleClickThumbnail}
                 onClickUntrack={onClickUntrack}
-                
+
               />
               </div>
 

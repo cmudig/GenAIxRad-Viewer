@@ -1,6 +1,6 @@
 import React from 'react';
 import DropdownPanel from '../DropdownPanel';
-import GenerationOptions from '../GenerationOptions';
+import { GenerationOptions, GenerateButtons } from '../GenerationOptions';
 import WrappedPreviewStudyBrowser from '../../../text-input-extension/src/components/WrappedPreviewStudyBrowser';
 import ServerStatus from '../../../text-input-extension/src/components/ServerStatus';
 
@@ -17,15 +17,8 @@ const MimicPanel = ({ commandsManager, servicesManager, extensionManager }) => (
           options={[ "Simple", "Moderate", "Advanced" ]}
           onOptionSelect={(option) => console.log(`Selected option: ${option}`)}
         />
+        <GenerateButtons/>
       </div>
-      {/* <div>
-        <ServerStatus
-          modelIsRunning={modelIsRunning}
-          dataIsUploading={dataIsUploading}
-          isServerRunning={isServerRunning}
-          serverUrl={serverUrl}
-        />
-      </div> */}
     </DropdownPanel>
 
     <DropdownPanel
@@ -33,16 +26,16 @@ const MimicPanel = ({ commandsManager, servicesManager, extensionManager }) => (
       dropdownId="mimic-generation"
       title="Assistant Mimic Explainer"
     >
-      <div className="space-y-2">
-        <p>Generated Result goes here</p>
+      <div className="flex p-10 items-center justify-center">
+        <p className='text-[12px] text-gray-500 italic'>Create a generation above to see an explanation</p>
       </div>
     </DropdownPanel>
 
       <DropdownPanel
-      servicesManager={servicesManager}
-      dropdownId="mimic-history"
-      title="Mimic Generation History"
-    >
+        servicesManager={servicesManager}
+        dropdownId="mimic-history"
+        title="Mimic Generation History"
+      >
       <WrappedPreviewStudyBrowser
         commandsManager={commandsManager}
         extensionManager={extensionManager}
