@@ -354,6 +354,8 @@ function _createStudyBrowserTabs(primaryStudyInstanceUIDs, studyDisplayList, dis
   // filters for AI in modality
   const primaryStudies = [];
   const generatedStudies = [];
+  const mimicStudies = [];
+  const variationStudies = [];
   const allStudies = [];
 
   studyDisplayList.forEach(study => {
@@ -364,10 +366,12 @@ function _createStudyBrowserTabs(primaryStudyInstanceUIDs, studyDisplayList, dis
 
       if (series.modality.includes("AI")) {
         generatedStudies.push(tabStudy);
+      } else if (series.modality.includes("Mimic")) {
+        mimicStudies.push(tabStudy);
+      } else if (series.modality.includes("Variation")) {
+        variationStudies.push(tabStudy);
       } else {
         primaryStudies.push(tabStudy);
-
-
       }
       allStudies.push(tabStudy);
 
@@ -384,6 +388,16 @@ function _createStudyBrowserTabs(primaryStudyInstanceUIDs, studyDisplayList, dis
       name: 'ai',
       label: 'AI Generated',
       studies: generatedStudies,
+    },
+    {
+      name: 'variation',
+      label: 'Variation',
+      studies: variationStudies,
+    },
+    {
+      name: 'mimic',
+      label: 'Mimic',
+      studies: mimicStudies,
     },
     {
       name: 'all',
