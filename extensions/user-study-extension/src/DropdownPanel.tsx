@@ -1,4 +1,11 @@
 import React, { useState, KeyboardEvent, CSSProperties } from 'react';
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from '../../../platform/ui-next/src/components/Accordion';
+
 
 interface DropdownPanelProps {
   title: string;
@@ -29,28 +36,24 @@ const DropdownPanel: React.FC<DropdownPanelProps> = ({
   const contentId = dropdownId ? `${dropdownId}-content` : undefined;
 
   return (
-    <div className="mb-10 bg-primary-dark" id={dropdownId}>
-      <div
-        className="bg-secondary-dark text-primary-light px-2 p-4 flex justify-between items-center rounded-t-md transition-transform duration-200 bg-secondary-dark hover:bg-accent text-aqua-pale my-0.5 h-7 w-full rounded py-2 pr-1 pl-2.5 "
-        onClick={toggleOpen}
-        role="button"
-        tabIndex={0}
-        aria-expanded={isOpen}
-        aria-controls={contentId}
-      >
-        <span className='text-[13px] text-aqua-pale font-semibold font-medium'>{title}</span>
-        <span className='text-[12px]'>{isOpen ? '▲' : '▼'}</span>
-      </div>
-      {isOpen && (
-        <div
-          className="p-15 dropdown-panel-content"
-          id={contentId}
-          role="region"
+    <Accordion
+      type="single"
+      collapsible
+      defaultValue={initialOpen ? 'item' : undefined}
+      className="mb-10 bg-primary-dark"
+    >
+      <AccordionItem value="item">
+        <AccordionTrigger
+          className="bg-secondary-dark text-primary-light px-2 p-4 flex justify-between items-center rounded-t-md transition-transform duration-200 hover:bg-accent text-aqua-pale my-0.5 h-7 w-full rounded py-2 pr-1 pl-2.5"
+          id={dropdownId}
         >
-          {children}
-        </div>
-      )}
-    </div>
+          <span className="text-[13px] text-aqua-pale font-semibold font-medium">{title}</span>
+        </AccordionTrigger>
+        <AccordionContent>
+          <div className="p-2 dropdown-panel-content">{children}</div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 };
 

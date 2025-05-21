@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { toEmail, toUsername } from '../utils/authUtils';
 
 const SignUp = () => {
   const [email, setEmail] = useState('');
@@ -23,7 +24,8 @@ const SignUp = () => {
     setLoading(true); // Start loading
     try {
       // Firebase sign-up
-      await createUserWithEmailAndPassword(auth, email, password);
+      const emailWithDomain = toEmail(email);
+      await createUserWithEmailAndPassword(auth, emailWithDomain, password);
       setError(''); // Clear error on success
       // Redirect to the main page after a successful sign-up
       navigate('/'); // Adjust this path to where your main page is served
@@ -39,9 +41,9 @@ const SignUp = () => {
       <h2 style={styles.title}>Sign Up</h2>
       <form onSubmit={handleSignUp} style={styles.form}>
         <div style={styles.inputContainer}>
-          <label htmlFor="email" style={styles.label}>Email</label>
+          <label htmlFor="email" style={styles.label}>Username</label>
           <input
-            type="email"
+            type="text"
             id="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -87,7 +89,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     height: '100vh',
-    backgroundColor: '#1c1e2e', // OHIF background color
+    backgroundColor: '#0000000', // OHIF background color
   },
   title: {
     fontSize: '32px',
@@ -103,7 +105,7 @@ const styles = {
     marginBottom: '20px',
   },
   label: {
-    color: '#ffffff',
+    color: '#78CAE3',
     marginBottom: '5px',
     display: 'block',
   },
@@ -111,14 +113,14 @@ const styles = {
     width: '100%',
     padding: '10px',
     borderRadius: '4px',
-    border: '1px solid #3a3f55',
-    backgroundColor: '#23273a', // OHIF input background color
-    color: '#ffffff', // Input text color
+    border: '1px solid #3A4194',
+    backgroundColor: '#090C27',
+    color: '#ffffff',
   },
   button: {
     padding: '10px',
     borderRadius: '4px',
-    backgroundColor: '#008aff', // OHIF button color
+    backgroundColor: '#78CAE3',
     color: '#ffffff',
     border: 'none',
     cursor: 'pointer',
