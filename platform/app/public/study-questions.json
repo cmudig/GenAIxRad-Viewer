@@ -16,5 +16,11 @@
     "question": "Question 3?",
     "type": "scale",
     "options": []
+  },
+  {
+    "id": 4,
+    "question": "Question 4?",
+    "type": "slider",
+    "options": []
   }
 ]

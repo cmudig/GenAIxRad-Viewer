@@ -7,6 +7,7 @@ import ServerStatus from './components/ServerStatus';
 import axios from 'axios';
 import dicomParser from 'dicom-parser';
 import { metaData } from '@cornerstonejs/core';
+import { checkServerStatus, checkModelStatus } from './services/generativeAIService';
 
 function GenerativeAIComponent({ commandsManager, extensionManager, servicesManager }) {
   const { displaySetService, uiModalService, viewportGridService } = servicesManager.services;
@@ -25,33 +26,33 @@ function GenerativeAIComponent({ commandsManager, extensionManager, servicesMana
   const disabled = false;
   // const serverUrl = 'http://149.165.154.176:5000';
   // const serverUrl = 'https://149.165.174.108:5000';
-  const serverUrl =
-    window.location.hostname === 'localhost'
-      ? 'https://localhost:3443'
-      : 'https://medsyn.katelyncmorrison.com'; // Deployed server
+  // const serverUrl =
+  //   window.location.hostname === 'localhost'
+  //     ? 'https://localhost:3443'
+  //     : 'https://medsyn.katelyncmorrison.com'; // Deployed server
 
-  const orthancServerUrl =
-    window.location.hostname === 'localhost'
-      ? 'http://localhost'
-      : 'https://orthanc.katelyncmorrison.com';
+  // const orthancServerUrl =
+  //   window.location.hostname === 'localhost'
+  //     ? 'http://localhost'
+  //     : 'https://orthanc.katelyncmorrison.com';
 
   const [{ viewports }] = useViewportGrid();
 
   // check server status
   useEffect(() => {
-    const checkServerStatus = async () => {
-      try {
-        const response = await axios.get(serverUrl);
+    // const checkServerStatus = async () => {
+    //   try {
+    //     const response = await axios.get(serverUrl);
 
-        if (response.status === 200) {
-          setIsServerRunning(true);
-        } else {
-          setIsServerRunning(false);
-        }
-      } catch (error) {
-        setIsServerRunning(false);
-      }
-    };
+    //     if (response.status === 200) {
+    //       setIsServerRunning(true);
+    //     } else {
+    //       setIsServerRunning(false);
+    //     }
+    //   } catch (error) {
+    //     setIsServerRunning(false);
+    //   }
+    // };
 
     checkServerStatus();
     const interval = setInterval(checkServerStatus, 50000); // Check every 50 seconds
