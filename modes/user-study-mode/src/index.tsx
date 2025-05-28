@@ -113,6 +113,10 @@ function modeFactory({ modeConfiguration }) {
                   namespace: cornerstone.viewport,
                   displaySetsToDisplay: [ohif.sopClassHandler],
                 },
+                {
+                  namespace: cornerstone.viewport,
+                  displaySetsToDisplay: [ohif.sopClassHandler],
+                },
               ],
             },
           };

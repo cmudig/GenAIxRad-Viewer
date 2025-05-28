@@ -11,9 +11,9 @@ interface DropdownPanelProps {
   title: string;
   children: React.ReactNode;
   dropdownId?: string;
-  servicesManager?: any; // Placeholder type, replace with actual type if available
-  extensionsManager?: any; // Placeholder type, replace with actual type if available
-  commandsManager?: any; // Placeholder type, replace with actual type if available
+  // servicesManager?: any; // Placeholder type, replace with actual type if available
+  // extensionsManager?: any; // Placeholder type, replace with actual type if available
+  // commandsManager?: any; // Placeholder type, replace with actual type if available
   initialOpen?: boolean; // Optional: set true to be open by default
 }
 
@@ -27,13 +27,6 @@ const DropdownPanel: React.FC<DropdownPanelProps> = ({
   // extensionsManager,
   // commandsManager,
 }) => {
-  const [isOpen, setIsOpen] = useState(initialOpen);
-
-  const toggleOpen = () => {
-    setIsOpen(prevIsOpen => !prevIsOpen);
-  };
-
-  const contentId = dropdownId ? `${dropdownId}-content` : undefined;
 
   return (
     <Accordion
