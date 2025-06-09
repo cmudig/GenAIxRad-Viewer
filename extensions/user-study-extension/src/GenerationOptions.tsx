@@ -3,6 +3,18 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { uploadDicomFolder, addMetadataToStudy } from '../../../platform/app/src/components/dicom_helpers';
 import { createPrompt, displaySetIndex } from './createPrompt';
+import { addMetadataToSeries, getMetadataFromSeries } from '../../../platform/app/src/components/dicom_helpers';
+
+// CURL COMMANDS
+// Generation 4 curl -k https://orthanc.katelyncmorrison.com/pacs/series/c8903fa5-bbca061d-8c5f69e7-17a98c10-64355063/metadata/SeriesPromptChanged
+// NNormal chest with no abnormalities present curl -k https://orthanc.katelyncmorrison.com/pacs/series/fb9081ba-3f35144c-99df0ec7-ab76349a-0d2d2a34/metadata/SeriesPromptChanged
+// Bilateral Moderate 2 curl -k https://orthanc.katelyncmorrison.com/pacs/series/9b8369cc-66f98785-1a4e9b3d-65936dde-c37b6230/metadata/SeriesPromptChanged
+// Bilateral moderate 3 curl -k https://orthanc.katelyncmorrison.com/pacs/series/aa77768b-d6e100cb-5caf54c1-4fb657b3-cd476113/metadata/SeriesPromptChanged
+//
+//curl -X PUT https://orthanc.katelyncmorrison.com/series/97dd52a2-949853d2-78c9964f-f86ee00d-4c059f91/metadata/SeriesPromptChanged      -H "Content-Type: text/plain"      --data "true"
+
+//
+//
 
 interface GenerationOptionsProps {
   prompt: string;
@@ -226,6 +238,7 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
 
   // Trigger model generation and wait until completion
   const handleGenerateClick = async () => {
+
     if (isGenerating) {
       setIsGenerating(false);
       setIsLoading(false);
@@ -239,29 +252,19 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
 
     const inputValue = createPrompt(tab, answerList);
     console.log(`Generated '${inputValue}' prompt with ${tab} tab`);
+
     // const formattedDate = generateUniqueTimestamp();
     // const firstTenLetters = inputValue.replace(/[^a-zA-Z]/g, '').slice(0, 10);
     // const newGeneratedFileID = `${formattedDate}${firstTenLetters}`;
     // setGeneratedFileID(newGeneratedFileID);
     // const newStudyId = generateUniqueId(); // Generate a new unique ID
     // setStudyId(newStudyId); // Set the new unique ID to the state
-    // const manualStudyId = '1.2.276.0.7230010.3.1.2.313262592.1.1739045904.502375'; // TEMPORARY manually setting the study ID
-    // const manualStudyId = '190155377288488';
-    // setStudyId(manualStudyId); // Set the new unique ID to the state
 
     try {
       const {displaySetService, viewportGridService} = servicesManager.services;
 
       const activeStudy = displaySetService.getMostRecentDisplaySet();
       const realStudyInstanceUID = activeStudy.StudyInstanceUID;
-      console.log('Active study UID:', realStudyInstanceUID);
-
-      console.log('All display sets in cache:',
-        Array.from(displaySetService.getDisplaySetCache().values()).map(ds => ({
-          StudyInstanceUID: ds.StudyInstanceUID,
-          displaySetInstanceUID: ds.displaySetInstanceUID
-        }))
-      );
 
       const displaySets = Array.from(displaySetService.getDisplaySetCache().values())
         .filter(ds => ds.StudyInstanceUID === realStudyInstanceUID);
@@ -273,12 +276,16 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
 
       const index = displaySetIndex(tab, answerList);
       const displaySetInstanceUID = displaySets[index].displaySetInstanceUID;
+      const seriesInstanceUID = displaySets[index].SeriesInstanceUID;
 
       const viewportId = viewportGridService.getActiveViewportId();
       viewportGridService.setDisplaySetsForViewport({
         viewportId,
         displaySetInstanceUIDs: [displaySetInstanceUID],
-    });
+      });
+
+      await addMetadataToSeries(seriesInstanceUID, 'false', 'SeriesPromptChanged');
+
       console.log('Viewport updated with display set:', displaySetInstanceUID);
     } catch (error) {
       console.error('Failed to update viewport:', error);
@@ -307,13 +314,13 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
     // console.log('🔵 Sending POST request to:', url);
     // console.log('🟢 Payload:', payload);
 
-    try {
+    // try {
     //   const response = await axios.post(url, payload, { headers });
     //   console.log('✅ Response:', response.data);
-      console.log('Generated prompt:', inputValue);
     //   setGeneratingFilePrompt(response.data.prompt);
     //   setGeneratingFileSeriesInstanceUID(response.data.seriesInstanceUID);
-    } finally {
+    //}
+    finally {
       setIsLoading(false);
       setIsGenerating(false); // Reset the generating state
     }

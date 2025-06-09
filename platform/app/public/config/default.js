@@ -394,7 +394,7 @@ window.config = {
             event: 'click',
           },
           beforeShowPromise: () =>
-            waitForElement('[data-cy="MeasurementTools-split-button-primary]'),
+            waitForElement('[data-cy="MeasurementTools-split-button-primary"]'),
         },
         {
           id: 'drawAnnotation',
@@ -509,6 +509,147 @@ window.config = {
           ],
         },
       },
+    },
+    {
+      id: 'userStudyTour',
+      route: '/user-study-mode',
+      steps: [
+        {
+          id: 'welcome',
+          title: 'Introduction',
+          text: 'The viewer is divided into three panels. Click to explore.',
+          attachTo: {
+            element: '.viewport-element',
+            on: 'top',
+          },
+          advanceOn: {
+            selector: '.viewport-element',
+            event: 'click',
+          },
+          beforeShowPromise: () => waitForElement('.viewport-element'),
+        },
+        {
+          id: 'leftPanel',
+          title: 'Participant Study Questions',
+          text: 'Study questions will appear here. Use the next and previous buttons to navigate between questions. All questions are required to be answered in order to submit.',
+          attachTo: {
+            element: '[data-cy="study-question-component"]',
+            on: 'right',
+          },
+          advanceOn: {
+            selector: 'body',
+            event: 'click',
+          },
+          beforeShowPromise: () => waitForElement('.viewport-element'),
+        },
+        {
+          id: 'rightPanel',
+          title: 'AI Chest Assistant',
+          text: 'This panel contains tools you might find useful in answering the study questions. Click on any button in the navigation bar to learn more about each technique.',
+          attachTo: {
+            element: '[data-cy="explanation-component"]',
+            on: 'left',
+          },
+          advanceOn: {
+            selector: '[data-cy="nav-button-history"]',
+            event: 'click',
+          },
+          buttons: []
+        },
+        {
+          id: 'allGenerationsHistory',
+          title: 'All Generations History Panel',
+          text: 'Here you can view all previous generations. You can click on any generation to load into the active window in the center viewport.',
+          attachTo: {
+            element: '[data-cy="explanation-component"]',
+            on: 'left',
+          },
+          advanceOn: {
+            selector: '[data-cy="nav-button-mimic"]',
+            event: 'click',
+          },
+          buttons: []
+        },
+        {
+          id: 'mimicGeneration',
+          title: 'Mimic Generation Panel',
+          text: 'Here you can generate a mimic of the initial pathology, read an explanation, and also view previous mimic generations. Any generated scan will load into the active viewport',
+          attachTo: {
+            element: '[data-cy="explanation-component"]',
+            on: 'left',
+          },
+          advanceOn: {
+            selector: '[data-cy="nav-button-variation"]',
+            event: 'click',
+          },
+          buttons: []
+        },
+        {
+          id: 'variationGeneration',
+          title: 'Variation Generation Panel',
+          text: 'Here you can generate a variation of the initial pathology, read an explanation, and also view previous variation generations. Any generated scan will load into the active viewport',
+          attachTo: {
+            element: '[data-cy="explanation-component"]',
+            on: 'left',
+          },
+          advanceOn: {
+            selector: '[data-cy="nav-button-classification"]',
+            event: 'click',
+          },
+          buttons: []
+        },
+        {
+          id: 'pathologyClassification',
+          title: 'Pathology Classification & Segmentation Panel',
+          text: 'On this page, you can segmentation tools to ____. You can utilize AI to help classify pathologies and generate impressions',
+          attachTo: {
+            element: '[data-cy="explanation-component"]',
+            on: 'left',
+          },
+          advanceOn: {
+            selector: '[data-cy="nav-button-other"]',
+            event: 'click',
+          },
+          buttons: []
+        },
+        {
+          id: 'other',
+          title: 'Other Panel',
+          text: 'Fill in once implemented',
+          attachTo: {
+            element: '[data-cy="explanation-component"]',
+            on: 'left',
+          },
+          advanceOn: {
+            selector: 'body',
+            event: 'click',
+          },
+          buttons: [
+            {
+              text: 'Finish',
+              action() {
+                this.next();
+              },
+              secondary: true,
+            }
+          ]
+        },
+
+      ],
+      tourOptions: {
+        useModalOverlay:true,
+        defaultStepOptions: {
+          buttons: [
+            {
+              text: 'Next',
+              action() {
+                this.next();
+              },
+              secondary: true,
+            }
+          ]
+        }
+      }
     },
   ],
 };

@@ -76,9 +76,15 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
     return (
     <div className="flex flex-col p-4">
       {currentQuestion && (
-        <div key={currentQuestion.id} className="p-4 h-screen">
+        <div className="p-4 h-screen">
           <h2 className="text-lg font-normal text-aqua-pale mb-4">{currentQuestion.question}</h2>
-          {currentQuestion.options && currentQuestion.options.length > 0 ? (
+          {currentQuestion.type === 'paragraph' && currentQuestion.options.length > 0 ? (
+            <div className="flex flex-col ml-6 mt-2 text-aqua-pale">
+              <p className='m-2 text-[14px]'>{currentQuestion.options[0]}</p>
+              <p className='m-2 text-[14px]'>{currentQuestion.options[1]}</p>
+              <p className='m-2 text-[14px]'>{currentQuestion.options[2]}</p>
+            </div>
+          ) : currentQuestion.type === 'multiple-choice' ? (
             <div className="flex flex-col ml-6 mt-2 text-aqua-pale">
               {currentQuestion.options.map((opt, idx) => (
                 <label key={idx} className="flex items-center mb-2 cursor-pointer">
@@ -99,7 +105,7 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
                 </label>
               ))}
             </div>
-          ) : currentQuestion.type === 'free-response' ? (
+          ): currentQuestion.type === 'free-response' ? (
             <textarea
               className="border-primary-main sshadow border-inputfield-main focus:border-inputfield-focus disabled:border-inputfield-disabled placeholder-inputfield-placeholder w-full appearance-none rounded border bg-black py-2 px-3 align-top text-[14px] text-sm leading-[1.2] leading-tight text-white transition duration-300 focus:outline-none"
               rows={4}

@@ -15,7 +15,7 @@ const HistoryPanel = ({ commandsManager, servicesManager, extensionManager }) =>
                 commandsManager={commandsManager}
                 extensionManager={extensionManager}
                 servicesManager={servicesManager}
-                activatedTabName="all"
+                activatedTabName="ai"
               />
             </div>
         </DropdownPanel>

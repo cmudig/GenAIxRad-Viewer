@@ -1,24 +1,33 @@
 [
   {
     "id": 1,
+    "question": "Introduction",
+    "type": "paragraph",
+    "options": ["Review the 10 original patient cases in the study list.",
+                "For each patient case, use the IndaigoMed tool to help you craft your report for this patient.",
+                "Your report will include: localization of the abnormalities, findings of the pathologies present, a classification of whether lung cancer is present, a rationalization for why you think it’s present or not."
+      ]
+  },
+  {
+    "id": 2,
     "question": "Question 1?",
     "type": "multiple-choice",
     "options": ["A1", "A2", "A3", "A4"]
   },
   {
-    "id": 2,
+    "id": 3,
     "question": "Question 2?",
     "type": "free-response",
     "options": []
   },
   {
-    "id": 3,
+    "id": 4,
     "question": "Question 3?",
     "type": "scale",
     "options": []
   },
   {
-    "id": 4,
+    "id": 5,
     "question": "Question 4?",
     "type": "slider",
     "options": []

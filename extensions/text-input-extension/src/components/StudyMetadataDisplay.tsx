@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import UserFeedback from './UserFeedback';
 import { getRenderingEngine, metaData, StackViewport } from '@cornerstonejs/core';
+import { getMetadataFromSeries } from '../../../../platform/app/src/components/dicom_helpers';
 
 // example of setting the SeriesPrompt via the terminal:
-// curl -X PUT "http://localhost:8042/series/b5da4164-106f1d99-2c273087-9c764fd8-ae12f84d/metadata/SeriesPrompt" \
+// curl -X PUT "http://localhost:8042/pacs/series/b5da4164-106f1d99-2c273087-9c764fd8-ae12f84d/metadata/SeriesPrompt" \
 // -d 'left rib fractures left bloody pleural effusion adjacent peripheral lung contusion small left pneumothorax' \
 // -H "Content-Type: application/json"
 
@@ -26,19 +27,13 @@ const StudyMetadataDisplay = ({
   useEffect(() => {
     if (modality === 'AI') {
       const fetchMetadata = async () => {
-        console.log('we are checking for: ', seriesInstanceUID);
-        const orthancSeriesID = await _getOrthancSeriesByID(seriesInstanceUID);
-        console.log('WHAT WE GOT IN RETURN: ', orthancSeriesID);
-
-        const seriesUid = orthancSeriesID?.ID;
-
-        console.log("Now we're checking for seriesID: ", seriesUid);
-
-        if (seriesUid) {
-          const response = await _getPromptMetadataOfSeries(seriesUid);
-          console.log('what was our prompt response: ', response);
-          setPromptMetaData(response || 'No metadata found.');
+        const response = await getMetadataFromSeries(seriesInstanceUID, 'SeriesPrompt');
+        if (!response) {
+          console.warn('No SeriesPrompt metadata found for this series.');
+          setPromptMetaData('No metadata found.');
+          return;
         }
+        setPromptMetaData(response || 'No metadata found.');
       };
 
       fetchMetadata();
@@ -97,38 +92,6 @@ const _getPromptMetadataOfSeries = async seriesID => {
     return metadataText;
   } catch (error) {
     console.error('❌ Error fetching SeriesPrompt metadata:', error);
-    return null;
-  }
-};
-
-const _getOrthancSeriesByID = async seriesInstanceUID => {
-  try {
-    // Parameters to include in the request
-    const params = new URLSearchParams({
-      expand: 1,
-      requestedTags: 'SeriesInstanceUID',
-    });
-
-    const response = await fetch(orthancServerUrl + `/pacs/series?${params.toString()}`);
-
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
-    }
-
-    const data = await response.json();
-
-    // Filter the data to find the study with the given seriesInstanceUID
-    const study = data.find(item => item.RequestedTags.SeriesInstanceUID === seriesInstanceUID);
-
-    if (study) {
-      return study;
-    } else {
-      console.error('No series found with no seriesInstanceUID: ', seriesInstanceUID);
-      return null;
-    }
-  } catch (error) {
-    // Log any errors that occur during the fetch operation
-    console.error('There has been a problem with your fetch operation:', error);
     return null;
   }
 };

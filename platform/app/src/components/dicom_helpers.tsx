@@ -164,13 +164,14 @@ export const addMetadataToSeries = async (
   data: string,
   type: string
 ) => {
-  if (type !== 'SeriesPrompt') {
+  if (type !== 'SeriesPrompt' && type !== 'SeriesPromptChanged') {
     console.error(`Invalid metadata type: ${type}.`);
     return;
   }
 
   const seriesId = await getOrthancSeriesId(seriesInstanceUid);
   if (!seriesId) {
+    console.log(`No series found for SeriesInstanceUID: ${seriesInstanceUid}`);
     return;
   }
 
@@ -183,6 +184,43 @@ export const addMetadataToSeries = async (
     const response = await axios.put(url, data, { headers });
     if (response.status !== 200) {
       console.error(`Response not ok. Status: ${response.status}, Response text: ${response.data}`);
+    }
+    else {
+      console.log(`Successfully changed ${type} metadata to ${data} for seriesInstanceUID`, seriesInstanceUid);
+    }
+  } catch (error) {
+    console.error('Error adding metadata to series:', error);
+  }
+};
+
+
+export const getMetadataFromSeries = async (
+  seriesInstanceUid: string,
+  type: string
+) => {
+  if (type !== 'SeriesPrompt' && type !== 'SeriesPromptChanged') {
+    console.error(`Invalid metadata type: ${type}.`);
+    return;
+  }
+
+  const seriesId = await getOrthancSeriesId(seriesInstanceUid);
+  if (!seriesId) {
+    console.log(`No series found for SeriesInstanceUID: ${seriesInstanceUid}`);
+    return;
+  }
+
+  try {
+    const url = `${orthancUrl}/series/${seriesId}/metadata/${type}`;
+    const headers = {
+      'Content-Type': 'text/plain',
+    };
+
+    const response = await axios.get(url, { headers });
+    if (response.status !== 200) {
+      console.error(`Response not ok. Status: ${response.status}, Response text: ${response.data}`);
+    }
+    else {
+      return response.data;
     }
   } catch (error) {
     console.error('Error adding metadata to series:', error);
