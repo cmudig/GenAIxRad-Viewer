@@ -58,21 +58,27 @@ const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) 
           ))}
           <div className='flex items-center'>
             <p className='mr-2 text-[12px] text-aqua-pale font-semibold font-medium flex items-center'>Severity</p>
-            <input
-              type="range"
-              min="1"
-              max="5"
-              step="1"
-              value={sliderValue}
-              onChange={handleSliderChange}
-              className= "w-full appearance-none rounded-md ml-1 w-4/5 cursor-pointer"
-              style= {{
-                background: `linear-gradient(to right, rgb(90, 204, 230) 0%, rgb(90, 204, 230) ${(100 * (sliderValue - 1) / 4)}%, rgb(58, 63, 153) ${(100 * (sliderValue - 1) / 4)}%, rgb(58, 63, 153) 100%)`,
-                '--thumb-inner-color': '#5acce6',
-                '--thumb-outer-color': '#090c29',
-                height: '3px',
-              } as React.CSSProperties}
-            />
+            <div className='flex-col w-full'>
+              <input
+                type="range"
+                min="1"
+                max="5"
+                step="1"
+                value={sliderValue}
+                onChange={handleSliderChange}
+                className= "w-full appearance-none rounded-md ml-1 cursor-pointer"
+                style= {{
+                  background: `linear-gradient(to right, rgb(90, 204, 230) 0%, rgb(90, 204, 230) ${(100 * (sliderValue - 1) / 4)}%, rgb(58, 63, 153) ${(100 * (sliderValue - 1) / 4)}%, rgb(58, 63, 153) 100%)`,
+                  '--thumb-inner-color': '#5acce6',
+                  '--thumb-outer-color': '#090c29',
+                  height: '3px',
+                } as React.CSSProperties}
+              />
+              <div className="flex justify-between w-full px-2">
+                <span className="text-sm text-white">Mild</span>
+                <span className="text-sm text-white">Severe</span>
+              </div>
+            </div>
           </div>
         </div>
 

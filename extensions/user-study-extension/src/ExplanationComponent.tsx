@@ -18,18 +18,20 @@ function ExplanationComponent({ commandsManager, extensionManager, servicesManag
   const [selectedLabel, setSelectedLabel] = useState('history');
 
   const handleNavClick = (label) => {
+    console.log(`Navigating to nav-button-${label} panel`);
     setSelectedLabel(label);
   };
 
   const SelectedPanel = tabComponents[selectedLabel];
 
   return (
-    <div className="ohif-scrollbar flex flex-col">
+    <div className="ohif-scrollbar flex flex-col" data-cy="explanation-component">
       <div className="bg-primary-dark flex flex-col justify-center p-4">
         {/* Navigation Buttons */}
         <div className="flex justify-between items-center">
           {Object.keys(tabComponents).map((label, index) => (
             <button
+              data-cy={`nav-button-${label}`}
               key={index}
               onClick={() => handleNavClick(label)}
               className={`bg-black hover:bg-primary-main rounded-md p-4 w-15 h-8 flex items-center justify-center transition duration-300 ${
@@ -46,7 +48,7 @@ function ExplanationComponent({ commandsManager, extensionManager, servicesManag
         </div>
 
         {/* Selected Panel Rendered Here */}
-        <div className="my-4">
+        <div className="my-4" data-cy="selected-panel">
           <SelectedPanel
             commandsManager={commandsManager}
             servicesManager={servicesManager}

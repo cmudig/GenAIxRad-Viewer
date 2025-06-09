@@ -4,8 +4,11 @@ import { useImageViewer, useViewportGrid } from '@ohif/ui';
 import { utils } from '@ohif/core';
 import { useNavigate } from 'react-router-dom';
 import PreviewStudy from './PreviewStudy';
+import axios from 'axios';
+import { getMetadataFromSeries } from '../../../../platform/app/src/components/dicom_helpers';
 
 const { sortStudyInstances, formatDate } = utils;
+//everything defaults to true, aka hidden. only when is it false will it be displayed.
 
 /**
  * This is copied from @ohif/extension-default/src/Panels/PanelStudyBrowser
@@ -36,6 +39,7 @@ function PreviewStudyBrowser({
   ]);
   const [studyDisplayList, setStudyDisplayList] = useState([]);
   const [displaySets, setDisplaySets] = useState([]);
+  const [filteredDisplaySets, setFilteredDisplaySets] = useState([]);
   const [thumbnailImageSrcMap, setThumbnailImageSrcMap] = useState({});
 
   const onDoubleClickThumbnailHandler = displaySetInstanceUID => {
@@ -218,7 +222,28 @@ function PreviewStudyBrowser({
     };
   }, [StudyInstanceUIDs, thumbnailImageSrcMap, displaySetService]);
 
-  const tabs = _createStudyBrowserTabs(StudyInstanceUIDs, studyDisplayList, displaySets, activatedTabName);
+
+  useEffect(() => {
+    async function filterAndSetDisplaySets() {
+      const filtered = await filterDisplaySets(displaySets);
+      setFilteredDisplaySets(filtered);
+    }
+    filterAndSetDisplaySets();
+  }, [displaySets]);
+
+
+  const tabs = _createStudyBrowserTabs(StudyInstanceUIDs, studyDisplayList, filteredDisplaySets, activatedTabName);
+
+
+  async function filterDisplaySets(displaySets) {
+    const filteredDisplaySets = await Promise.all(
+      displaySets.map(async ds => {
+        const flag = await getMetadataFromSeries(ds.SeriesInstanceUID, 'SeriesPromptChanged');
+        console.log("Flag for SeriesPromptChanged", flag, ds.SeriesInstanceUID);
+        return { ...ds, metadata: { ...ds.metadata, SeriesPromptChanged: flag || 'true' }};})
+    );
+    return filteredDisplaySets.filter(ds => ds.metadata?.SeriesPromptChanged === 'true');
+  };
 
   // TODO: Should not fire this on "close"
   function _handleStudyClick(StudyInstanceUID) {
