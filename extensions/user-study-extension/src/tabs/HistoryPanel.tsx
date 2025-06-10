@@ -11,7 +11,7 @@ const HistoryPanel = ({ commandsManager, servicesManager, extensionManager }) =>
             title="All Generations History"
           >
             <div className="space-y-2">
-               <WrappedPreviewStudyBrowser
+              <WrappedPreviewStudyBrowser
                 commandsManager={commandsManager}
                 extensionManager={extensionManager}
                 servicesManager={servicesManager}

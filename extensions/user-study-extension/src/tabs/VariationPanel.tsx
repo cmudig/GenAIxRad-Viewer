@@ -7,7 +7,6 @@ import { GenerationOptions, GenerateButtons } from '../GenerationOptions';
 
 const generationOptionsList = [
   { prompt: "Location", options: ["Left", "Bilateral", "Right"] },
-  { prompt: "Findings", options: ["Normal", "Abnormal"] },
   { prompt: "Associated Findings", options: ["Pleural thickening", "Pleural nodularity", "Atelectasis"] },
 ];
 
