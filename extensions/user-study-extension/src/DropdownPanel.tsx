@@ -43,7 +43,9 @@ const DropdownPanel: React.FC<DropdownPanelProps> = ({
           <span className="text-[13px] text-aqua-pale font-semibold font-medium">{title}</span>
         </AccordionTrigger>
         <AccordionContent>
-          <div className="p-2 dropdown-panel-content">{children}</div>
+          <div className="p-2 dropdown-panel-content">
+            {children}
+          </div>
         </AccordionContent>
       </AccordionItem>
     </Accordion>

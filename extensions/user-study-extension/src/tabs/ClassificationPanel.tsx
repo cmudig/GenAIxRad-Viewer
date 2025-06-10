@@ -1,15 +1,27 @@
 import React from 'react';
 import DropdownPanel from '../DropdownPanel';
 import { GenerationOptions, Dropdown, GenerateButtons } from '../GenerationOptions';
+import { useEffect } from 'react';
 
 const ClassificationPanel = ({ commandsManager, servicesManager, extensionManager }) => {
   const [classificationResults, setClassificationResults] = React.useState(null);
   const [impressionResults, setImpressionResults] = React.useState(null);
   const [answers, setAnswers] = React.useState({});
   const [resetKey, setResetKey] = React.useState(0);
+  const [allGenerations, setAllGenerations] = React.useState([]);
 
   const [selectedGeneration1, setSelectedGeneratio1] = React.useState("Select...");
   const [selectedGeneration2, setSelectedGeneration2] = React.useState("Select...");
+
+  const { displaySetService } = servicesManager.services;
+
+  useEffect(() => {
+    const currentDisplaySets = displaySetService.activeDisplaySets;
+    const descriptions = currentDisplaySets
+      .map(ds => ds.seriesDescription || ds.SeriesDescription || "Unknown")
+      .filter((desc, idx, arr) => desc && arr.indexOf(desc) === idx);
+    setAllGenerations(descriptions);
+  }, [displaySetService]);
 
 
   const handleClassifyClick = () => {
@@ -43,7 +55,7 @@ const ClassificationPanel = ({ commandsManager, servicesManager, extensionManage
 
         <Dropdown
           prompt="Generation"
-          options={[ "Input", "With", "All", "Generations" ]}
+          options={ allGenerations }
           onOptionSelect={option => handleDropdownSelection(prompt, option)}
         />
 
@@ -99,7 +111,7 @@ const ClassificationPanel = ({ commandsManager, servicesManager, extensionManage
         <p className='flex p-4 items-center justify-center text-[12px] text-aqua-pale italic'>Select a generation to create an impression</p>
         <Dropdown
           prompt="Generation"
-          options={[ "Input", "With", "All", "Generations" ]}
+          options={ allGenerations }
           onOptionSelect={(option) => console.log(`Selected option: ${option}`)}
         />
 
