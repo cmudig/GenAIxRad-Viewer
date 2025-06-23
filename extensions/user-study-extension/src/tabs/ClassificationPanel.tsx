@@ -2,6 +2,7 @@ import React from 'react';
 import DropdownPanel from '../DropdownPanel';
 import { GenerationOptions, Dropdown, GenerateButtons } from '../GenerationOptions';
 import { useEffect } from 'react';
+import { getMetadataFromSeries } from 'platform/app/src/components/dicom_helpers';
 
 const ClassificationPanel = ({ commandsManager, servicesManager, extensionManager }) => {
   const [classificationResults, setClassificationResults] = React.useState(null);
@@ -21,6 +22,13 @@ const ClassificationPanel = ({ commandsManager, servicesManager, extensionManage
       .map(ds => ds.seriesDescription || ds.SeriesDescription || "Unknown")
       .filter((desc, idx, arr) => desc && arr.indexOf(desc) === idx);
     setAllGenerations(descriptions);
+
+    // const prompts = await Promise.all(
+    //   currentDisplaySets.map(async ds => {
+    //     const seriesUID = ds.SeriesInstanceUID;
+    //     const seriesPrompt = await getMetadataFromSeries(ds.SeriesInstanceUID, 'SeriesPrompt');
+    //   });
+    // );
   }, [displaySetService]);
 
 
@@ -81,11 +89,11 @@ const ClassificationPanel = ({ commandsManager, servicesManager, extensionManage
           </button>
         </div>
 
-        <div className='h-[1px] my-6 mx-4 bg-primary-active rounded rounded-md'></div>
+        <div className='h-[1px] my-6 bg-primary-active rounded rounded-md'></div>
 
         {classificationResults != null && (
           <div className='flex items-center'>
-            <p className='text-aqua-pale'>AI predicts: <span className='text-white ml-4'>{classificationResults}</span></p>
+            <p className='text-aqua-pale'>AI predicts: <span className='text-white ml-4 text-[12px]'>{classificationResults}</span></p>
           </div>
         )}
       </DropdownPanel>
@@ -130,11 +138,11 @@ const ClassificationPanel = ({ commandsManager, servicesManager, extensionManage
           </button>
         </div>
 
-        <div className='h-[1px] my-6 mx-4 bg-primary-active rounded rounded-md'></div>
+        <div className='h-[1px] my-6 bg-primary-active rounded rounded-md'></div>
 
         {impressionResults != null && (
           <div className='flex items-center'>
-            <p className='text-aqua-pale'>AI’s Impression of this CT scan is: <span className='text-white ml-4'>{impressionResults}</span> </p>
+            <p className='text-aqua-pale'>AI’s Impression of this CT scan is: <span className='text-white ml-4 text-[11px]'>{impressionResults}</span> </p>
           </div>
         )}
 

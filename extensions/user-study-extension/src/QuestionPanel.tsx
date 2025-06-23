@@ -56,6 +56,10 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
   };
 
   const handleSubmit = async () => {
+    if (Object.keys(answers).length !== questions.length) {
+      alert('Please answer all questions before submitting.');
+      return;
+    }
     try {
       const docRef = await addDoc(collection(db, "radiology-user-study"), {
           participantId: auth.currentUser.uid,

@@ -6,14 +6,14 @@ import { createPrompt, displaySetIndex } from './createPrompt';
 import { addMetadataToSeries, getMetadataFromSeries } from '../../../platform/app/src/components/dicom_helpers';
 
 // CURL COMMANDS
-// Generation 4 curl -k https://orthanc.katelyncmorrison.com/pacs/series/c8903fa5-bbca061d-8c5f69e7-17a98c10-64355063/metadata/SeriesPromptChanged
-// NNormal chest with no abnormalities present curl -k https://orthanc.katelyncmorrison.com/pacs/series/fb9081ba-3f35144c-99df0ec7-ab76349a-0d2d2a34/metadata/SeriesPromptChanged
-// Bilateral Moderate 2 curl -k https://orthanc.katelyncmorrison.com/pacs/series/9b8369cc-66f98785-1a4e9b3d-65936dde-c37b6230/metadata/SeriesPromptChanged
+// Generation 4 STANDARD FALSE curl -k https://orthanc.katelyncmorrison.com/pacs/series/c8903fa5-bbca061d-8c5f69e7-17a98c10-64355063/metadata/SeriesPromptChanged
+// Normal chest with no abnormalities present ENHANCED FALSE curl -k https://orthanc.katelyncmorrison.com/pacs/series/fb9081ba-3f35144c-99df0ec7-ab76349a-0d2d2a34/metadata/SeriesPromptChanged
+// Bilateral Moderate 2  curl -k https://orthanc.katelyncmorrison.com/pacs/series/9b8369cc-66f98785-1a4e9b3d-65936dde-c37b6230/metadata/SeriesPromptChanged
 // Bilateral moderate 3 curl -k https://orthanc.katelyncmorrison.com/pacs/series/aa77768b-d6e100cb-5caf54c1-4fb657b3-cd476113/metadata/SeriesPromptChanged
 //
 //curl -X PUT https://orthanc.katelyncmorrison.com/series/97dd52a2-949853d2-78c9964f-f86ee00d-4c059f91/metadata/SeriesPromptChanged      -H "Content-Type: text/plain"      --data "true"
-
-//
+//curl -X PUT https://orthanc.katelyncmorrison.com/studies/8022c382-9a178579-70170824-d040fc0e-12f6f132/metadata/treatmentCondition      -H "Content-Type: text/plain"      --data "enhanced";
+// https://orthanc.katelyncmorrison.com/studies/8022c382-9a178579-70170824-d040fc0e-12f6f132/metadata/treatmentCondition
 //
 
 interface GenerationOptionsProps {
@@ -250,7 +250,18 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
     setGenerateClicked(true);
     setIsGenerating(true);
 
-    const inputValue = createPrompt(tab, answerList);
+
+    let inputValue = '';
+    if (tab === 'mimic') {
+      inputValue = answerList["Select a mimic:"];
+    }
+    else if (tab === 'variation') {
+      inputValue = createPrompt(tab, answerList);
+    }
+    else {
+      inputValue = createPrompt(tab, answerList);
+    }
+
     console.log(`Generated '${inputValue}' prompt with ${tab} tab`);
 
     // const formattedDate = generateUniqueTimestamp();

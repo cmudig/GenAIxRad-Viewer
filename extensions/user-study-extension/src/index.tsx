@@ -1,6 +1,7 @@
 import { id } from './id';
 import StudyQuestionComponent from './StudyQuestionComponent';
 import ExplanationComponent from './ExplanationComponent';
+import RadiopaediaComponent from './RadiopaediaComponent';
 
 /**
  * You can remove any of the following modules if you don't need them.
@@ -26,10 +27,9 @@ export default {
    * is the StudyBrowserPanel that is provided by the default extension in OHIF.
    */
   getPanelModule: ({ servicesManager, commandsManager, extensionManager }) => {
-
-    return [
+    const panels = [
       {
-        name:'study-question-panel',
+        name: 'study-question-panel',
         iconName: 'tab-studies',
         iconLabel: 'Questions',
         label: 'Participant Study',
@@ -40,7 +40,7 @@ export default {
         }),
       },
       {
-        name:'explanation-panel',
+        name: 'explanation-panel',
         iconName: 'tab-studies',
         iconLabel: 'AI Chest Assistant',
         label: 'AI Chest Assistant',
@@ -49,8 +49,46 @@ export default {
           extensionManager,
           servicesManager,
         }),
+      },
+      {
+        name: 'standard-panel',
+        iconName: 'tab-studies',
+        iconLabel: 'Standard Panel',
+        label: 'Radiopaedia',
+        component: RadiopaediaComponent.bind(null, {
+          commandsManager,
+          extensionManager,
+          servicesManager,
+        }),
       }
-    ]
+    ];
+
+    return panels;
+
+    // return [
+    //   {
+    //     name:'study-question-panel',
+    //     iconName: 'tab-studies',
+    //     iconLabel: 'Questions',
+    //     label: 'Participant Study',
+    //     component: StudyQuestionComponent.bind(null, {
+    //       commandsManager,
+    //       extensionManager,
+    //       servicesManager,
+    //     }),
+    //   },
+    //   {
+    //     name:'explanation-panel',
+    //     iconName: 'tab-studies',
+    //     iconLabel: 'AI Chest Assistant',
+    //     label: 'AI Chest Assistant',
+    //     component: RadiopaediaComponent.bind(null, {
+    //       commandsManager,
+    //       extensionManager,
+    //       servicesManager,
+    //     }),
+    //   }
+    // ]
 
   },
   /**
