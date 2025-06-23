@@ -14,6 +14,11 @@ const displaySetIndex = (tab, answerList) => {
     //Answer list format: findings, location, severity, associated findings
     return answerList["Severity"]-1;
   }
+
+  else if (tab === 'mimic') {
+    //Answer list format: type, rarity
+    return answerList["Type:"] === "Benign" ? 0 : 1;
+  }
 }
 
 export {createPrompt, displaySetIndex};

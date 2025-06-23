@@ -2,6 +2,8 @@ import { hotkeys } from '@ohif/core';
 import { initToolGroups, toolbarButtons } from '@ohif/mode-longitudinal';
 import { id } from './id';
 
+const treatmentCondition = 'standard';
+
 const ohif = {
   layout: '@ohif/extension-default.layoutTemplateModule.viewerLayout',
   sopClassHandler: '@ohif/extension-default.sopClassHandlerModule.stack',
@@ -103,11 +105,17 @@ function modeFactory({ modeConfiguration }) {
       {
         path: 'user-study-mode',
         layoutTemplate: ({ location, servicesManager }) => {
+          let rightPanels;
+          if (treatmentCondition === 'enhanced') {
+            rightPanels = [['user-study-extension.panelModule.explanation-panel']];
+          } else {
+            rightPanels = [['user-study-extension.panelModule.standard-panel']];
+          }
           return {
             id: ohif.layout,
             props: {
               leftPanels: [['user-study-extension.panelModule.study-question-panel']],
-              rightPanels: [['user-study-extension.panelModule.explanation-panel']],
+              rightPanels,
               viewports: [
                 {
                   namespace: cornerstone.viewport,

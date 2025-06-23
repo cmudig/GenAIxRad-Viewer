@@ -61,13 +61,13 @@ const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) 
               <input
                 type="range"
                 min="1"
-                max="5"
+                max="3"
                 step="1"
                 value={sliderValue}
                 onChange={handleSliderChange}
                 className= "w-full appearance-none rounded-md ml-1 cursor-pointer"
                 style= {{
-                  background: `linear-gradient(to right, rgb(90, 204, 230) 0%, rgb(90, 204, 230) ${(100 * (sliderValue - 1) / 4)}%, rgb(58, 63, 153) ${(100 * (sliderValue - 1) / 4)}%, rgb(58, 63, 153) 100%)`,
+                  background: `linear-gradient(to right, rgb(90, 204, 230) 0%, rgb(90, 204, 230) ${(100 * (sliderValue - 1) / 2)}%, rgb(58, 63, 153) ${(100 * (sliderValue - 1) / 2)}%, rgb(58, 63, 153) 100%)`,
                   '--thumb-inner-color': '#5acce6',
                   '--thumb-outer-color': '#090c29',
                   height: '3px',
@@ -75,6 +75,7 @@ const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) 
               />
               <div className="flex justify-between w-full px-2">
                 <span className="text-sm text-white">Mild</span>
+                <span className="text-sm text-white">Moderate</span>
                 <span className="text-sm text-white">Severe</span>
               </div>
             </div>

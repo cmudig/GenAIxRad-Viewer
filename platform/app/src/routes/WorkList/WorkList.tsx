@@ -59,6 +59,8 @@ function WorkList({
   onRefresh,
   servicesManager,
 }: withAppTypes) {
+  const participantStudyBool = true
+
   const { hotkeyDefinitions, hotkeyDefaults } = hotkeysManager;
   const { show, hide } = useModal();
   const { t } = useTranslation();
