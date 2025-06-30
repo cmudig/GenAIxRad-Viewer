@@ -104,6 +104,10 @@
     {
       "packageName": "user-study-mode",
       "version": "0.0.1"
+    },
+    {
+      "packageName": "user-study-mode-standard",
+      "version": "0.0.1"
     }
   ],
   "public": [

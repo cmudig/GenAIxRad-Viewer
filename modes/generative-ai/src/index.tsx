@@ -25,6 +25,11 @@ const segmentation = {
   sopClassHandler: '@ohif/extension-cornerstone-dicom-seg.sopClassHandlerModule.dicom-seg',
   viewport: '@ohif/extension-cornerstone-dicom-seg.viewportModule.dicom-seg',
 };
+
+const dicomPmap = {
+  sopClassHandler: '@ohif/extension-cornerstone-dicom-pmap.sopClassHandlerModule.dicom-pmap',
+  viewport: '@ohif/extension-cornerstone-dicom-pmap.viewportModule.dicom-pmap',
+};
 /**
  * Just two dependencies to be able to render a viewport with panels in order
  * to make sure that the mode is working.
@@ -34,6 +39,7 @@ const extensionDependencies = {
   '@ohif/extension-cornerstone': '^3.0.0',
   '@ohif/extension-cornerstone-dicom-seg': '^3.0.0',
   'text-input-extension': '^1.0.0',
+  '@ohif/extension-cornerstone-dicom-pmap': '^3.0.0',
 };
 
 function modeFactory({ modeConfiguration }) {
@@ -199,6 +205,10 @@ function modeFactory({ modeConfiguration }) {
                   namespace: cornerstone.viewport,
                   displaySetsToDisplay: [ohif.sopClassHandler],
                 },
+                {
+                  namespace: dicomPmap.viewport,
+                  displaySetsToDisplay: [dicomPmap.sopClassHandler],
+                },
               ],
             },
           };
@@ -210,7 +220,7 @@ function modeFactory({ modeConfiguration }) {
     /** HangingProtocol used by the mode */
     hangingProtocol: ['twoOneGenAI'],
     /** SopClassHandlers used by the mode */
-    sopClassHandlers: [ohif.sopClassHandler, segmentation.sopClassHandler],
+    sopClassHandlers: [ohif.sopClassHandler, segmentation.sopClassHandler, dicomPmap.sopClassHandler],
     /** hotkeys for mode */
     hotkeys: [...hotkeys.defaults.hotkeyBindings],
   };

@@ -26,6 +26,11 @@ const dicompdf = {
   viewport: '@ohif/extension-dicom-pdf.viewportModule.dicom-pdf',
 };
 
+const dicomPmap = {
+  sopClassHandler: '@ohif/extension-cornerstone-dicom-pmap.sopClassHandlerModule.dicom-pmap',
+  viewport: '@ohif/extension-cornerstone-dicom-pmap.viewportModule.dicom-pmap',
+};
+
 const extensionDependencies = {
   // Can derive the versions at least process.env.from npm_package_version
   '@ohif/extension-default': '^3.0.0',
@@ -34,6 +39,7 @@ const extensionDependencies = {
   '@ohif/extension-dicom-pdf': '^3.0.1',
   '@ohif/extension-dicom-video': '^3.0.1',
   '@ohif/extension-dicom-microscopy': '^3.0.0',
+  '@ohif/extension-cornerstone-dicom-pmap': '^3.0.0',
 };
 
 function modeFactory({ modeConfiguration }) {
@@ -107,6 +113,10 @@ function modeFactory({ modeConfiguration }) {
                   namespace: dicompdf.viewport,
                   displaySetsToDisplay: [dicompdf.sopClassHandler],
                 },
+                {
+                  namespace: dicomPmap.viewport,
+                  displaySetsToDisplay: [dicomPmap.sopClassHandler],
+                },
               ],
             },
           };
@@ -120,6 +130,7 @@ function modeFactory({ modeConfiguration }) {
       '@ohif/extension-dicom-microscopy.sopClassHandlerModule.DicomMicroscopySRSopClassHandler',
       dicomvideo.sopClassHandler,
       dicompdf.sopClassHandler,
+      dicomPmap.sopClassHandler
     ],
     hotkeys: [...hotkeys.defaults.hotkeyBindings],
     ...modeConfiguration,

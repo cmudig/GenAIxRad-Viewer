@@ -1,13 +1,14 @@
 import { hotkeys } from '@ohif/core';
 import { initToolGroups, toolbarButtons } from '@ohif/mode-longitudinal';
 import { id } from './id';
-
-const treatmentCondition = 'enhanced';
+import { getMetadataFromSeries } from '../../../platform/app/src/components/dicom_helpers';
 
 const ohif = {
   layout: '@ohif/extension-default.layoutTemplateModule.viewerLayout',
   sopClassHandler: '@ohif/extension-default.sopClassHandlerModule.stack',
   hangingProtocol: '@ohif/extension-default.hangingProtocolModule.default',
+  leftPanel: '@ohif/extension-default.panelModule.seriesList',
+  rightPanel: '@ohif/extension-default.panelModule.measure',
 };
 
 const cornerstone = {
@@ -30,13 +31,16 @@ const extensionDependencies = {
 };
 
 function modeFactory({ modeConfiguration }) {
+
+  const treatmentCondition = 'standard';
+
   return {
     /**
      * Mode ID, which should be unique among modes used by the viewer. This ID
      * is used to identify the mode in the viewer's state.
      */
     id,
-    routeName: 'user-study-mode',
+    routeName: 'user-study-mode-standard',
     /**
      * Mode name, which is displayed in the viewer's UI in the workList, for the
      * user to select the mode.
@@ -92,7 +96,8 @@ function modeFactory({ modeConfiguration }) {
      * A boolean return value that indicates whether the mode is valid for the
      * modalities of the selected studies. For instance a PET/CT mode should be
      */
-    isValidMode: ({ modalities }) => {
+    isValidMode: ({ modalities, study }) => {
+
       return { valid: true };
     },
     /**

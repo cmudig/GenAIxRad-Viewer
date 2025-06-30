@@ -11,6 +11,7 @@ const extensionDependencies = {
   '@ohif/extension-cornerstone-dynamic-volume': '3.7.0-beta.76',
   '@ohif/extension-cornerstone-dicom-seg': '3.7.0-beta.76',
   '@ohif/extension-tmtv': '3.7.0-beta.76',
+  '@ohif/extension-cornerstone-dicom-pmap': '^3.0.0',
 };
 
 const ohif = {
@@ -30,6 +31,11 @@ const dynamicVolume = {
 const cornerstone = {
   viewport: '@ohif/extension-cornerstone.viewportModule.cornerstone',
   activeViewportWindowLevel: '@ohif/extension-cornerstone.panelModule.activeViewportWindowLevel',
+};
+
+const dicomPmap = {
+  sopClassHandler: '@ohif/extension-cornerstone-dicom-pmap.sopClassHandlerModule.dicom-pmap',
+  viewport: '@ohif/extension-cornerstone-dicom-pmap.viewportModule.dicom-pmap',
 };
 
 function modeFactory({ modeConfiguration }) {
@@ -169,6 +175,10 @@ function modeFactory({ modeConfiguration }) {
                   namespace: ohif.chartViewport,
                   displaySetsToDisplay: [ohif.chartSopClassHandler],
                 },
+                {
+                  namespace: dicomPmap.viewport,
+                  displaySetsToDisplay: [dicomPmap.sopClassHandler],
+                },
               ],
             },
           };
@@ -182,7 +192,7 @@ function modeFactory({ modeConfiguration }) {
     // the same sop class under different situations.  In that case, the more
     // general handler needs to come last.  For this case, the dicomvideo must
     // come first to remove video transfer syntax before ohif uses images
-    sopClassHandlers: [ohif.chartSopClassHandler, ohif.defaultSopClassHandler],
+    sopClassHandlers: [ohif.chartSopClassHandler, ohif.defaultSopClassHandler, dicomPmap.sopClassHandler],
     hotkeys: [...hotkeys.defaults.hotkeyBindings],
   };
 }

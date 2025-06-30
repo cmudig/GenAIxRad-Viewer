@@ -2,6 +2,7 @@ import React from 'react';
 import classnames from 'classnames';
 import { getRenderingEngine, metaData, StackViewport } from '@cornerstonejs/core';
 import './ViewportOverlay.css';
+import { useImageViewer, useViewportGrid } from '@ohif/ui';
 
 export type ViewportOverlayProps = {
   topLeft: React.ReactNode;
@@ -9,6 +10,7 @@ export type ViewportOverlayProps = {
   bottomRight: React.ReactNode;
   bottomLeft: React.ReactNode;
   color?: string;
+  servicesManager: AppTypes.ServicesManager;
 };
 
 const ViewportOverlay = ({
@@ -17,8 +19,68 @@ const ViewportOverlay = ({
   bottomRight,
   bottomLeft,
   color = 'text-primary-light',
+  servicesManager,
 }: ViewportOverlayProps) => {
   const overlay = 'absolute pointer-events-none viewport-overlay';
+  const [{ activeViewportId, viewports, isHangingProtocolLayout }, viewportGridService] =
+        useViewportGrid();
+  const { displaySetService, uiNotificationService, hangingProtocolService } = servicesManager.services;
+
+  const handleExplainClick = async (event) => {
+    let updatedViewports = [];
+    console.log(' Explain button clicked');
+
+    let viewportElement = event.currentTarget
+      .closest('.viewport-wrapper')
+      ?.querySelector('.cornerstone-viewport-element');
+    // if (!viewportElement) {
+    //   viewportElement = document.querySelector('.cornerstone-viewport-element');
+    // }
+
+    const viewportId = viewportElement.getAttribute('data-viewport-uid');
+
+    const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
+
+    const viewport = renderingEngine.getViewport(viewportId);
+    const imageId = viewport.getCurrentImageId();
+    const seriesInstanceUID = metaData.get('SeriesInstanceUID', imageId);
+    // const primaryDisplaySetInstanceUID = viewportGridService.getDisplaySetsUIDsForViewport(viewportId)?.[0]; //double check this
+    // console.log(primaryDisplaySetInstanceUID);
+    const allDisplaySets = displaySetService.getActiveDisplaySets();
+
+    console.log(allDisplaySets);
+
+    const pmapDisplaySet = allDisplaySets.find(
+      ds =>
+        ds.referencedSeriesInstanceUID === seriesInstanceUID &&
+        ds.SOPClassUID === '1.2.840.10008.5.1.4.1.1.30'
+    );
+
+
+    if (!pmapDisplaySet) {
+      console.warn('❌ No pMap display set found for this series!');
+      return;
+    }
+    console.log(pmapDisplaySet)
+
+    try {
+      updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
+        activeViewportId,
+        pmapDisplaySet.displaySetInstanceUID,
+        isHangingProtocolLayout
+      );
+    } catch (error) {
+      console.warn(error);
+      uiNotificationService.show({
+        title: 'Thumbnail Double Click',
+        message: 'The selected display sets could not be added to the viewport.',
+        type: 'error',
+        duration: 3000,
+      });
+    }
+
+    viewportGridService.setDisplaySetsForViewports(updatedViewports);
+  };
 
   return (
     <div
@@ -52,75 +114,7 @@ const ViewportOverlay = ({
             borderRadius: '5px',
             pointerEvents: 'all',
           }}
-          onClick={async event => {
-            console.log('🟢 Explain button clicked!');
-            // ✅ Find the viewport element dynamically
-            let viewportElement = event.currentTarget
-              .closest('.viewport-wrapper')
-              ?.querySelector('.cornerstone-viewport-element');
-
-            if (!viewportElement) {
-              viewportElement = document.querySelector('.cornerstone-viewport-element'); // Fallback
-            }
-
-            if (!viewportElement) {
-              console.warn('❌ No viewport element found!');
-              return;
-            }
-
-            console.log('🖼️ Found Viewport Element:', viewportElement);
-
-            // ✅ Retrieve viewport ID
-            const viewportId = viewportElement.getAttribute('data-viewport-uid');
-            if (!viewportId) {
-              console.warn('❌ No valid viewport ID found!');
-              return;
-            }
-
-            console.log('📌 Viewport ID:', viewportId);
-
-            // ✅ Get the rendering engine and viewport
-            const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
-            if (!renderingEngine) {
-              console.error('❌ No rendering engine found!');
-              return;
-            }
-
-            const viewport = renderingEngine.getViewport(viewportId);
-            if (!viewport) {
-              console.error('❌ Viewport not found!');
-              return;
-            }
-
-            if (!(viewport instanceof StackViewport)) {
-              console.error('❌ Not a StackViewport.');
-              return;
-            }
-
-            // ✅ Get the current image index and image ID
-            const imageId = viewport.getCurrentImageId();
-            console.log(imageId);
-
-            // ✅ Retrieve Study Instance UID from metadata
-            const studyInstanceUID = metaData.get('StudyInstanceUID', imageId);
-            if (!studyInstanceUID) {
-              console.warn('❌ No Study Instance UID found for this image!');
-              return;
-            }
-
-            const seriesUID = metaData.get('SeriesInstanceUID', imageId);
-            if (!seriesUID) {
-              console.warn('❌ No Study Instance UID found for this image!');
-              return;
-            }
-
-            const seriesInstanceUID = metaData.get('SeriesInstanceUID', imageId);
-            const instanceNumber = metaData.get('InstanceNumber', imageId);
-
-            console.log(`📋 Study Instance UID: ${studyInstanceUID}`);
-            console.log(`📋 Series Instance UID: ${seriesInstanceUID}`);
-            console.log(`📋 Instance Number: ${instanceNumber}`);
-          }}
+          onClick={handleExplainClick}
         >
           Explain
         </button>
