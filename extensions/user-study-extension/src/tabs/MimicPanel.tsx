@@ -84,9 +84,17 @@ const MimicPanel = ({ commandsManager, servicesManager, extensionManager }) => {
       dropdownId="mimic-generation"
       title="Assistant Mimic Explainer"
     >
-      <div className="flex p-10 items-center justify-center">
-        <p className='text-[12px] text-gray-500 italic'>Create a generation above to see an explanation</p>
+      {/* <div className="flex p-10 items-center justify-center"> */}
+        {/* <p className='text-[12px] text-gray-500 italic'>Create a generation above to see an explanation</p> */}
+      {/* </div> */}
+      <div>
+        <div>
+          <img></img>
+          <img></img>
+        </div>
+        <p>Results of the inference script</p>
       </div>
+
     </DropdownPanel>
 
       <DropdownPanel

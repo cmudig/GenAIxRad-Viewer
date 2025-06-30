@@ -94,6 +94,10 @@ module.exports = (env, argv) => {
           __dirname,
           '/Users/maggiechen/Downloads/GenAIxRad-Viewer/modes/user-study-mode/node_modules'
         ),
+        path.resolve(
+          __dirname,
+          '/Users/maggiechen/Downloads/GenAIxRad-Viewer/modes/user-study-mode-standard/node_modules'
+        ),
       ],
     },
     plugins: [

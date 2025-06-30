@@ -15,6 +15,8 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [sliderValue, setSliderValue] = useState<number>(5);
 
+  const { uiNotificationService } = servicesManager.services;
+
 
   useEffect(() => {
     fetch('/study-questions.json')
@@ -56,8 +58,13 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
   };
 
   const handleSubmit = async () => {
-    if (Object.keys(answers).length !== questions.length) {
-      alert('Please answer all questions before submitting.');
+    if (Object.keys(answers).length !== questions.length-1) {
+      uiNotificationService.show({
+        title: 'Results Not Submitted',
+        message: 'Please answer all the questions before submitting',
+        type: 'warning',
+        duration: 3000,
+      });
       return;
     }
     try {
@@ -70,10 +77,22 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
       console.log("Document written with ID: ", docRef.id);
       resetResponses();
 
-      alert('Your results have been submitted successfully!');
+      uiNotificationService.show({
+          title: 'Results Submitted',
+          message:
+            'You have successfully submitted your responses',
+          type: 'success',
+          duration: 3000,
+        });
     } catch (e) {
         console.error("Error adding document: ", e);
-        alert('Error submitting results. Please try again.');
+        uiNotificationService.show({
+          title: 'Something Went Wrong',
+          message:
+            'Please try again later',
+          type: 'error',
+          duration: 3000,
+        });
     }
   };
 
@@ -115,6 +134,7 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
                 className="border-primary-main sshadow border-inputfield-main focus:border-inputfield-focus disabled:border-inputfield-disabled placeholder-inputfield-placeholder w-full appearance-none rounded border bg-black py-2 px-3 align-top text-[14px] text-sm leading-[1.2] leading-tight text-white transition duration-300 focus:outline-none"
                 rows={4}
                 placeholder="Type your answer here..."
+                value={answers[currentQuestion.id] || ''}
                 onChange={(e) => {
                   if (currentQuestion) {
                     setAnswers(prevAnswers => ({

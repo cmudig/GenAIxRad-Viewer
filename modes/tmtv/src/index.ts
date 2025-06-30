@@ -26,12 +26,18 @@ const tmtv = {
   tmtv: '@ohif/extension-tmtv.panelModule.tmtv',
 };
 
+const dicomPmap = {
+  sopClassHandler: '@ohif/extension-cornerstone-dicom-pmap.sopClassHandlerModule.dicom-pmap',
+  viewport: '@ohif/extension-cornerstone-dicom-pmap.viewportModule.dicom-pmap',
+};
+
 const extensionDependencies = {
   // Can derive the versions at least process.env.from npm_package_version
   '@ohif/extension-default': '^3.0.0',
   '@ohif/extension-cornerstone': '^3.0.0',
   '@ohif/extension-cornerstone-dicom-seg': '^3.0.0',
   '@ohif/extension-tmtv': '^3.0.0',
+  '@ohif/extension-cornerstone-dicom-pmap': '^3.0.0',
 };
 
 const unsubscriptions = [];
@@ -222,6 +228,10 @@ function modeFactory({ modeConfiguration }) {
                   namespace: cs3d.viewport,
                   displaySetsToDisplay: [ohif.sopClassHandler],
                 },
+                {
+                  namespace: dicomPmap.viewport,
+                  displaySetsToDisplay: [dicomPmap.sopClassHandler],
+                },
               ],
             },
           };
@@ -230,7 +240,7 @@ function modeFactory({ modeConfiguration }) {
     ],
     extensions: extensionDependencies,
     hangingProtocol: tmtv.hangingProtocol,
-    sopClassHandlers: [ohif.sopClassHandler],
+    sopClassHandlers: [ohif.sopClassHandler, dicomPmap.sopClassHandler],
     hotkeys: [...hotkeys.defaults.hotkeyBindings],
     ...modeConfiguration,
   };
