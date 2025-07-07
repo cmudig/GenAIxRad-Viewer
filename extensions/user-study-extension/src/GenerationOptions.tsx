@@ -13,6 +13,7 @@ import { addMetadataToSeries, getMetadataFromSeries } from '../../../platform/ap
 //
 //curl -X PUT https://orthanc.katelyncmorrison.com/series/97dd52a2-949853d2-78c9964f-f86ee00d-4c059f91/metadata/SeriesPromptChanged      -H "Content-Type: text/plain"      --data "true"
 //curl -X PUT https://orthanc.katelyncmorrison.com/studies/8022c382-9a178579-70170824-d040fc0e-12f6f132/metadata/treatmentCondition      -H "Content-Type: text/plain"      --data "enhanced";
+//curl -k https://orthanc.katelyncmorrison.com/studies/8022c382-9a178579-70170824-d040fc0e-12f6f132/metadata/treatmentCondition
 // https://orthanc.katelyncmorrison.com/studies/8022c382-9a178579-70170824-d040fc0e-12f6f132/metadata/treatmentCondition
 //
 
@@ -29,6 +30,7 @@ interface GenerateButtonsProps {
   answerList: { [key: number]: any };
   tab: string;
   handleCancelClick: () => void;
+  disabled: bool;
 }
 
 const GenerationOptions: React.FC<GenerationOptionsProps> = ({
@@ -131,6 +133,7 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
   answerList,
   tab,
   handleCancelClick,
+  disabled,
 }) => {
   const [isModelRunning, setIsModelRunning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -607,9 +610,13 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
       //     ? 'bg-secondary-dark text-gray-500'
       //     : 'bg-primary-main text-white'
       //   }`}
-      className= "mr-4 rounded shadow text-sm font-semibold py-1 px-4 bg-primary-main text-white"
+      className={`mr-4 rounded shadow text-sm font-semibold py-1 px-4
+        ${disabled
+          ? 'bg-secondary-dark text-gray-500'
+          : 'bg-primary-main text-white'}`}
         onClick ={handleGenerateClick}
         // disabled= {isModelRunning || !isServerRunning || dataIsUploading}
+        disabled = {disabled}
     >
       Generate
     </button>

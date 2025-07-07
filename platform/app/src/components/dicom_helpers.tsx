@@ -109,7 +109,7 @@ const getOrthancStudyId = async (studyInstanceUid: string) => {
 };
 
 export const addMetadataToStudy = async (studyInstanceUid: string, data: string, type: string) => {
-  if (type !== 'Impressions' && type !== 'Findings' && type !== 'StudyDescription') {
+  if (type !== 'Impressions' && type !== 'Findings' && type !== 'StudyDescription' && type !== 'treatmentCondition') {
     console.error(
       `Invalid metadata type: ${type}. Must be either 'Impressions', 'Findings', or 'StudyDescription'.`
     );
@@ -193,7 +193,6 @@ export const addMetadataToSeries = async (
   }
 };
 
-
 export const getMetadataFromSeries = async (
   seriesInstanceUid: string,
   type: string
@@ -224,5 +223,39 @@ export const getMetadataFromSeries = async (
     }
   } catch (error) {
     console.error('Error adding metadata to series:', error);
+  }
+};
+
+
+export const getMetadataFromStudy = async (
+  studyInstanceUid: string,
+  type: string
+) => {
+  if (type !== 'treatmentCondition') {
+    console.error(`Invalid metadata type: ${type}.`);
+    return;
+  }
+
+  const studyId = await getOrthancStudyId(studyInstanceUid);
+  if (!studyId) {
+    console.log(`No study found for StudyInstanceUID: ${studyInstanceUid}`);
+    return;
+  }
+
+  try {
+    const url = `${orthancUrl}/study/${studyId}/metadata/${type}`;
+    const headers = {
+      'Content-Type': 'text/plain',
+    };
+
+    const response = await axios.get(url, { headers });
+    if (response.status !== 200) {
+      console.error(`Response not ok. Status: ${response.status}, Response text: ${response.data}`);
+    }
+    else {
+      return response.data;
+    }
+  } catch (error) {
+    console.error('Error getting metadata from study:', error);
   }
 };

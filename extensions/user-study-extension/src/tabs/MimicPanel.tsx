@@ -25,6 +25,11 @@ const MimicPanel = ({ commandsManager, servicesManager, extensionManager }) => {
     }));
   };
 
+  const handleCancelClick = () => {
+    setAnswers({});
+    setResetKey(prevKey => prevKey + 1);
+  };
+
   useEffect(() => {
     if (Object.keys(answers).length < 3) {
       setAvailableMimics([]);
@@ -46,6 +51,9 @@ const MimicPanel = ({ commandsManager, servicesManager, extensionManager }) => {
     }
 
   }, [answers]);
+
+  const allRequiredAnswered = generationOptionsList
+    .every(option => answers.hasOwnProperty(option.prompt)) && answers.hasOwnProperty("Select a mimic:");
 
   return (
   <div className='my-4'>
@@ -75,7 +83,8 @@ const MimicPanel = ({ commandsManager, servicesManager, extensionManager }) => {
           servicesManager= {servicesManager}
           answerList= {answers}
           tab="mimic"
-          handleCancelClick={() => setAnswers({})}
+          handleCancelClick= {() => handleCancelClick()}
+          disabled={!allRequiredAnswered}
         />
       </div>
     </DropdownPanel>
