@@ -9,6 +9,7 @@ type Question = {
   options: string[];
 };
 
+
 const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<{ [key: number]: any }>({});
@@ -97,7 +98,7 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
   };
 
     return (
-    <div className="h-screen flex flex-col">
+    <div style={{ height: '100vh' }} className="h-screen flex flex-col">
       <div className="flex p-4 w-full">
         {currentQuestion && (
           <div className="p-4 w-full">

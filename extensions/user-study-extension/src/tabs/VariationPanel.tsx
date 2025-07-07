@@ -6,8 +6,8 @@ import { GenerationOptions, GenerateButtons } from '../GenerationOptions';
 
 
 const generationOptionsList = [
-  { prompt: "Location", options: ["Left", "Bilateral", "Right"] },
-  { prompt: "Associated Findings", options: ["Pleural thickening", "Pleural nodularity", "Atelectasis"] },
+  { prompt: "Location", options: ["Left", "Bilateral", "Right"], required: true },
+  { prompt: "Associated Findings", options: ["Pleural thickening", "Pleural nodularity", "Atelectasis"], required: false },
 ];
 
 
@@ -38,6 +38,10 @@ const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) 
     setResetKey(prevKey => prevKey + 1);
   };
 
+ const allRequiredAnswered = generationOptionsList
+    .filter(option => option.required)
+    .every(option => answers.hasOwnProperty(option.prompt)) && answers.hasOwnProperty("Severity");
+
   return (
   <div>
     <div className="my-4">
@@ -57,7 +61,7 @@ const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) 
           ))}
           <div className='flex items-center'>
             <p className='mr-2 text-[12px] text-aqua-pale font-semibold font-medium flex items-center'>Severity</p>
-            <div className='flex-col w-full'>
+            <div className='flex-col w-full px-2'>
               <input
                 type="range"
                 min="1"
@@ -74,10 +78,17 @@ const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) 
                 } as React.CSSProperties}
               />
               <div className="flex justify-between w-full px-2">
-                <span className="text-sm text-white">Mild</span>
-                <span className="text-sm text-white">Moderate</span>
-                <span className="text-sm text-white">Severe</span>
+                <div className="flex-1 text-left">
+                  <span className="text-sm text-white">Mild</span>
+                </div>
+                <div className="flex-1 text-center">
+                  <span className="text-sm text-white">Moderate</span>
+                </div>
+                <div className="flex-1 text-right">
+                  <span className="text-sm text-white">Severe</span>
+                </div>
               </div>
+
             </div>
           </div>
         </div>
@@ -88,6 +99,7 @@ const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) 
         answerList = { answers }
         tab = "variation"
         handleCancelClick = {() => handleCancelClick()}
+        disabled = {!allRequiredAnswered}
       />
     </DropdownPanel>
     </div>

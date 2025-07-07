@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { getMetadataFromSeries } from '../../../platform/app/src/components/dicom_helpers';
 
 function RadiopaediaComponent({ commandsManager, extensionManager, servicesManager }) {
@@ -21,7 +21,7 @@ function RadiopaediaComponent({ commandsManager, extensionManager, servicesManag
         return;
       }
       const formattedSeriesPrompt = seriesPrompt.replace(/ /g, '+');
-      setUrl(`https://radiopaedia.org/search?lang=us&q=${formattedSeriesPrompt}&scope=cases`);
+      setUrl(`https://radiopaedia.org/search?lang=us&modality=CT&q=${formattedSeriesPrompt}&scope=cases`);
     }
     fetchPrompt();
   }, [servicesManager]);

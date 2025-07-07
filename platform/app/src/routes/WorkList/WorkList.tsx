@@ -11,6 +11,7 @@ import filtersMeta from './filtersMeta.js';
 import { useAppConfig } from '@state';
 import { useDebounce, useSearchParams } from '@hooks';
 import { utils, hotkeys } from '@ohif/core';
+import { getMetadataFromStudy } from '../../components/dicom_helpers';
 
 import {
   Icon,
@@ -364,10 +365,12 @@ function WorkList({
                   const isValidA = a.isValidMode({
                     modalities: modalities.replaceAll('/', '\\'),
                     study,
+                    treatmentCondition: getMetadataFromStudy(study.studyInstanceUID, 'treatmentCondition'),
                   }).valid;
                   const isValidB = b.isValidMode({
                     modalities: modalities.replaceAll('/', '\\'),
                     study,
+                    treatmentCondition: getMetadataFromStudy(study.studyInstanceUID, 'treatmentCondition'),
                   }).valid;
 
                   return isValidB - isValidA;

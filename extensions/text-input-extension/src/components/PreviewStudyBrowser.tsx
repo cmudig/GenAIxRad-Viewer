@@ -26,6 +26,7 @@ function PreviewStudyBrowser({
   const { hangingProtocolService, displaySetService, uiNotificationService } =
     servicesManager.services;
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
 
   // Normally you nest the components so the tree isn't so deep, and the data
   // doesn't have to have such an intense shape. This works well enough for now.
@@ -66,6 +67,7 @@ function PreviewStudyBrowser({
 
   // ~~ studyDisplayList
   useEffect(() => {
+    setIsLoading(true);
     // Fetch all studies for the patient in each primary study
     async function fetchStudiesForPatient(StudyInstanceUID) {
       console.log("StudyInstanceUID to navigate to", StudyInstanceUID);
@@ -120,6 +122,8 @@ function PreviewStudyBrowser({
     }
 
     StudyInstanceUIDs.forEach(sid => fetchStudiesForPatient(sid));
+
+    setIsLoading(false);
   }, [StudyInstanceUIDs, dataSource, getStudiesForPatientByMRN, navigate]);
 
   // // ~~ Initial Thumbnails
@@ -263,7 +267,9 @@ function PreviewStudyBrowser({
 
   const activeDisplaySetInstanceUIDs = viewports.get(activeViewportId)?.displaySetInstanceUIDs;
 
+
   return (
+    <React.Suspense fallback={<div>Loading...</div>}>
       <PreviewStudy
         tabs={tabs}
         servicesManager={servicesManager}
@@ -276,6 +282,7 @@ function PreviewStudyBrowser({
           setActiveTabName(clickedTabName);
         }}
       />
+    // </React.Suspense>
   );
 }
 

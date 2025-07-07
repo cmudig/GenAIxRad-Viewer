@@ -92,8 +92,11 @@ function modeFactory({ modeConfiguration }) {
      * A boolean return value that indicates whether the mode is valid for the
      * modalities of the selected studies. For instance a PET/CT mode should be
      */
-    isValidMode: ({ modalities }) => {
-      return { valid: true };
+    isValidMode: ({ modalities, study, treatmentCondition }) => {
+      // if (treatmentCondition == 'enhanced') {
+      //   return { valid: true};
+      // }
+      return {valid: true};
     },
     /**
      * Mode Routes are used to define the mode's behavior. A list of Mode Route
