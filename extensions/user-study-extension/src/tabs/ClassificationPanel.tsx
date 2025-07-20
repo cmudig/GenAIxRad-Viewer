@@ -98,19 +98,6 @@ const ClassificationPanel = ({ commandsManager, servicesManager, extensionManage
         )}
       </DropdownPanel>
 
-      {/* <DropdownPanel
-        servicesManager={servicesManager}
-        dropdownId="segment"
-        title="Segment Pathologies"
-      >
-        <p className='flex p-4 items-center justify-center text-[12px] text-aqua-pale italic'>Outline a pathology is the selected CT scan</p>
-        <Dropdown
-          prompt="Generation"
-          options={[ "Input", "With", "All", "Generations" ]}
-          onOptionSelect={(option) => console.log(`Selected option: ${option}`)}
-        />
-      </DropdownPanel> */}
-
       <DropdownPanel
         servicesManager={servicesManager}
         dropdownId="impression"
