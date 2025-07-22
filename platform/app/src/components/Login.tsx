@@ -2,6 +2,26 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase'; // Ensure this points to your Firebase configuration
+import '@fortawesome/fontawesome-free/css/all.min.css';
+
+const cards = [
+  {
+    image: '/assets/original_medsyn_paper.png',
+    title: 'IEEE Transactions on Medical Imaging',
+    codeLink: 'https://github.com/batmanlab/MedSyn',
+    paperLink: 'https://batmanlab.github.io/medsyn.github.io/',
+  },
+  {
+    image: '/assets/interpretability_paper.png',
+    title: 'Medical Imaging with Deep Learning (MIDL) 2025',
+    paperLink: 'https://openreview.net/pdf?id=DTYFRzRPQn',
+  },
+  {
+    image: '/assets/aies_paper.png',
+    title: 'ACM/AAAI AIES 2025',
+    paperLink: 'https://arxiv.org/abs/yourpaper3',
+  },
+];
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -25,7 +45,8 @@ const Login = () => {
       // Automatically log in the demo user
       await signInWithEmailAndPassword(auth, 'demo@demo.com', 'demo_demo');
       // After successful login, redirect to the desired URL
-      window.location.href = 'https://genai-radiology.web.app/generative-ai?StudyInstanceUIDs=1.3';
+      window.location.href =
+        'https://genai-radiology.web.app/generative-ai?StudyInstanceUIDs=974028043241112';
     } catch (error) {
       setError('Failed to log in as demo user.');
       console.error('Failed to log in as demo user:', error);
@@ -34,8 +55,8 @@ const Login = () => {
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.title}>Login</h2>
-      <form
+      <h2 style={styles.title}>Welcome to the MedSyn User Interface!</h2>
+      {/* <form
         onSubmit={handleLogin}
         style={styles.form}
       >
@@ -78,7 +99,53 @@ const Login = () => {
         >
           Log In
         </button>
-      </form>
+      </form> */}
+
+      <div style={styles.cardContainer}>
+        {cards.map((card, idx) => (
+          <div
+            key={idx}
+            style={styles.card}
+          >
+            <a
+              href={card.paperLink}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img
+                src={card.image}
+                alt={card.title}
+                style={styles.cardImage}
+              />
+            </a>
+            <div style={styles.cardTitle}>{card.title}</div>
+            <div style={styles.cardLinks}>
+              {card.codeLink && (
+                <a
+                  href={card.codeLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <i
+                    className="fab fa-github"
+                    style={styles.icon}
+                  ></i>
+                </a>
+              )}
+              <a
+                href={card.paperLink}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <i
+                  className="fas fa-file-alt"
+                  style={styles.icon}
+                ></i>
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
 
       <button
         onClick={handleDemoLogin}
@@ -87,7 +154,7 @@ const Login = () => {
         Try Demo Mode
       </button>
 
-      <p style={styles.label}>
+      {/* <p style={styles.label}>
         Don't have an account?{' '}
         <button
           style={{
@@ -100,12 +167,50 @@ const Login = () => {
         >
           Sign Up
         </button>
-      </p>
+      </p> */}
     </div>
   );
 };
 
 const styles = {
+  cardContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '20px',
+    flexWrap: 'wrap',
+    marginTop: '40px',
+  },
+
+  card: {
+    backgroundColor: '#2a2d3c',
+    padding: '10px',
+    borderRadius: '12px',
+    textAlign: 'center',
+    width: '200px',
+  },
+
+  cardImage: {
+    width: '100%',
+    borderRadius: '10px',
+  },
+
+  cardTitle: {
+    color: '#fff',
+    marginTop: '10px',
+    fontSize: '16px',
+  },
+
+  cardLinks: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '12px',
+    marginTop: '8px',
+  },
+
+  icon: {
+    fontSize: '20px',
+    color: '#ffffff',
+  },
   container: {
     display: 'flex',
     flexDirection: 'column',
@@ -151,7 +256,7 @@ const styles = {
   demoButton: {
     padding: '10px',
     borderRadius: '4px',
-    backgroundColor: '#ff8c00',
+    backgroundColor: '#2f618d',
     color: '#ffffff',
     border: 'none',
     cursor: 'pointer',

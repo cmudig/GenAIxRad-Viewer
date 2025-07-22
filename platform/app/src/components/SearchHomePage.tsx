@@ -431,20 +431,19 @@ const SearchHomePage = () => {
       alignItems: 'center',
       justifyContent: 'center',
       height: '100vh',
-      background:
-        'linear-gradient(190deg, rgb(220, 220, 220), rgb(240, 240, 240), rgb(210, 210, 210))',
+      background: '#1c1e2e',
       animation: 'gradient 15s ease infinite',
     },
     title: {
       fontSize: '4rem',
-      color: 'indigo',
+      color: 'white',
       marginBottom: '20px',
       fontWeight: 'bold',
       textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
     },
     subtitle: {
       fontSize: '1.5rem',
-      color: 'indigo',
+      color: 'white',
       marginBottom: '20px',
       fontWeight: '300',
       fontStyle: 'italic',
@@ -464,7 +463,7 @@ const SearchHomePage = () => {
       fontSize: '1.2rem',
       border: 'none',
       borderRadius: '25px',
-      backgroundColor: 'indigo',
+      backgroundColor: '#2f618d',
       color: 'white',
       cursor: 'pointer',
       boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
@@ -473,6 +472,7 @@ const SearchHomePage = () => {
       display: 'flex',
       alignItems: 'center',
       marginTop: '10px',
+      color: 'white',
     },
     statusDot: {
       width: '10px',
@@ -483,7 +483,7 @@ const SearchHomePage = () => {
     },
     logs: {
       marginTop: '20px',
-      color: 'indigo',
+      color: '#2f618d',
       fontSize: '1rem',
       textAlign: 'left' as const,
       width: '40%', // Adjusted size
@@ -548,14 +548,14 @@ const SearchHomePage = () => {
           onClick={() => navigate('/')}
         ></img>
       </div>
-      <img
+      {/* <img
         src={'/assets/logo.png'} // Ensure the path is correct relative to the public directory
         alt="Logo"
         style={styles.logo}
-      />
-      <h1 style={styles.title}>IndaigoMed</h1>
+      /> */}
+      <h1 style={styles.title}>MedSyn Generation</h1>
       <h3 style={styles.subtitle}>
-        bringing AI-powered medical image search and generation to your finger tips
+        bringing AI-powered medical image generation to your finger tips
       </h3>
       <input
         type="text"
