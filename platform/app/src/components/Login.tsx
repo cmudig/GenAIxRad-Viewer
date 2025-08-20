@@ -7,7 +7,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 const cards = [
   {
     image: '/assets/original_medsyn_paper.png',
-    title: 'IEEE Transactions on Medical Imaging',
+    title: 'IEEE Transactions on Medical Imaging 2024',
     codeLink: 'https://github.com/batmanlab/MedSyn',
     paperLink: 'https://batmanlab.github.io/medsyn.github.io/',
   },
@@ -19,7 +19,7 @@ const cards = [
   {
     image: '/assets/aies_paper.png',
     title: 'ACM/AAAI AIES 2025',
-    paperLink: 'https://arxiv.org/abs/yourpaper3',
+    paperLink: 'https://arxiv.org/abs/2507.16207',
   },
 ];
 
