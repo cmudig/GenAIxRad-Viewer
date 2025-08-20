@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "genai-rad-user-study",
     "public": "platform/app/dist",
     "headers": [
       {
