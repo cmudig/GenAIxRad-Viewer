@@ -1,0 +1,19 @@
+name: User Study
+description: Create an Issue to Address for the User Study
+labels: ['Community: Request :hand:']
+title: '[User Study] '
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⏱️ Describe what the issue is and provide some details on how to fix it for the user study
+
+  - type: textarea
+    attributes:
+      label: 'What feature or change would you like to see made?'
+      description:
+        'Please include as much detail as possible including possibly mock up screen shots, workflow
+        or logic flow diagrams etc.'
+      placeholder: '...'
+    validations:
+      required: true
