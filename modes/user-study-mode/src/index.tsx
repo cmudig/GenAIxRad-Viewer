@@ -131,10 +131,6 @@ function modeFactory({ modeConfiguration }) {
                   displaySetsToDisplay: [ohif.sopClassHandler],
                 },
                 {
-                  namespace: cornerstone.viewport,
-                  displaySetsToDisplay: [ohif.sopClassHandler],
-                },
-                {
                   namespace: dicomPmap.viewport,
                   displaySetsToDisplay: [dicomPmap.sopClassHandler],
                 },
@@ -147,7 +143,7 @@ function modeFactory({ modeConfiguration }) {
     /** List of extensions that are used by the mode */
     extensions: extensionDependencies,
     /** HangingProtocol used by the mode */
-    // hangingProtocol: [''],
+    hangingProtocol: 'default',
     /** SopClassHandlers used by the mode */
     sopClassHandlers: [ohif.sopClassHandler, dicomPmap.sopClassHandler],
     /** hotkeys for mode */
