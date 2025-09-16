@@ -52,7 +52,9 @@
     "Impressions": 1025,
     "Findings": 1026,
     "Feedback": 1027,
-    "SeriesPromptChanged": 1028
+    "SeriesPromptChanged": 1028,
+    "userID": 1029,
+    "treatmentCondition": 1030
   },
   "StableAge": 60,
   "StrictAetComparison": false,
