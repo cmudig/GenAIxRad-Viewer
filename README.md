@@ -83,6 +83,10 @@ Here is a schematic representation of our development workflow:
 - If the ortahnc.katelyncmorrison.com web domain ssl certificate needs to be renewed, you need to follow the following steps:
 1. stop the docker `cd GenAIxRad-Viewer/platform/app/.recipes/Nginx-Orthanc/` then `docker-compose down`
 2. renew the cert: `sudo certbot renew --nginx`
+2.1 Make sure you copy them to the local ssl folder:
+`sudo cp /etc/letsencrypt/live/orthanc.katelyncmorrison.com/fullchain.pem /etc/nginx/ssl/`
+`sudo cp /etc/letsencrypt/live/orthanc.katelyncmorrison.com/privkey.pem /etc/nginx/ssl/`
+Also, you will need to copy them into ssl folder that is within the /.recipes/Nginx-Orthanc/ folder.
 3. restart the docker `docker-compose up -d`
 4. confirm everything is working the way it should be.
 
