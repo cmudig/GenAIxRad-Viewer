@@ -86,8 +86,8 @@
     "WadoRoot": "/wado",
     "Host": "127.0.0.1",
     "Ssl": false,
-    "StowMaxInstances": 10,
-    "StowMaxSize": 10,
+    "StowMaxInstances": 500,
+    "StowMaxSize": 2048,
     "QidoCaseSensitive": false,
     "CorsOrigins": [
       "https://genai-radiology.web.app",
