@@ -33,7 +33,7 @@ const Login = () => {
     try {
       const emailWithDomain = toEmail(email);
       await signInWithEmailAndPassword(auth, emailWithDomain, password);
-      navigate('/user-study-mode?StudyInstanceUIDs=333322227777777'); // Redirect to the main page after login
+      navigate('/'); // Redirect to the main page after login
     } catch (error) {
       setError(`Failed to log in. Please check your credentials.`);
     }
