@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import classnames from 'classnames';
 import { getRenderingEngine, metaData, StackViewport } from '@cornerstonejs/core';
 import './ViewportOverlay.css';
@@ -13,6 +13,11 @@ export type ViewportOverlayProps = {
   servicesManager: AppTypes.ServicesManager;
 };
 
+// Define a key to use for session storage
+const PMAP_STATE_KEY = 'pmap_visibility_state';
+// ADDED: A new key specifically for the original DisplaySet UID
+const ORIGINAL_DS_UID_KEY = 'original_display_set_uid';
+
 const ViewportOverlay = ({
   topLeft,
   topRight,
@@ -23,32 +28,36 @@ const ViewportOverlay = ({
 }: ViewportOverlayProps) => {
   const overlay = 'absolute pointer-events-none viewport-overlay';
   const [{ activeViewportId, viewports, isHangingProtocolLayout }, viewportGridService] =
-        useViewportGrid();
-  const { displaySetService, uiNotificationService, hangingProtocolService } = servicesManager.services;
+    useViewportGrid();
+  const { displaySetService, uiNotificationService, hangingProtocolService } =
+    servicesManager.services;
 
-  const handleExplainClick = async (event) => {
+  // 1. Initialize state by reading from sessionStorage.
+  // We check if the stored value for our active viewport is 'true'.
+  const [isPmapVisible, setIsPmapVisible] = useState(() => {
+    const storedState = sessionStorage.getItem(`${PMAP_STATE_KEY}_${activeViewportId}`);
+    return storedState === 'true';
+  });
+
+  // 2. Use useEffect to update the button text if the state changes from elsewhere.
+  useEffect(() => {
+    const storedState = sessionStorage.getItem(`${PMAP_STATE_KEY}_${activeViewportId}`);
+    setIsPmapVisible(storedState === 'true');
+  }, [activeViewportId]); // Re-check when the active viewport changes
+
+  const handleExplainClick = async () => {
+    // The "event" parameter is no longer needed
     let updatedViewports = [];
-    console.log(' Explain button clicked');
 
-    let viewportElement = event.currentTarget
-      .closest('.viewport-wrapper')
-      ?.querySelector('.cornerstone-viewport-element');
-    // if (!viewportElement) {
-    //   viewportElement = document.querySelector('.cornerstone-viewport-element');
-    // }
-
-    const viewportId = viewportElement.getAttribute('data-viewport-uid');
+    // REMOVED: No longer getting viewportId from the DOM event.
+    // We will use `activeViewportId` from the hook for consistency.
+    const viewportId = activeViewportId;
 
     const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
-
     const viewport = renderingEngine.getViewport(viewportId);
     const imageId = viewport.getCurrentImageId();
     const seriesInstanceUID = metaData.get('SeriesInstanceUID', imageId);
-    // const primaryDisplaySetInstanceUID = viewportGridService.getDisplaySetsUIDsForViewport(viewportId)?.[0]; //double check this
-    // console.log(primaryDisplaySetInstanceUID);
     const allDisplaySets = displaySetService.getActiveDisplaySets();
-
-    console.log(allDisplaySets);
 
     const pmapDisplaySet = allDisplaySets.find(
       ds =>
@@ -56,31 +65,174 @@ const ViewportOverlay = ({
         ds.SOPClassUID === '1.2.840.10008.5.1.4.1.1.30'
     );
 
-
-    if (!pmapDisplaySet) {
+    if (!isPmapVisible && !pmapDisplaySet) {
       console.warn('❌ No pMap display set found for this series!');
       return;
     }
-    console.log(pmapDisplaySet)
 
     try {
-      updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
-        activeViewportId,
-        pmapDisplaySet.displaySetInstanceUID,
-        isHangingProtocolLayout
-      );
+      if (isPmapVisible) {
+        // --- LOGIC TO HIDE (REVERT TO ORIGINAL) ---
+        const originalDisplaySetUID = sessionStorage.getItem(
+          `${ORIGINAL_DS_UID_KEY}_${viewportId}` // Uses consistent viewportId
+        );
+
+        if (!originalDisplaySetUID) {
+          // This is the error you are seeing. The fix ensures this won't happen.
+          console.error('Original DisplaySet UID not found in session. Cannot revert.');
+          return;
+        }
+
+        updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
+          activeViewportId,
+          originalDisplaySetUID,
+          isHangingProtocolLayout
+        );
+
+        sessionStorage.removeItem(`${ORIGINAL_DS_UID_KEY}_${viewportId}`);
+        sessionStorage.setItem(`${PMAP_STATE_KEY}_${viewportId}`, 'false');
+        setIsPmapVisible(false);
+      } else {
+        // --- LOGIC TO EXPLAIN (SHOW PMAP) ---
+        console.log('--- Debugging "Explain" Click ---');
+
+        // Let's inspect the variables we are using
+        console.log('Active Viewport ID:', activeViewportId);
+        console.log('Viewports object:', viewports);
+
+        const activeViewportData = viewports.get(activeViewportId);
+        console.log('Data for Active Viewport:', activeViewportData);
+
+        const originalDisplaySetUID = activeViewportData?.displaySetInstanceUIDs?.[0];
+        console.log('Found Original DisplaySet UID:', originalDisplaySetUID);
+
+        if (originalDisplaySetUID) {
+          console.log('✅ SAVING UID to session storage:', originalDisplaySetUID);
+          sessionStorage.setItem(`${ORIGINAL_DS_UID_KEY}_${viewportId}`, originalDisplaySetUID);
+        } else {
+          // This is likely where the problem is.
+          console.error('❌ FAILED to find original DisplaySet UID. Nothing will be saved.');
+        }
+
+        updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
+          activeViewportId,
+          pmapDisplaySet.displaySetInstanceUID,
+          isHangingProtocolLayout
+        );
+
+        sessionStorage.setItem(`${PMAP_STATE_KEY}_${viewportId}`, 'true');
+        setIsPmapVisible(true);
+        console.log('--- End Debugging ---');
+      }
     } catch (error) {
       console.warn(error);
       uiNotificationService.show({
-        title: 'Thumbnail Double Click',
-        message: 'The selected display sets could not be added to the viewport.',
+        title: 'Error',
+        message: 'Could not change the viewport.',
         type: 'error',
         duration: 3000,
       });
+      sessionStorage.setItem(`${PMAP_STATE_KEY}_${viewportId}`, 'false');
+      sessionStorage.removeItem(`${ORIGINAL_DS_UID_KEY}_${viewportId}`);
     }
 
     viewportGridService.setDisplaySetsForViewports(updatedViewports);
   };
+
+  // const handleExplainClick = async event => {
+  //   let updatedViewports = [];
+  //   console.log(' Explain button clicked');
+
+  //   const viewportElement = event.currentTarget
+  //     .closest('.viewport-wrapper')
+  //     ?.querySelector('.cornerstone-viewport-element');
+  //   // if (!viewportElement) {
+  //   //   viewportElement = document.querySelector('.cornerstone-viewport-element');
+  //   // }
+
+  //   const viewportId = viewportElement.getAttribute('data-viewport-uid');
+
+  //   const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
+
+  //   const viewport = renderingEngine.getViewport(viewportId);
+  //   const imageId = viewport.getCurrentImageId();
+  //   const seriesInstanceUID = metaData.get('SeriesInstanceUID', imageId);
+  //   // const primaryDisplaySetInstanceUID = viewportGridService.getDisplaySetsUIDsForViewport(viewportId)?.[0]; //double check this
+  //   // console.log(primaryDisplaySetInstanceUID);
+  //   const allDisplaySets = displaySetService.getActiveDisplaySets();
+
+  //   console.log(allDisplaySets);
+
+  //   const pmapDisplaySet = allDisplaySets.find(
+  //     ds =>
+  //       ds.referencedSeriesInstanceUID === seriesInstanceUID &&
+  //       ds.SOPClassUID === '1.2.840.10008.5.1.4.1.1.30'
+  //   );
+
+  //   if (!pmapDisplaySet) {
+  //     console.warn('❌ No pMap display set found for this series!');
+  //     return;
+  //   }
+  //   console.log(pmapDisplaySet);
+
+  //   try {
+  //     if (isPmapVisible) {
+  //       // --- LOGIC TO HIDE (REVERT TO ORIGINAL) ---
+  //       // After updating the view, update session storage and state
+
+  //       const originalDisplaySetUID = sessionStorage.getItem(
+  //         `${ORIGINAL_DS_UID_KEY}_${viewportId}`
+  //       );
+
+  //       if (!originalDisplaySetUID) {
+  //         console.error('Original DisplaySet UID not found in session. Cannot revert.');
+  //         return;
+  //       }
+  //       updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
+  //         activeViewportId,
+  //         originalDisplaySetUID,
+  //         isHangingProtocolLayout
+  //       );
+
+  //       sessionStorage.removeItem(`${ORIGINAL_DS_UID_KEY}_${viewportId}`); // Clean up the stored UID
+  //       sessionStorage.setItem(`${PMAP_STATE_KEY}_${viewportId}`, 'false');
+  //       setIsPmapVisible(false);
+  //     } else {
+  //       // --- LOGIC TO EXPLAIN (SHOW PMAP) ---
+  //       // ... (Find pmap display set and update viewports)
+  //       // ADDED: Before showing the p-map, save the current DisplaySet's UID.
+  //       const activeViewportData = viewports[activeViewportId];
+  //       const originalDisplaySetUID = activeViewportData?.displaySetInstanceUIDs?.[0];
+  //       if (originalDisplaySetUID) {
+  //         sessionStorage.setItem(`${ORIGINAL_DS_UID_KEY}_${viewportId}`, originalDisplaySetUID);
+  //       }
+  //       console.log('ORIGINAL: ', originalDisplaySetUID);
+  //       // ---
+  //       updatedViewports = hangingProtocolService.getViewportsRequireUpdate(
+  //         activeViewportId,
+  //         pmapDisplaySet.displaySetInstanceUID,
+  //         isHangingProtocolLayout
+  //       );
+
+  //       // After updating the view, update session storage and state
+  //       sessionStorage.setItem(`${PMAP_STATE_KEY}_${viewportId}`, 'true');
+  //       setIsPmapVisible(true);
+  //     }
+  //     // NOTE: You don't need to actually perform the reload yourself.
+  //     // The viewportGridService.setDisplaySetsForViewports call is what causes it.
+  //   } catch (error) {
+  //     console.warn(error);
+  //     uiNotificationService.show({
+  //       title: 'Thumbnail Double Click',
+  //       message: 'The selected display sets could not be added to the viewport.',
+  //       type: 'error',
+  //       duration: 3000,
+  //     });
+  //     sessionStorage.setItem(`${PMAP_STATE_KEY}_${viewportId}`, 'false');
+  //   }
+
+  //   viewportGridService.setDisplaySetsForViewports(updatedViewports);
+  // };
 
   return (
     <div
@@ -116,7 +268,7 @@ const ViewportOverlay = ({
           }}
           onClick={handleExplainClick}
         >
-          Explain
+          {isPmapVisible ? 'Hide' : 'Explain'}
         </button>
       </div>
       <div
