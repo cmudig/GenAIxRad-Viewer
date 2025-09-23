@@ -4,6 +4,24 @@
     "public": "platform/app/dist",
     "headers": [
       {
+        "source": "/__/auth/**",
+        "headers": [
+          {
+            "key": "Cross-Origin-Embedder-Policy",
+            "value": "unsafe-none"
+          }
+        ]
+      },
+      {
+        "source": "/__/firebase/**",
+        "headers": [
+          {
+            "key": "Cross-Origin-Embedder-Policy",
+            "value": "unsafe-none"
+          }
+        ]
+      },
+      {
         "source": "**",
         "headers": [
           {
@@ -13,24 +31,6 @@
           {
             "key": "Cross-Origin-Embedder-Policy",
             "value": "require-corp"
-          },
-          {
-            "source": "/__/auth/**",
-            "headers": [
-              {
-                "key": "Cross-Origin-Embedder-Policy",
-                "value": "unsafe-none"
-              }
-            ]
-          },
-          {
-            "source": "/__/firebase/**",
-            "headers": [
-              {
-                "key": "Cross-Origin-Embedder-Policy",
-                "value": "unsafe-none"
-              }
-            ]
           },
           {
             "key": "Access-Control-Allow-Origin",

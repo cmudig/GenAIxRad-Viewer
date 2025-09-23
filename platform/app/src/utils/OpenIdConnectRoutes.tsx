@@ -42,6 +42,7 @@ const initUserManager = (oidc, routerBasename) => {
     redirect_uri: _makeAbsoluteIfNecessary(redirect_uri, baseUri),
     silent_redirect_uri: _makeAbsoluteIfNecessary(silent_redirect_uri, baseUri),
     post_logout_redirect_uri: _makeAbsoluteIfNecessary(post_logout_redirect_uri, baseUri),
+    response_mode: 'query',
   });
 
   const client = firstOpenIdClient.response_type === 'code' ? NextClient : LegacyClient;
