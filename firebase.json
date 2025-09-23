@@ -15,6 +15,24 @@
             "value": "require-corp"
           },
           {
+            "source": "/__/auth/**",
+            "headers": [
+              {
+                "key": "Cross-Origin-Embedder-Policy",
+                "value": "unsafe-none"
+              }
+            ]
+          },
+          {
+            "source": "/__/firebase/**",
+            "headers": [
+              {
+                "key": "Cross-Origin-Embedder-Policy",
+                "value": "unsafe-none"
+              }
+            ]
+          },
+          {
             "key": "Access-Control-Allow-Origin",
             "value": "https://orthanc.katelyncmorrison.com"
           },
