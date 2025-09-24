@@ -6,6 +6,8 @@ import 'shepherd.js/dist/css/shepherd.css';
 import './Onboarding.css';
 
 import { hasTourBeenShown, markTourAsShown, defaultShowHandler, middleware } from './utilities';
+import { auth, db } from '../../../../app/src/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const Onboarding = () => {
   const Shepherd = useShepherd();
@@ -49,6 +51,23 @@ const Onboarding = () => {
     matchingTour.steps.forEach(step => tourInstance.addStep(step));
     tourInstance.start();
     markTourAsShown(matchingTour.id);
+    // ADD THE FIREBASE STUFF HERE
+    // 1. Define an async function inside the effect
+    const saveData = async () => {
+      try {
+        await addDoc(collection(db, 'radiology-user-study'), {
+          participantId: auth.currentUser.uid,
+          timestamp: serverTimestamp(),
+          tourComplete: true,
+        });
+        console.log('Document saved!');
+      } catch (error) {
+        console.error('Error saving document: ', error);
+      }
+    };
+
+    // 2. Call the function
+    saveData();
   }, [Shepherd, tours, location.pathname]);
 
   return null;
