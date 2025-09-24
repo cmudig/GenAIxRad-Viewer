@@ -55,10 +55,14 @@ const Onboarding = () => {
     // 1. Define an async function inside the effect
     const saveData = async () => {
       try {
-        await setDoc(doc(db, 'radiology-user-study', auth.currentUser.uid), {
-          timestamp: serverTimestamp(),
-          tourComplete: true,
-        });
+        await setDoc(
+          doc(db, 'radiology-user-study', auth.currentUser.uid),
+          {
+            timestamp: serverTimestamp(),
+            tourComplete: true,
+          },
+          { merge: true }
+        );
         console.log('Document saved!');
       } catch (error) {
         console.error('Error saving document: ', error);
