@@ -7,7 +7,7 @@ import './Onboarding.css';
 
 import { hasTourBeenShown, markTourAsShown, defaultShowHandler, middleware } from './utilities';
 import { auth, db } from '../../../../app/src/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, setDoc, doc, serverTimestamp } from 'firebase/firestore';
 
 const Onboarding = () => {
   const Shepherd = useShepherd();
@@ -55,8 +55,7 @@ const Onboarding = () => {
     // 1. Define an async function inside the effect
     const saveData = async () => {
       try {
-        await addDoc(collection(db, 'radiology-user-study'), {
-          participantId: auth.currentUser.uid,
+        await setDoc(doc(db, 'radiology-user-study', auth.currentUser.uid), {
           timestamp: serverTimestamp(),
           tourComplete: true,
         });

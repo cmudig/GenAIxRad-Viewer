@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { auth, db } from '../../../platform/app/src/firebase';
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 type Question = {
   id: number;
@@ -66,7 +66,7 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
       return;
     }
     try {
-      const docRef = await setDoc(doc(db, 'radiology-user-study', auth.currentUser.uid), {
+      const docRef = await addDoc(collection(db, 'radiology-user-study'), {
         participantId: auth.currentUser.uid,
         studyId: `study-${auth.currentUser.uid}`,
         timestamp: serverTimestamp(),
