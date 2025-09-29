@@ -33,7 +33,7 @@ const Login = () => {
     try {
       const emailWithDomain = toEmail(email);
       await signInWithEmailAndPassword(auth, emailWithDomain, password);
-      navigate('/'); // Redirect to the main page after login
+      navigate('/?patientName=Walkthrough&sortBy=studyDate&sortDirection=ascending'); // Redirect to the main page after login
     } catch (error) {
       setError(`Failed to log in. Please check your credentials.`);
     }
