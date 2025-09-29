@@ -3,33 +3,68 @@
     "id": 1,
     "question": "Introduction",
     "type": "paragraph",
-    "options": ["Review the 10 original patient cases in the study list.",
-                "For each patient case, use the IndaigoMed tool to help you craft your report for this patient.",
-                "Your report will include: localization of the abnormalities, findings of the pathologies present, a classification of whether lung cancer is present, a rationalization for why you think it’s present or not."
-      ]
+    "options": [
+      "You are reviewing Case One.",
+      "You will be asked a series of questions and then directed to interact with the different AI capabilities available to you.",
+      "Your main task is to compile together slices that help you learn about a disease."
+    ]
   },
   {
     "id": 2,
-    "question": "Question 1?",
+    "question": "What is your perception of the AI's ability to generate this CT scan to accurately reflects the prompt?",
     "type": "multiple-choice",
-    "options": ["A1", "A2", "A3", "A4"]
+    "options": [
+      "Poor – the generated CT scan does not match the prompt at all",
+      "Moderate – the generated CT scan reflects some portions of the prompt with noticeable issues",
+      "Good – the generated CT scan generally matches the entirety of the prompt with only minor issues"
+    ]
   },
   {
     "id": 3,
-    "question": "Question 2?",
+    "question": "Please describe what contributed to your perception of the AI's accuracy.",
     "type": "free-response",
     "options": []
   },
   {
     "id": 4,
-    "question": "Question 3?",
-    "type": "scale",
-    "options": []
+    "question": "How confident are you in your judgment of the AI’s accuracy?",
+    "type": "multiple-choice",
+    "options": [
+      "Not confident",
+      "Somewhat confident",
+      "Very confident"
+    ]
   },
   {
     "id": 5,
-    "question": "Question 4?",
-    "type": "slider",
-    "options": []
+    "question": "Would you like to view AI explanations to help you better determine the AI's ability to accurately generate this CT scan?",
+    "type": "multiple-choice",
+    "options": [
+      "Yes",
+      "No"
+    ]
+  },
+  {
+    "id": 6,
+    "question": "[If yes to previous question] Which AI explanations were helpful in helping you better determine the AI's accuracy for this CT scan?",
+    "type": "multiple-choice",
+    "options": [
+      "Counterfactual - Mimic",
+      "Counterfactual - Variation",
+      "Counterfactual - Normal",
+      "Examples",
+      "Heatmap",
+      "Responded 'No' to last question"
+    ]
+  },
+  {
+    "id": 6,
+    "question": "AI's Accuracy for this CT Scan",
+    "type": "paragraph",
+    "options": [
+      "The AI's ability to accurately generate a CT scan to reflect the prompt '.......' has been judged by two radiologists.",
+      "They have determined that the AI's ability for this case is: ",
+      "Good – the generated CT scan generally matches the entirety of the prompt with only minor issues"
+    ]
   }
 ]
