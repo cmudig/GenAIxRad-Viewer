@@ -95,7 +95,7 @@ Here is a schematic representation of our development workflow:
 Add NIfTI files to the folder `data/nifti` (some are available on our google drive) and use the notebook in `backend/nifti_to_orthan.ipynb` to converti files into DICOM and upload to the Orthanc server.
 
 #### Deploying to Live Site hosted on Firebase
-- First run `yarn:build` in the root directory `GenAIxRad-Viewer/` which may take several minutes to build if you have made a lot of changes.
+- First run `yarn build` in the root directory `GenAIxRad-Viewer/` which may take several minutes to build if you have made a lot of changes.
 - Once that is completed building then run `firebase deploy` - it should say something like `i  hosting[genai-radiology]: found 442 files in platform/app/dist` - if it doesn't say this then you are in the wrong directory (it may say slightly more or less than 442 files if you added or deleted some files)
 
 
