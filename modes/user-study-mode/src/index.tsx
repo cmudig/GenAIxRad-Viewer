@@ -29,6 +29,35 @@ const extensionDependencies = {
   '@ohif/extension-cornerstone-dicom-pmap': '^3.0.0',
 };
 
+// modesConfiguration: {
+//   '@ohif/mode-longitudinal': {
+//     displayName: 'Custom Name',
+//     routeName: 'customRouteName',
+//       routes: [
+//         {
+//           path: 'customPath',
+//           layoutTemplate: () => {
+//             /** Custom Layout */
+//             return {
+//               id: ohif.layout,
+//               props: {
+//                 leftPanels: [tracked.thumbnailList],
+//                 rightPanels: [dicomSeg.panel, tracked.measurements],
+//                 rightPanelClosed: true,
+//                 viewports: [
+//                   {
+//                     namespace: tracked.viewport,
+//                     displaySetsToDisplay: [ohif.sopClassHandler],
+//                   },
+//                 ],
+//               },
+//             };
+//           },
+//         },
+//       ],
+//   }
+// },
+
 function modeFactory({ modeConfiguration }) {
   return {
     /**
@@ -96,7 +125,7 @@ function modeFactory({ modeConfiguration }) {
       // if (treatmentCondition == 'enhanced') {
       //   return { valid: true};
       // }
-      return {valid: true};
+      return { valid: true };
     },
     /**
      * Mode Routes are used to define the mode's behavior. A list of Mode Route
@@ -125,6 +154,7 @@ function modeFactory({ modeConfiguration }) {
             props: {
               leftPanels: [['user-study-extension.panelModule.study-question-panel']],
               rightPanels,
+              rightPanelClosed: true,
               viewports: [
                 {
                   namespace: cornerstone.viewport,

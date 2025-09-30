@@ -102,12 +102,12 @@ const Login = () => {
 
   return (
     <div style={styles.container}>
-      <img
+      {/* <img
         style={styles.mainIcon}
         src="../../assets/logo.png"
         alt="stack icon"
         onClick={() => navigate('/')}
-      ></img>
+      ></img> */}
       <div style={styles.backgroundBox}>
         <h2 style={styles.title}>Login</h2>
         <form
