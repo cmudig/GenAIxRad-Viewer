@@ -715,7 +715,7 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
         className="bg-primary-main mr-4 rounded py-1 px-4 text-sm font-semibold text-white shadow"
         onClick={handleCancelClick}
       >
-        Cancel
+        Reset
       </button>
       <div className="flex items-center">
         <p className="text-aqua-pale p-2">Server status:</p>
