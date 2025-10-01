@@ -21,14 +21,53 @@ const SeriesPrompt: React.FC<SeriesPromptProps> = ({ servicesManager }) => {
   const [seriesPromptChanged, setSeriesPromptChanged] = useState<boolean>(false);
   const [loadingMeta, setLoadingMeta] = useState<boolean>(false);
 
-  // tick to force re-fetch on external events
+  // tick to force re-fetch on external events (e.g., Generate button)
   const [refreshTick, setRefreshTick] = useState(0);
 
-  // Listen for "Generate" broadcasts to refresh metadata
+  // ---------- Bootstrap immediately on entry ----------
+  useEffect(() => {
+    if (!viewportGridService) {
+      return;
+    }
+
+    // 1) Try to get the active viewport right now
+    const state = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+    let initialActive = state?.activeViewportId ?? null;
+
+    // If none is marked active yet, pick the first viewport we can find
+    if (!initialActive) {
+      const vps = state?.viewports;
+      if (Array.isArray(vps) && vps.length) {
+        initialActive = vps[0]?.viewportId ?? null;
+      } else if (vps?.keys) {
+        const firstKey = vps.keys().next();
+        if (!firstKey.done) {
+          initialActive = firstKey.value ?? null;
+        }
+      }
+    }
+    if (initialActive) {
+      setActiveViewportId(prev => prev ?? initialActive);
+    }
+
+    // 2) If we still didn't get a display set yet, try to resolve once on mount
+    if (initialActive) {
+      const s = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+      const vp = Array.isArray(s?.viewports)
+        ? s.viewports.find((v: any) => v?.viewportId === initialActive)
+        : s?.viewports?.get?.(initialActive);
+      const uids: string[] =
+        vp?.displaySetInstanceUIDs || vp?.displaySetOptions?.displaySetInstanceUIDs || [];
+      if (uids?.[0]) {
+        setDisplaySetUID(prev => prev ?? uids[0]);
+      }
+    }
+  }, [viewportGridService]);
+
+  // ---------- Listen for Generate button refresh pings ----------
   useEffect(() => {
     const onRefresh = (e: Event) => {
       const ce = e as CustomEvent<{ seriesInstanceUID?: string }>;
-      // If unspecified, or matches the current series, refresh
       if (!ce.detail?.seriesInstanceUID || ce.detail.seriesInstanceUID === seriesInstanceUID) {
         setRefreshTick(t => t + 1);
       }
@@ -37,14 +76,14 @@ const SeriesPrompt: React.FC<SeriesPromptProps> = ({ servicesManager }) => {
     return () => window.removeEventListener('series-metadata-refresh', onRefresh);
   }, [seriesInstanceUID]);
 
-  // Track active viewport
+  // ---------- Track active viewport changes ----------
   useEffect(() => {
     if (!viewportGridService) {
       return;
     }
 
     const state = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
-    setActiveViewportId(state?.activeViewportId ?? null);
+    setActiveViewportId(prev => prev ?? state?.activeViewportId ?? null);
 
     const sub1 = viewportGridService?.subscribe?.(
       viewportGridService.EVENTS?.ACTIVE_VIEWPORT_ID_CHANGED || 'ACTIVE_VIEWPORT_ID_CHANGED',
@@ -65,7 +104,7 @@ const SeriesPrompt: React.FC<SeriesPromptProps> = ({ servicesManager }) => {
     };
   }, [viewportGridService]);
 
-  // Resolve displaySetInstanceUID for the active viewport
+  // ---------- Resolve displaySetInstanceUID for the active viewport ----------
   useEffect(() => {
     if (!activeViewportId || !viewportGridService) {
       return;
@@ -82,7 +121,36 @@ const SeriesPrompt: React.FC<SeriesPromptProps> = ({ servicesManager }) => {
     setDisplaySetUID(uids?.[0] ?? null);
   }, [activeViewportId, viewportGridService]);
 
-  // Get display set & series UID
+  // ---------- Also listen for display sets being added (async study load) ----------
+  useEffect(() => {
+    if (!displaySetService || !viewportGridService) {
+      return;
+    }
+
+    const onAdded = () => {
+      // Re-resolve for current viewport when new display sets appear
+      const s = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+      const vp = Array.isArray(s?.viewports)
+        ? s.viewports.find((v: any) => v?.viewportId === (s?.activeViewportId ?? activeViewportId))
+        : s?.viewports?.get?.(s?.activeViewportId ?? activeViewportId);
+      const uids: string[] =
+        vp?.displaySetInstanceUIDs || vp?.displaySetOptions?.displaySetInstanceUIDs || [];
+      if (uids?.[0]) {
+        setDisplaySetUID(uids[0]);
+      }
+    };
+
+    const sub =
+      displaySetService?.subscribe?.(
+        displaySetService.EVENTS?.DISPLAY_SETS_ADDED || 'DISPLAY_SETS_ADDED',
+        onAdded
+      ) || null;
+
+    return () => sub?.unsubscribe?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displaySetService, viewportGridService, activeViewportId]);
+
+  // ---------- Get display set & series UID ----------
   const ds = useMemo(() => {
     if (!displaySetUID || !displaySetService) {
       return null;
@@ -98,7 +166,7 @@ const SeriesPrompt: React.FC<SeriesPromptProps> = ({ servicesManager }) => {
     setSeriesInstanceUID((ds as any)?.SeriesInstanceUID ?? null);
   }, [ds]);
 
-  // Fetch SeriesPrompt and SeriesPromptChanged from metadata
+  // ---------- Fetch SeriesPrompt and SeriesPromptChanged from metadata ----------
   useEffect(() => {
     let cancelled = false;
 
@@ -144,7 +212,7 @@ const SeriesPrompt: React.FC<SeriesPromptProps> = ({ servicesManager }) => {
     // re-fetch when series changes OR when external refresh is requested
   }, [seriesInstanceUID, refreshTick]);
 
-  // Compose display text
+  // ---------- Compose display text ----------
   const promptBlock = useMemo(() => {
     if (!ds) {
       return 'No series selected.';
@@ -165,11 +233,10 @@ const SeriesPrompt: React.FC<SeriesPromptProps> = ({ servicesManager }) => {
     const meta =
       seriesPrompt != null
         ? `\n\nPrompt used to generate CT scan:\n${seriesPrompt}`
-        : `\n\nrompt used to generate CT scan: (not found)`;
+        : `\n\nPrompt used to generate CT scan: (not found)`;
 
     // const changedLine = seriesPromptChanged ? `\n\nNote: SeriesPromptChanged = true` : '';
 
-    // return `${header}${meta}${changedLine}`;
     return `${meta}`;
   }, [ds, seriesInstanceUID, seriesPrompt, seriesPromptChanged]);
 
