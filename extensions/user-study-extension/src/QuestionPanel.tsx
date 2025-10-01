@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { auth, db } from '../../../platform/app/src/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import SeriesPrompt from './SeriesPrompt';
 
 type Question = {
   id: number;
@@ -94,10 +95,17 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
 
   return (
     <div style={{ height: '100vh' }} className="flex h-screen flex-col">
-      <div className="flex w-full p-4">
+      {/* Top half: Series Prompt */}
+      <div className="h-1/2 w-full p-4">
+        <SeriesPrompt servicesManager={servicesManager} />
+      </div>
+
+      {/* Bottom half: Questions */}
+      <div className="h-1/2 w-full overflow-auto p-4">
         {currentQuestion && (
-          <div className="w-full p-4">
+          <div className="w-full">
             <h2 className="text-aqua-pale mb-4 text-lg font-normal">{currentQuestion.question}</h2>
+
             {currentQuestion.type === 'paragraph' && currentQuestion.options.length > 0 ? (
               <div className="text-aqua-pale ml-6 mt-2 flex flex-col">
                 <p className="m-2 text-[14px]">{currentQuestion.options[0]}</p>
@@ -113,12 +121,7 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
                       name={`question-${currentQuestion.id}`}
                       value={opt}
                       checked={answers[currentQuestion.id] === opt}
-                      onChange={() => {
-                        setAnswers(prevAnswers => ({
-                          ...prevAnswers,
-                          [currentQuestion.id]: opt,
-                        }));
-                      }}
+                      onChange={() => setAnswers(prev => ({ ...prev, [currentQuestion.id]: opt }))}
                       className="form-radio text-primary-main checked:bg-aqua-pale mr-2 h-3 w-3 appearance-none bg-white checked:border-white"
                     />
                     <span>{opt}</span>
@@ -131,14 +134,9 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
                 rows={4}
                 placeholder="Type your answer here..."
                 value={answers[currentQuestion.id] || ''}
-                onChange={e => {
-                  if (currentQuestion) {
-                    setAnswers(prevAnswers => ({
-                      ...prevAnswers,
-                      [currentQuestion.id]: e.target.value,
-                    }));
-                  }
-                }}
+                onChange={e =>
+                  setAnswers(prev => ({ ...prev, [currentQuestion.id]: e.target.value }))
+                }
               />
             ) : currentQuestion.type === 'slider' ? (
               <div className="flex w-full items-center justify-center">
@@ -149,7 +147,7 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
                   step="0.1"
                   value={sliderValue}
                   onChange={handleSliderChange}
-                  className="ml-1 w-full w-4/5 cursor-pointer appearance-none rounded-md"
+                  className="ml-1 w-4/5 cursor-pointer appearance-none rounded-md"
                   style={
                     {
                       background: `linear-gradient(to right, rgb(90, 204, 230) 0%, rgb(90, 204, 230) ${(100 * (sliderValue - 1)) / 9}%, rgb(58, 63, 153) ${(100 * (sliderValue - 1)) / 9}%, rgb(58, 63, 153) 100%)`,
@@ -170,14 +168,7 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
                     key={i + 1}
                     className={`border-secondary-main flex h-11 w-11 items-center justify-center rounded border text-sm font-semibold shadow ${answers[currentQuestion.id] === i + 1 ? 'bg-primary-light text-primary-dark' : 'bg-primary-dark text-white'}`}
                     type="button"
-                    onClick={() => {
-                      if (currentQuestion) {
-                        setAnswers(prevAnswers => ({
-                          ...prevAnswers,
-                          [currentQuestion.id]: i + 1,
-                        }));
-                      }
-                    }}
+                    onClick={() => setAnswers(prev => ({ ...prev, [currentQuestion.id]: i + 1 }))}
                   >
                     {i + 1}
                   </button>
@@ -188,32 +179,30 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
             )}
           </div>
         )}
-      </div>
 
-      <div className="mt-4 flex justify-between">
-        <button
-          onClick={handlePrev}
-          disabled={!currentQuestion || currentQuestion.id === 1}
-          className="bg-primary-dark text-primary-light border-primary-light rounded border px-3 py-1 text-[14px] text-sm"
-        >
-          Back
-        </button>
-        <div className="flex items-center justify-center">
-          <p className="text-primary-light mr-4 text-[14px] text-sm">
-            {currentQuestion ? `${currentQuestion.id} of ${questions.length}` : ''}
-          </p>
+        <div className="mt-4 flex justify-between">
           <button
-            onClick={
-              currentQuestion && currentQuestion.id === questions.length
-                ? () => {
-                    handleSubmit();
-                  }
-                : handleNext
-            }
-            className="bg-primary-light text-primary-dark rounded px-3 py-1 text-[14px] text-sm"
+            onClick={handlePrev}
+            disabled={!currentQuestion || currentQuestion.id === 1}
+            className="bg-primary-dark text-primary-light border-primary-light rounded border px-3 py-1 text-[14px] text-sm"
           >
-            {currentQuestion && currentQuestion.id === questions.length ? 'Submit' : 'Next'}
+            Back
           </button>
+          <div className="flex items-center justify-center">
+            <p className="text-primary-light mr-4 text-[14px] text-sm">
+              {currentQuestion ? `${currentQuestion.id} of ${questions.length}` : ''}
+            </p>
+            <button
+              onClick={
+                currentQuestion && currentQuestion.id === questions.length
+                  ? handleSubmit
+                  : handleNext
+              }
+              className="bg-primary-light text-primary-dark rounded px-3 py-1 text-[14px] text-sm"
+            >
+              {currentQuestion && currentQuestion.id === questions.length ? 'Submit' : 'Next'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
