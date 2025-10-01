@@ -1,7 +1,12 @@
 import axios from 'axios';
 // Remove the import of fs and path as they are not compatible with the browser
 
-const orthancUrl = 'https://orthanc.katelyncmorrison.com/pacs';
+// const orthancUrl = 'https://orthanc.katelyncmorrison.com/pacs';
+
+const orthancUrl =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:8042'
+    : 'https://orthanc.katelyncmorrison.com/pacs';
 
 export const deleteSeries = async (seriesToDelete: string) => {
   const seriesUrl = `${orthancUrl}/series/`;
@@ -109,7 +114,12 @@ const getOrthancStudyId = async (studyInstanceUid: string) => {
 };
 
 export const addMetadataToStudy = async (studyInstanceUid: string, data: string, type: string) => {
-  if (type !== 'Impressions' && type !== 'Findings' && type !== 'StudyDescription' && type !== 'treatmentCondition') {
+  if (
+    type !== 'Impressions' &&
+    type !== 'Findings' &&
+    type !== 'StudyDescription' &&
+    type !== 'treatmentCondition'
+  ) {
     console.error(
       `Invalid metadata type: ${type}. Must be either 'Impressions', 'Findings', or 'StudyDescription'.`
     );
@@ -184,23 +194,25 @@ export const addMetadataToSeries = async (
     const response = await axios.put(url, data, { headers });
     if (response.status !== 200) {
       console.error(`Response not ok. Status: ${response.status}, Response text: ${response.data}`);
-    }
-    else {
-      console.log(`Successfully changed ${type} metadata to ${data} for seriesInstanceUID`, seriesInstanceUid);
+    } else {
+      console.log(
+        `Successfully changed ${type} metadata to ${data} for seriesInstanceUID`,
+        seriesInstanceUid
+      );
     }
   } catch (error) {
     console.error('Error adding metadata to series:', error);
   }
 };
 
-export const getMetadataFromSeries = async (
-  seriesInstanceUid: string,
-  type: string
-) => {
+// http://localhost:8042/series/aa77768b-d6e100cb-5caf54c1-4fb657b3-cd476113/metadata/SeriesPrompt
+export const getMetadataFromSeries = async (seriesInstanceUid: string, type: string) => {
   if (type !== 'SeriesPrompt' && type !== 'SeriesPromptChanged') {
     console.error(`Invalid metadata type: ${type}.`);
     return;
   }
+
+  console.log('WHAT IS THE SERIES INSTANCE ID WE ARE TESTING: ', seriesInstanceUid);
 
   const seriesId = await getOrthancSeriesId(seriesInstanceUid);
   if (!seriesId) {
@@ -217,8 +229,7 @@ export const getMetadataFromSeries = async (
     const response = await axios.get(url, { headers });
     if (response.status !== 200) {
       console.error(`Response not ok. Status: ${response.status}, Response text: ${response.data}`);
-    }
-    else {
+    } else {
       return response.data;
     }
   } catch (error) {
@@ -226,11 +237,7 @@ export const getMetadataFromSeries = async (
   }
 };
 
-
-export const getMetadataFromStudy = async (
-  studyInstanceUid: string,
-  type: string
-) => {
+export const getMetadataFromStudy = async (studyInstanceUid: string, type: string) => {
   if (type !== 'treatmentCondition') {
     console.error(`Invalid metadata type: ${type}.`);
     return;
@@ -251,8 +258,7 @@ export const getMetadataFromStudy = async (
     const response = await axios.get(url, { headers });
     if (response.status !== 200) {
       console.error(`Response not ok. Status: ${response.status}, Response text: ${response.data}`);
-    }
-    else {
+    } else {
       return response.data;
     }
   } catch (error) {

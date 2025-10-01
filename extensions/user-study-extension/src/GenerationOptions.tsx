@@ -1,9 +1,15 @@
 import React, { useEffect, useState, CSSProperties } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { uploadDicomFolder, addMetadataToStudy } from '../../../platform/app/src/components/dicom_helpers';
+import {
+  uploadDicomFolder,
+  addMetadataToStudy,
+} from '../../../platform/app/src/components/dicom_helpers';
 import { createPrompt, displaySetIndex } from './createPrompt';
-import { addMetadataToSeries, getMetadataFromSeries } from '../../../platform/app/src/components/dicom_helpers';
+import {
+  getMetadataFromSeries,
+  addMetadataToSeries,
+} from '../../../platform/app/src/components/dicom_helpers';
 
 // CURL COMMANDS
 // Generation 4 STANDARD FALSE curl -k https://orthanc.katelyncmorrison.com/pacs/series/c8903fa5-bbca061d-8c5f69e7-17a98c10-64355063/metadata/SeriesPromptChanged
@@ -68,11 +74,11 @@ const GenerationOptions: React.FC<GenerationOptionsProps> = ({
   };
 
   return (
-    <div className="flex items-center font-medium mb-2 justify-between">
-      <span className="mr-2 text-[12px] text-aqua-pale font-semibold font-medium flex items-center">
+    <div className="mb-2 flex items-center justify-between font-medium">
+      <span className="text-aqua-pale mr-2 flex items-center text-[12px] font-semibold font-medium">
         {prompt}
       </span>
-      <div className="flex border border-secondary-main rounded-md overflow-hidden">
+      <div className="border-secondary-main flex overflow-hidden rounded-md border">
         {options.map((option, index) => (
           <button
             key={index}
@@ -89,11 +95,7 @@ const GenerationOptions: React.FC<GenerationOptionsProps> = ({
   );
 };
 
-const Dropdown: React.FC<GenerationOptionsProps> = ({
-  prompt,
-  options,
-  onOptionSelect,
-}) => {
+const Dropdown: React.FC<GenerationOptionsProps> = ({ prompt, options, onOptionSelect }) => {
   const [selectedOption, setSelectedOption] = useState<string | null>(() => null);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -104,14 +106,14 @@ const Dropdown: React.FC<GenerationOptionsProps> = ({
   };
 
   return (
-    <div className="flex items-center mb-2">
-      <span className="mr-2 text-[12px] text-aqua-pale font-semibold flex items-center">
+    <div className="mb-2 flex items-center">
+      <span className="text-aqua-pale mr-2 flex items-center text-[12px] font-semibold">
         {prompt}
       </span>
       <select
         value={selectedOption ?? ''}
         onChange={handleChange}
-        className="appearance-none border border-secondary-main rounded-md px-2 py-1 bg-primary-dark text-white text-[12px]"
+        className="border-secondary-main bg-primary-dark appearance-none rounded-md border px-2 py-1 text-[12px] text-white"
       >
         <option value="" disabled>
           Select...
@@ -125,7 +127,6 @@ const Dropdown: React.FC<GenerationOptionsProps> = ({
     </div>
   );
 };
-
 
 const GenerateButtons: React.FC<GenerateButtonsProps> = ({
   commandsManager,
@@ -161,7 +162,9 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
       : 'https://orthanc.katelyncmorrison.com';
 
   useEffect(() => {
-    if (manualMode) return; // Skip the model check since no actual generation
+    if (manualMode) {
+      return;
+    } // Skip the model check since no actual generation
     const checkModelIsRunning = async () => {
       try {
         const response = await axios.get(`${serverUrl}/status`);
@@ -197,7 +200,9 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
   }, [studyID]); // Add generatedFileID as a dependency
 
   useEffect(() => {
-    if (manualMode) return;
+    if (manualMode) {
+      return;
+    }
     const checkServerStatus = async () => {
       try {
         const response = await axios.get(serverUrl);
@@ -223,7 +228,9 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
   }, []);
 
   useEffect(() => {
-    if (manualMode) return;
+    if (manualMode) {
+      return;
+    }
     const getServerLog = async () => {
       if (isModelRunning) {
         try {
@@ -239,9 +246,135 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
     return () => clearInterval(interval); // Cleanup on component unmount
   }, [isModelRunning]);
 
-  // Trigger model generation and wait until completion
-  const handleGenerateClick = async () => {
+  // --- helpers ---
+  const normalize = (s: string) =>
+    String(s || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
 
+  const tokens = (s: string) => new Set(normalize(s).split(' ').filter(Boolean));
+
+  const jaccard = (a: Set<string>, b: Set<string>) => {
+    const inter = new Set([...a].filter(x => b.has(x)));
+    const uni = new Set([...a, ...b]);
+    return inter.size / Math.max(1, uni.size);
+  };
+
+  // Your robust createPrompt that returns { text, key }
+  const createPromptSafe = (tab: string, answerList: Record<string, any>) => {
+    if (tab === 'variation') {
+      const findings = answerList['Findings'] || '';
+      const location = answerList['Location'] || '';
+      const severity = answerList['Severity'] ?? '';
+      const assoc = answerList['Associated Findings'] || '';
+      const text = [
+        findings,
+        location,
+        severity && String(severity),
+        'pleural effusion with signs of',
+        assoc,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      return { text, key: normalize(text) };
+    }
+    if (tab === 'mimic') {
+      const text = String(answerList['Select a mimic:'] || '').trim();
+      return { text, key: normalize(text) };
+    }
+    return { text: '', key: '' };
+  };
+
+  // --- core selector ---
+  async function selectSeriesByPrompt({
+    servicesManager,
+    getMetadataFromSeries, // <-- pass this in
+    promptKey, // <-- pass precomputed normalized key
+  }: {
+    servicesManager: any;
+    getMetadataFromSeries: (sid: string, k: string) => Promise<any>;
+    promptKey: string;
+  }) {
+    const { displaySetService, viewportGridService } = servicesManager.services;
+
+    // Active study
+    const viewportId = viewportGridService.getActiveViewportId();
+    const activeDSUID = viewportGridService.getState().viewports.get(viewportId)
+      ?.displaySetInstanceUIDs?.[0];
+    const activeDS = displaySetService.getDisplaySetByUID(activeDSUID);
+    if (!activeDS) {
+      throw new Error('No active display set');
+    }
+
+    const studyUID = activeDS.StudyInstanceUID;
+    const displaySets = Array.from(displaySetService.getDisplaySetCache().values()).filter(
+      ds => ds.StudyInstanceUID === studyUID
+    );
+
+    // Pull seriesPrompt (and seriesDesc) for each series
+    const metas = await Promise.all(
+      displaySets.map(async ds => {
+        const sid = ds.SeriesInstanceUID;
+        let seriesPromptRaw = '';
+        try {
+          seriesPromptRaw = await getMetadataFromSeries(sid, 'SeriesPrompt'); // your Orthanc key
+        } catch {
+          /* ignore if missing */
+        }
+        const seriesPromptKey = normalize(seriesPromptRaw);
+        const seriesDesc = String(ds.SeriesDescription || '');
+        return { ds, sid, seriesPromptRaw, seriesPromptKey, seriesDesc };
+      })
+    );
+
+    // 1) strict match on seriesPrompt
+    const byKey = metas.find(m => m.seriesPromptKey === promptKey);
+    if (byKey) {
+      return byKey.ds;
+    }
+
+    // 2) strict on SeriesDescription
+    const byDescStrict = metas.find(m => normalize(m.seriesDesc) === promptKey);
+    if (byDescStrict) {
+      return byDescStrict.ds;
+    }
+
+    // 3) fuzzy (Jaccard) on SeriesDescription (or use seriesPromptRaw if you prefer)
+    const keyTokens = tokens(promptKey);
+    const scored = metas
+      .map(m => ({ ...m, score: jaccard(keyTokens, tokens(m.seriesDesc)) }))
+      .sort((a, b) => b.score - a.score);
+
+    const best = scored[0];
+    if (best && best.score >= 0.5) {
+      console.warn('[Generate] Using fuzzy match:', {
+        picked: best.seriesDesc,
+        score: best.score,
+        sid: best.sid,
+      });
+      return best.ds;
+    }
+
+    // 4) no match → log all candidates
+    console.warn(`[Generate] ❌ No series matched promptKey "${promptKey}"`);
+    console.table(
+      metas.map(m => ({
+        SeriesInstanceUID: m.sid,
+        SeriesDescription: m.seriesDesc,
+        seriesPrompt: m.seriesPromptRaw,
+        seriesPromptKey: m.seriesPromptKey,
+      }))
+    );
+
+    return null;
+  }
+
+  // Trigger model generation and wait until completion
+  // --- click handler ---
+  const handleGenerateClick = async () => {
     if (isGenerating) {
       setIsGenerating(false);
       setIsLoading(false);
@@ -253,90 +386,48 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
     setGenerateClicked(true);
     setIsGenerating(true);
 
-
-    let inputValue = '';
-    if (tab === 'mimic') {
-      inputValue = answerList["Select a mimic:"];
-    }
-    else if (tab === 'variation') {
-      inputValue = createPrompt(tab, answerList);
-    }
-    else {
-      inputValue = createPrompt(tab, answerList);
-    }
-
-    console.log(`Generated '${inputValue}' prompt with ${tab} tab`);
-
-    // const formattedDate = generateUniqueTimestamp();
-    // const firstTenLetters = inputValue.replace(/[^a-zA-Z]/g, '').slice(0, 10);
-    // const newGeneratedFileID = `${formattedDate}${firstTenLetters}`;
-    // setGeneratedFileID(newGeneratedFileID);
-    // const newStudyId = generateUniqueId(); // Generate a new unique ID
-    // setStudyId(newStudyId); // Set the new unique ID to the state
-
     try {
-      const {displaySetService, viewportGridService} = servicesManager.services;
-
-      const activeStudy = displaySetService.getMostRecentDisplaySet();
-      const realStudyInstanceUID = activeStudy.StudyInstanceUID;
-
-      const displaySets = Array.from(displaySetService.getDisplaySetCache().values())
-        .filter(ds => ds.StudyInstanceUID === realStudyInstanceUID);
-
-      if (!displaySets || displaySets.length === 0) {
-        console.error('No display sets found for study:', realStudyInstanceUID);
+      const { text: promptText, key: promptKey } = createPromptSafe(tab, answerList);
+      if (!promptKey) {
+        console.warn('[Generate] Empty prompt — nothing to match.');
         return;
       }
 
-      const index = displaySetIndex(tab, answerList);
-      const displaySetInstanceUID = displaySets[index].displaySetInstanceUID;
-      const seriesInstanceUID = displaySets[index].SeriesInstanceUID;
+      console.log('[Generate] promptText:', promptText, 'promptKey:', promptKey);
 
-      const viewportId = viewportGridService.getActiveViewportId();
-      viewportGridService.setDisplaySetsForViewport({
-        viewportId,
-        displaySetInstanceUIDs: [displaySetInstanceUID],
+      const targetDS = await selectSeriesByPrompt({
+        servicesManager,
+        getMetadataFromSeries, // from helpers
+        promptKey,
       });
 
-      await addMetadataToSeries(seriesInstanceUID, 'false', 'SeriesPromptChanged');
+      if (!targetDS) {
+        console.warn('[Generate] No series matched prompt; leaving viewport unchanged.');
+        return;
+      }
 
-      console.log('Viewport updated with display set:', displaySetInstanceUID);
+      const { viewportGridService } = servicesManager.services;
+      const viewportId = viewportGridService.getActiveViewportId();
+
+      // Switch viewport to the matched series
+      viewportGridService.setDisplaySetsForViewport({
+        viewportId,
+        displaySetInstanceUIDs: [targetDS.displaySetInstanceUID],
+      });
+
+      // Mark that we switched away from the original prompt (optional)
+      await addMetadataToSeries(targetDS.SeriesInstanceUID, 'true', 'SeriesPromptChanged');
+
+      console.log('[Generate] Matched series:', {
+        displaySetInstanceUID: targetDS.displaySetInstanceUID,
+        SeriesInstanceUID: targetDS.SeriesInstanceUID,
+        SeriesDescription: targetDS.SeriesDescription,
+      });
     } catch (error) {
       console.error('Failed to update viewport:', error);
-    }
-
-    // console.log('OUR INPUT VALUE:', inputValue);
-    // const payload = {
-    //   filename: `${newStudyId}.npy`,
-    //   prompt: inputValue || null,
-    //   description: inputValue || null,
-    //   studyID: newStudyId, // Use the new unique ID
-    //   studyInstanceUID: newStudyId, // Use the new unique ID
-    //   patient_name: `Generated Patient ${newStudyId}`,
-    //   seriesInstanceUID: newStudyId + '.0',
-    //   patient_id: newStudyId,
-    //   read_img_flag: false,
-    //   num_series_in_study: 0,
-    // };
-
-    // const headers = {
-    //   'Content-Type': 'application/json',
-    // };
-
-    // const url = `${serverUrl}/files/${newStudyId}`;
-
-    // console.log('🔵 Sending POST request to:', url);
-    // console.log('🟢 Payload:', payload);
-
-    // try {
-    //   const response = await axios.post(url, payload, { headers });
-    //   console.log('✅ Response:', response.data);
-    //   setGeneratingFilePrompt(response.data.prompt);
-    //   setGeneratingFileSeriesInstanceUID(response.data.seriesInstanceUID);
-    //}
-    finally {
+    } finally {
       setIsLoading(false);
-      setIsGenerating(false); // Reset the generating state
+      setIsGenerating(false);
     }
   };
 
@@ -602,38 +693,36 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
   };
 
   return (
-    <div className='flex mt-4'>
-    <button
-      key="generate-btn"
-      // className={`mr-4 rounded shadow text-sm font-semibold py-1 px-4
-      //   ${isModelRunning || !isServerRunning || dataIsUploading
-      //     ? 'bg-secondary-dark text-gray-500'
-      //     : 'bg-primary-main text-white'
-      //   }`}
-      className={`mr-4 rounded shadow text-sm font-semibold py-1 px-4
-        ${disabled
-          ? 'bg-secondary-dark text-gray-500'
-          : 'bg-primary-main text-white'}`}
-        onClick ={handleGenerateClick}
+    <div className="mt-4 flex">
+      <button
+        key="generate-btn"
+        // className={`mr-4 rounded shadow text-sm font-semibold py-1 px-4
+        //   ${isModelRunning || !isServerRunning || dataIsUploading
+        //     ? 'bg-secondary-dark text-gray-500'
+        //     : 'bg-primary-main text-white'
+        //   }`}
+        className={`mr-4 rounded py-1 px-4 text-sm font-semibold shadow ${
+          disabled ? 'bg-secondary-dark text-gray-500' : 'bg-primary-main text-white'
+        }`}
+        onClick={handleGenerateClick}
         // disabled= {isModelRunning || !isServerRunning || dataIsUploading}
-        disabled = {disabled}
-    >
-      Generate
-    </button>
-    <button
-      key="cancel-btn"
-      className="mr-4 bg-primary-main text-white rounded shadow text-sm font-semibold py-1 px-4"
-      onClick = {handleCancelClick}
-    >
-      Cancel
-    </button>
-    <div className='flex items-center'>
-      <p className='p-2 text-aqua-pale'>Server status:</p>
-      {/* <div style={styles.statusDot}></div> */}
+        disabled={disabled}
+      >
+        Generate
+      </button>
+      <button
+        key="cancel-btn"
+        className="bg-primary-main mr-4 rounded py-1 px-4 text-sm font-semibold text-white shadow"
+        onClick={handleCancelClick}
+      >
+        Cancel
+      </button>
+      <div className="flex items-center">
+        <p className="text-aqua-pale p-2">Server status:</p>
+        {/* <div style={styles.statusDot}></div> */}
+      </div>
     </div>
-  </div>
   );
 };
-
 
 export { GenerationOptions, Dropdown, GenerateButtons };
