@@ -15,6 +15,7 @@ const abnormalOptionsList = [
     options: ['Pleural thickening', 'Pleural nodularity', 'Atelectasis'],
     required: false,
   },
+  { prompt: 'Severity', options: ['Mild', 'Moderate', 'Severe'], required: true },
 ];
 
 const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) => {
@@ -42,7 +43,6 @@ const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) 
           delete next['Location'];
           delete next['Associated Findings'];
           delete next['Severity'];
-          setSliderValue(2);
           // ⬇️ reset only the abnormal controls,
           // DO NOT touch the gate so its highlight stays
           setAbnormalResetKey(k => k + 1);
@@ -100,44 +100,6 @@ const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) 
                     resetKey={abnormalResetKey}
                   />
                 ))}
-
-                <div className="flex items-center">
-                  <p className="text-aqua-pale mr-2 flex items-center text-[12px] font-semibold font-medium">
-                    Severity
-                  </p>
-                  <div className="w-full flex-col px-2">
-                    <input
-                      type="range"
-                      min="1"
-                      max="3"
-                      step="1"
-                      value={sliderValue}
-                      onChange={handleSliderChange}
-                      className="ml-1 w-full cursor-pointer appearance-none rounded-md"
-                      style={
-                        {
-                          background: `linear-gradient(to right, rgb(90, 204, 230) 0%, rgb(90, 204, 230) ${
-                            (100 * (sliderValue - 1)) / 2
-                          }%, rgb(58, 63, 153) ${(100 * (sliderValue - 1)) / 2}%, rgb(58, 63, 153) 100%)`,
-                          '--thumb-inner-color': '#5acce6',
-                          '--thumb-outer-color': '#090c29',
-                          height: '3px',
-                        } as React.CSSProperties
-                      }
-                    />
-                    <div className="flex w-full justify-between px-2">
-                      <div className="flex-1 text-left">
-                        <span className="text-sm text-white">Mild</span>
-                      </div>
-                      <div className="flex-1 text-center">
-                        <span className="text-sm text-white">Moderate</span>
-                      </div>
-                      <div className="flex-1 text-right">
-                        <span className="text-sm text-white">Severe</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </>
             )}
           </div>
