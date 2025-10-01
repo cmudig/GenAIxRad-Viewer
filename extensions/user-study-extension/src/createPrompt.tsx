@@ -6,7 +6,14 @@ const normalize = (s: string) =>
 
 const createPrompt = (tab, answerList) => {
   if (tab === 'variation') {
-    // Safe getters
+    // ⬇️ New: if Normal, force "normal chest CT"
+    if (answerList['Normal / Abnormal'] === 'Normal') {
+      const text = 'Normal chest with no abnormalities present';
+      const key = normalize(text);
+      return { text, key };
+    }
+
+    // Existing "Abnormal" behavior
     const findings = answerList['Findings'] || '';
     const location = answerList['Location'] || '';
     const severity = answerList['Severity'] || ''; // could be number
@@ -35,10 +42,13 @@ const createPrompt = (tab, answerList) => {
 
 const displaySetIndex = (tab, answerList) => {
   if (tab === 'variation') {
-    //Answer list format: findings, location, severity, associated findings
-    return answerList['Severity'] - 1;
+    if (answerList['Normal / Abnormal'] === 'Normal') {
+      return 0; // safe default for Normal
+    }
+    // Answer list format: findings, location, severity, associated findings
+    return (answerList['Severity'] ?? 1) - 1;
   } else if (tab === 'mimic') {
-    //Answer list format: type, rarity, select a mimic, explanation complexity
+    // Answer list format: type, rarity, select a mimic, explanation complexity
     return answerList['Type:'] === 'Benign' ? 0 : 1;
   }
 };
