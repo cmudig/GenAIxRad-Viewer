@@ -10,6 +10,7 @@ import {
   getMetadataFromSeries,
   addMetadataToSeries,
 } from '../../../platform/app/src/components/dicom_helpers';
+import { findBestMatchingDisplaySet } from './similarity';
 
 // CURL COMMANDS
 // Generation 4 STANDARD FALSE curl -k https://orthanc.katelyncmorrison.com/pacs/series/c8903fa5-bbca061d-8c5f69e7-17a98c10-64355063/metadata/SeriesPromptChanged
@@ -307,6 +308,23 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
     console.groupEnd();
   }
 
+  async function getDisplaySets(servicesManager) {
+    const { displaySetService, studyBrowserService } = servicesManager.services ?? {};
+    // Prefer a direct source of currently loadable display sets:
+    if (displaySetService?.getActiveDisplaySets) {
+      return displaySetService.getActiveDisplaySets();
+    }
+    // Fallback: whatever you use in logAllSeriesForActiveStudy()
+    const displaySets = await logAllSeriesForActiveStudy({
+      servicesManager,
+      getMetadataFromSeries,
+      // ensure this returns a list of display sets or make your own collector
+    });
+    return displaySets ?? [];
+  }
+
+  let _lastPromptKey = '';
+  let _lastTargetUID = '';
   // Trigger model generation and wait until completion
   // --- click handler ---
   const handleGenerateClick = async () => {
@@ -330,33 +348,57 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
 
       console.log('[Generate] promptText:', promptText, 'promptKey:', promptKey);
 
-      await logAllSeriesForActiveStudy({
-        servicesManager,
-        getMetadataFromSeries, // optional; remove if you don't have it
-      });
-
-      if (!targetDS) {
-        console.warn('[Generate] No series matched prompt; leaving viewport unchanged.');
+      const displaySets = await getDisplaySets(servicesManager);
+      if (!displaySets?.length) {
+        console.warn('[Generate] No display sets available.');
         return;
       }
 
-      const { viewportGridService } = servicesManager.services;
-      const viewportId = viewportGridService.getActiveViewportId();
+      // Optional context: infer from UI answers if you have them
+      const promptContext = {
+        modality: answerList?.Modality, // e.g., 'CT', 'MR', 'XR'
+        bodyPart: answerList?.['Body Part'] || answerList?.Location,
+      };
 
-      // Switch viewport to the matched series
-      viewportGridService.setDisplaySetsForViewport({
-        viewportId,
-        displaySetInstanceUIDs: [targetDS.displaySetInstanceUID],
+      const { target, score } = findBestMatchingDisplaySet(displaySets, promptKey, {
+        minAcceptScore: 0.42,
+        preferUnchanged: true,
+        promptContext,
       });
 
-      // Mark that we switched away from the original prompt (optional)
-      await addMetadataToSeries(targetDS.SeriesInstanceUID, 'true', 'SeriesPromptChanged');
+      if (!target) {
+        console.warn(
+          '[Generate] No series matched prompt (score too low). Leaving viewport unchanged. Score:',
+          score.toFixed(3)
+        );
+        return;
+      }
 
-      console.log('[Generate] Matched series:', {
-        displaySetInstanceUID: targetDS.displaySetInstanceUID,
-        SeriesInstanceUID: targetDS.SeriesInstanceUID,
-        SeriesDescription: targetDS.SeriesDescription,
-      });
+      // Avoid unnecessary switches if we resolved to the same
+      if (_lastPromptKey === promptKey && _lastTargetUID === target.displaySetInstanceUID) {
+        console.log('[Generate] Same match as last time — no switch.');
+      } else {
+        const { viewportGridService } = servicesManager.services;
+        const viewportId = viewportGridService.getActiveViewportId();
+
+        viewportGridService.setDisplaySetsForViewport({
+          viewportId,
+          displaySetInstanceUIDs: [target.displaySetInstanceUID],
+        });
+
+        // Optionally mark so we can de-prefer it next time if needed
+        await addMetadataToSeries(target.SeriesInstanceUID, 'true', 'SeriesPromptChanged');
+
+        _lastPromptKey = promptKey;
+        _lastTargetUID = target.displaySetInstanceUID;
+
+        console.log('[Generate] Matched series:', {
+          score: Number(score.toFixed(3)),
+          displaySetInstanceUID: target.displaySetInstanceUID,
+          SeriesInstanceUID: target.SeriesInstanceUID,
+          SeriesDescription: target.SeriesDescription,
+        });
+      }
     } catch (error) {
       console.error('Failed to update viewport:', error);
     } finally {
