@@ -246,67 +246,30 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
     return () => clearInterval(interval); // Cleanup on component unmount
   }, [isModelRunning]);
 
-  // --- helpers ---
-  const normalize = (s: string) =>
-    String(s || '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, ' ')
-      .trim();
-
-  const tokens = (s: string) => new Set(normalize(s).split(' ').filter(Boolean));
-
-  const jaccard = (a: Set<string>, b: Set<string>) => {
-    const inter = new Set([...a].filter(x => b.has(x)));
-    const uni = new Set([...a, ...b]);
-    return inter.size / Math.max(1, uni.size);
-  };
-
-  // Your robust createPrompt that returns { text, key }
-  const createPromptSafe = (tab: string, answerList: Record<string, any>) => {
-    if (tab === 'variation') {
-      const findings = answerList['Findings'] || '';
-      const location = answerList['Location'] || '';
-      const severity = answerList['Severity'] ?? '';
-      const assoc = answerList['Associated Findings'] || '';
-      const text = [
-        findings,
-        location,
-        severity && String(severity),
-        'pleural effusion with signs of',
-        assoc,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-      return { text, key: normalize(text) };
-    }
-    if (tab === 'mimic') {
-      const text = String(answerList['Select a mimic:'] || '').trim();
-      return { text, key: normalize(text) };
-    }
-    return { text: '', key: '' };
-  };
-
-  // --- core selector ---
-  async function selectSeriesByPrompt({
+  // Minimal helper: log all series for the active study
+  async function logAllSeriesForActiveStudy({
     servicesManager,
-    getMetadataFromSeries, // <-- pass this in
-    promptKey, // <-- pass precomputed normalized key
+    getMetadataFromSeries, // optional; used if available
   }: {
     servicesManager: any;
-    getMetadataFromSeries: (sid: string, k: string) => Promise<any>;
-    promptKey: string;
+    getMetadataFromSeries?: (sid: string, k: string) => Promise<any>;
   }) {
     const { displaySetService, viewportGridService } = servicesManager.services;
 
-    // Active study
+    // Find active display set / study
     const viewportId = viewportGridService.getActiveViewportId();
     const activeDSUID = viewportGridService.getState().viewports.get(viewportId)
       ?.displaySetInstanceUIDs?.[0];
+
+    if (!activeDSUID) {
+      console.warn('[Generate] No active display set.');
+      return;
+    }
+
     const activeDS = displaySetService.getDisplaySetByUID(activeDSUID);
     if (!activeDS) {
-      throw new Error('No active display set');
+      console.warn('[Generate] Active display set not found.');
+      return;
     }
 
     const studyUID = activeDS.StudyInstanceUID;
@@ -314,62 +277,34 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
       ds => ds.StudyInstanceUID === studyUID
     );
 
-    // Pull seriesPrompt (and seriesDesc) for each series
-    const metas = await Promise.all(
+    // Build rows for console.table (attempt SeriesPrompt if accessor provided)
+    const rows = await Promise.all(
       displaySets.map(async ds => {
         const sid = ds.SeriesInstanceUID;
-        let seriesPromptRaw = '';
-        try {
-          seriesPromptRaw = await getMetadataFromSeries(sid, 'SeriesPrompt'); // your Orthanc key
-        } catch {
-          /* ignore if missing */
+        let seriesPrompt = '';
+        if (getMetadataFromSeries) {
+          try {
+            seriesPrompt = await getMetadataFromSeries(sid, 'SeriesPrompt');
+          } catch {
+            /* ignore missing */
+          }
         }
-        const seriesPromptKey = normalize(seriesPromptRaw);
-        const seriesDesc = String(ds.SeriesDescription || '');
-        return { ds, sid, seriesPromptRaw, seriesPromptKey, seriesDesc };
+
+        return {
+          DisplaySetInstanceUID: ds.displaySetInstanceUID,
+          SeriesInstanceUID: sid,
+          SeriesNumber: ds.SeriesNumber ?? '',
+          SeriesDescription: String(ds.SeriesDescription ?? ''),
+          Modality: ds.Modality ?? '',
+          NumImages: ds.images?.length ?? ds.numImageFrames ?? ds.NumImageFrames ?? '',
+          SeriesPrompt: seriesPrompt || '',
+        };
       })
     );
 
-    // 1) strict match on seriesPrompt
-    const byKey = metas.find(m => m.seriesPromptKey === promptKey);
-    if (byKey) {
-      return byKey.ds;
-    }
-
-    // 2) strict on SeriesDescription
-    const byDescStrict = metas.find(m => normalize(m.seriesDesc) === promptKey);
-    if (byDescStrict) {
-      return byDescStrict.ds;
-    }
-
-    // 3) fuzzy (Jaccard) on SeriesDescription (or use seriesPromptRaw if you prefer)
-    const keyTokens = tokens(promptKey);
-    const scored = metas
-      .map(m => ({ ...m, score: jaccard(keyTokens, tokens(m.seriesDesc)) }))
-      .sort((a, b) => b.score - a.score);
-
-    const best = scored[0];
-    if (best && best.score >= 0.5) {
-      console.warn('[Generate] Using fuzzy match:', {
-        picked: best.seriesDesc,
-        score: best.score,
-        sid: best.sid,
-      });
-      return best.ds;
-    }
-
-    // 4) no match → log all candidates
-    console.warn(`[Generate] ❌ No series matched promptKey "${promptKey}"`);
-    console.table(
-      metas.map(m => ({
-        SeriesInstanceUID: m.sid,
-        SeriesDescription: m.seriesDesc,
-        seriesPrompt: m.seriesPromptRaw,
-        seriesPromptKey: m.seriesPromptKey,
-      }))
-    );
-
-    return null;
+    console.group(`[Generate] Series for StudyInstanceUID: ${studyUID}`);
+    console.table(rows);
+    console.groupEnd();
   }
 
   // Trigger model generation and wait until completion
@@ -387,7 +322,7 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
     setIsGenerating(true);
 
     try {
-      const { text: promptText, key: promptKey } = createPromptSafe(tab, answerList);
+      const { text: promptText, key: promptKey } = createPrompt(tab, answerList);
       if (!promptKey) {
         console.warn('[Generate] Empty prompt — nothing to match.');
         return;
@@ -395,10 +330,9 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
 
       console.log('[Generate] promptText:', promptText, 'promptKey:', promptKey);
 
-      const targetDS = await selectSeriesByPrompt({
+      await logAllSeriesForActiveStudy({
         servicesManager,
-        getMetadataFromSeries, // from helpers
-        promptKey,
+        getMetadataFromSeries, // optional; remove if you don't have it
       });
 
       if (!targetDS) {

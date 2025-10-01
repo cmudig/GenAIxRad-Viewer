@@ -5,7 +5,7 @@ import axios from 'axios';
 
 const orthancUrl =
   window.location.hostname === 'localhost'
-    ? 'http://localhost:8042'
+    ? 'http://localhost/pacs'
     : 'https://orthanc.katelyncmorrison.com/pacs';
 
 export const deleteSeries = async (seriesToDelete: string) => {
