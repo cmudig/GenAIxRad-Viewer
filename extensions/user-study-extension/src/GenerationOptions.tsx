@@ -389,6 +389,12 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
         // Optionally mark so we can de-prefer it next time if needed
         await addMetadataToSeries(target.SeriesInstanceUID, 'true', 'SeriesPromptChanged');
 
+        window.dispatchEvent(
+          new CustomEvent('series-metadata-refresh', {
+            detail: { seriesInstanceUID: target.SeriesInstanceUID },
+          })
+        );
+
         _lastPromptKey = promptKey;
         _lastTargetUID = target.displaySetInstanceUID;
 
