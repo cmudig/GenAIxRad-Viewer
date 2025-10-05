@@ -18,6 +18,16 @@ function CornerstoneImageScrollbar({
   const onImageScrollbarChange = (imageIndex, viewportId) => {
     const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
 
+    if (!viewport || viewport instanceof VolumeViewport3D) {
+      return;
+    }
+
+    const viewportAny = viewport as any;
+
+    if (!viewportAny?.getActors?.().length) {
+      return;
+    }
+
     const { isCineEnabled } = cineService.getState();
 
     if (isCineEnabled) {
@@ -37,6 +47,13 @@ function CornerstoneImageScrollbar({
     const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
 
     if (!viewport || viewport instanceof VolumeViewport3D) {
+      return;
+    }
+
+    const viewportAny = viewport as any;
+    const hasActors = viewportAny?.getActors?.().length;
+
+    if (!hasActors) {
       return;
     }
 
@@ -62,6 +79,13 @@ function CornerstoneImageScrollbar({
         return;
       }
       const { imageIndex, newImageIdIndex = imageIndex } = event.detail;
+      const viewportAny = viewport as any;
+      const hasActors = viewportAny?.getActors?.().length;
+
+      if (!hasActors) {
+        return;
+      }
+
       const numberOfSlices = viewport.getNumberOfSlices();
       // find the index of imageId in the imageIds
       setImageSliceData({ imageIndex: newImageIdIndex, numberOfSlices });

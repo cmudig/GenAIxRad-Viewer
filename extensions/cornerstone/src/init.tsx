@@ -42,6 +42,87 @@ import { imageRetrieveMetadataProvider } from '@cornerstonejs/core/utilities';
 
 const { registerColormap } = csUtilities.colormap;
 
+const MAX_RENDERER_READY_ATTEMPTS = 10;
+
+function patchViewportAddActors(): void {
+  const viewportProto = (cornerstone as any).Viewport?.prototype as Record<string, any> | undefined;
+
+  if (!viewportProto || viewportProto.__rendererReadyGuardInstalled) {
+    return;
+  }
+
+  const originalAddActors = viewportProto.addActors;
+
+  viewportProto.addActors = function addActorsWithRendererGuard(
+    actors: Array<any>,
+    options: Record<string, any> = {}
+  ) {
+    const self = this as Record<string, any>;
+
+    const tryAddActors = () => {
+      if (self.isDisabled) {
+        return true;
+      }
+
+      const renderingEngine = self.getRenderingEngine?.();
+      if (!renderingEngine || renderingEngine.hasBeenDestroyed) {
+        return false;
+      }
+
+      const renderer = renderingEngine.offscreenMultiRenderWindow?.getRenderer(self.id);
+      if (!renderer) {
+        return false;
+      }
+
+      const vtkCamera = renderer.getActiveCamera?.();
+      if (!vtkCamera) {
+        return false;
+      }
+
+      originalAddActors.call(self, actors, options);
+      return true;
+    };
+
+    if (tryAddActors()) {
+      return;
+    }
+
+    let attempts = 0;
+    const schedule = (callback: (timestamp: number) => void) => {
+      if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(callback);
+      } else {
+        setTimeout(() => callback(Date.now()), 16);
+      }
+    };
+
+    const retry = () => {
+      if (self.isDisabled || !self.element?.isConnected) {
+        return;
+      }
+
+      if (tryAddActors()) {
+        return;
+      }
+
+      attempts += 1;
+
+      if (attempts >= MAX_RENDERER_READY_ATTEMPTS) {
+        console.warn(
+          `Viewport ${self.id}: renderer not ready after ${MAX_RENDERER_READY_ATTEMPTS} attempts; skipping addActors.`
+        );
+        return;
+      }
+
+      schedule(retry);
+    };
+
+    schedule(retry);
+  };
+
+  viewportProto.__rendererReadyGuardInstalled = true;
+}
+
 // TODO: Cypress tests are currently grabbing this from the window?
 (window as any).cornerstone = cornerstone;
 (window as any).cornerstoneTools = cornerstoneTools;
@@ -71,6 +152,8 @@ export default async function init({
       strictZSpacingForVolumeViewport: appConfig.strictZSpacingForVolumeViewport,
     },
   });
+
+  patchViewportAddActors();
 
   // For debugging large datasets, otherwise prefer the defaults
   const { maxCacheSize } = appConfig;
