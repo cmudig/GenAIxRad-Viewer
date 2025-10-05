@@ -19,12 +19,6 @@ const PMAP_STATE_KEY = 'pmap_visibility_state';
 // ADDED: A new key specifically for the original DisplaySet UID
 const ORIGINAL_DS_UID_KEY = 'original_display_set_uid';
 
-const DEFAULT_COLORMAP_NAME = 'Grayscale';
-const AI_LUNG_PRESET = {
-  window: 1500,
-  level: -600,
-};
-
 const ViewportOverlay = ({
   topLeft,
   topRight,
@@ -83,56 +77,72 @@ const ViewportOverlay = ({
       }
     });
 
-  const captureSliceState = viewport => {
+  const captureViewportState = viewport => {
     if (!viewport) {
       return null;
     }
 
     const currentIndex = viewport.getCurrentImageIdIndex?.();
 
-    if (currentIndex === undefined || Number.isNaN(currentIndex)) {
-      return null;
+    const state: {
+      imageIndex?: number;
+      voiRange?: { lower: number; upper: number };
+      colormap?: Record<string, unknown>;
+    } = {};
+
+    if (currentIndex !== undefined && !Number.isNaN(currentIndex)) {
+      state.imageIndex = currentIndex;
     }
 
-    return {
-      imageIndex: currentIndex,
-    };
+    if (viewport instanceof StackViewport) {
+      const properties = viewport.getProperties?.();
+      state.voiRange = properties?.voiRange;
+      state.colormap = properties?.colormap;
+    } else if (viewport instanceof VolumeViewport) {
+      const volumeId = viewport.getVolumeId?.();
+      if (volumeId) {
+        const properties = viewport.getProperties?.(volumeId);
+        state.voiRange = properties?.voiRange;
+        state.colormap = properties?.colormap;
+      }
+    }
+
+    return state;
   };
 
-  const restoreSliceState = ({ viewportId, sliceState }) => {
-    if (!sliceState || sliceState.imageIndex === undefined) {
-      return;
+  const setInitialImageOverrides = (viewportsToUpdate, viewportState) => {
+    if (!viewportState || viewportState.imageIndex === undefined) {
+      return viewportsToUpdate;
     }
 
-    const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
-    const viewport = renderingEngine?.getViewport(viewportId);
-
-    if (!viewport) {
-      return;
+    const { imageIndex } = viewportState;
+    if (!Number.isFinite(imageIndex)) {
+      return viewportsToUpdate;
     }
 
-    const numberOfSlices = viewport.getNumberOfSlices?.();
-    const maxIndex = typeof numberOfSlices === 'number' ? numberOfSlices - 1 : null;
-    let targetIndex = sliceState.imageIndex;
+    return viewportsToUpdate.map(viewportUpdate => {
+      const existingViewportOptions = viewportUpdate.viewportOptions || {};
+      const existingInitialImageOptions = existingViewportOptions.initialImageOptions || {};
 
-    if (maxIndex !== null && maxIndex >= 0) {
-      targetIndex = Math.max(0, Math.min(targetIndex, maxIndex));
-    }
-
-    if (!Number.isFinite(targetIndex)) {
-      return;
-    }
-
-    jumpToSlice(viewport.element, { imageIndex: targetIndex });
+      return {
+        ...viewportUpdate,
+        viewportOptions: {
+          ...existingViewportOptions,
+          initialImageOptions: {
+            ...existingInitialImageOptions,
+            index: imageIndex,
+            useOnce: true,
+          },
+        },
+      };
+    });
   };
 
-  const restoreBaseAppearance = ({
-    viewportId,
-    applyAIPreset,
-  }: {
-    viewportId: string;
-    applyAIPreset: boolean;
-  }) => {
+  const restoreViewportState = ({ viewportId, viewportState }) => {
+    if (!viewportState) {
+      return;
+    }
+
     const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
     if (!renderingEngine) {
       return;
@@ -143,31 +153,47 @@ const ViewportOverlay = ({
       return;
     }
 
-    const properties: Record<string, unknown> = {
-      colormap: { name: DEFAULT_COLORMAP_NAME },
-    };
+    if (viewportState.imageIndex !== undefined) {
+      const numberOfSlices = viewport.getNumberOfSlices?.();
+      const maxIndex = typeof numberOfSlices === 'number' ? numberOfSlices - 1 : null;
+      let targetIndex = viewportState.imageIndex;
 
-    if (applyAIPreset) {
-      const windowWidthNum = Number(AI_LUNG_PRESET.window);
-      const windowCenterNum = Number(AI_LUNG_PRESET.level);
-      const halfWindow = windowWidthNum / 2;
-      properties.voiRange = {
-        lower: windowCenterNum - halfWindow,
-        upper: windowCenterNum + halfWindow,
-      };
+      if (maxIndex !== null && maxIndex >= 0) {
+        targetIndex = Math.max(0, Math.min(targetIndex, maxIndex));
+      }
+
+      if (Number.isFinite(targetIndex)) {
+        jumpToSlice(viewport.element, { imageIndex: targetIndex });
+      }
     }
 
-    if (viewport instanceof StackViewport) {
-      viewport.setProperties(properties);
-    } else if (viewport instanceof VolumeViewport) {
-      const volumeId = viewport.getVolumeId?.();
-      if (volumeId) {
-        viewport.setProperties(properties, volumeId);
-      } else {
+    const applyProperties = properties => {
+      if (viewport instanceof StackViewport) {
         viewport.setProperties(properties);
+      } else if (viewport instanceof VolumeViewport) {
+        const volumeId = viewport.getVolumeId?.();
+        if (volumeId) {
+          viewport.setProperties(properties, volumeId);
+        } else {
+          viewport.setProperties(properties);
+        }
+      } else {
+        viewport.setProperties?.(properties);
       }
-    } else {
-      viewport.setProperties?.(properties);
+    };
+
+    const propertiesToApply: Record<string, unknown> = {};
+
+    if (viewportState.voiRange) {
+      propertiesToApply.voiRange = viewportState.voiRange;
+    }
+
+    if (viewportState.colormap) {
+      propertiesToApply.colormap = viewportState.colormap;
+    }
+
+    if (Object.keys(propertiesToApply).length) {
+      applyProperties(propertiesToApply);
     }
 
     viewport.render?.();
@@ -211,9 +237,7 @@ const ViewportOverlay = ({
       return;
     }
 
-    let shouldRestoreAppearance = false;
-    let shouldApplyAIPreset = false;
-    const sliceState = captureSliceState(viewport);
+    const viewportState = captureViewportState(viewport);
 
     try {
       if (isPmapVisible) {
@@ -233,10 +257,7 @@ const ViewportOverlay = ({
           originalDisplaySetUID,
           isHangingProtocolLayout
         );
-
-        const originalDisplaySet = displaySetService.getDisplaySetByUID(originalDisplaySetUID);
-        shouldRestoreAppearance = true;
-        shouldApplyAIPreset = originalDisplaySet?.Modality === 'AI';
+        updatedViewports = setInitialImageOverrides(updatedViewports, viewportState);
 
         sessionStorage.removeItem(`${ORIGINAL_DS_UID_KEY}_${viewportId}`);
         sessionStorage.setItem(`${PMAP_STATE_KEY}_${viewportId}`, 'false');
@@ -268,6 +289,7 @@ const ViewportOverlay = ({
           pmapDisplaySet.displaySetInstanceUID,
           isHangingProtocolLayout
         );
+        updatedViewports = setInitialImageOverrides(updatedViewports, viewportState);
 
         sessionStorage.setItem(`${PMAP_STATE_KEY}_${viewportId}`, 'true');
         setIsPmapVisible(true);
@@ -290,17 +312,10 @@ const ViewportOverlay = ({
     viewportGridService.setDisplaySetsForViewports(updatedViewports);
     await volumesReadyPromise;
 
-    restoreSliceState({
+    restoreViewportState({
       viewportId,
-      sliceState,
+      viewportState,
     });
-
-    if (shouldRestoreAppearance) {
-      restoreBaseAppearance({
-        viewportId,
-        applyAIPreset: shouldApplyAIPreset,
-      });
-    }
   };
 
   return (
