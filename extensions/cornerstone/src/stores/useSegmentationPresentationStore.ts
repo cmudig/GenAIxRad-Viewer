@@ -141,10 +141,9 @@ const _getSegmentationPresentationId = ({
 
   if (!orientation) {
     // Calculate orientation from the viewport sample image
-    const displaySet = servicesManager.services.displaySetService.getDisplaySetByUID(
-      displaySetInstanceUIDs[0]
-    );
-    const sampleImage = displaySet.images?.[0];
+    const displaySet =
+      servicesManager.services.displaySetService.getDisplaySetByUID(displaySetInstanceUIDs[0]);
+    const sampleImage = displaySet?.images?.[0];
     const imageOrientationPatient = sampleImage?.ImageOrientationPatient;
 
     orientation = getViewportOrientationFromImageOrientationPatient(imageOrientationPatient);

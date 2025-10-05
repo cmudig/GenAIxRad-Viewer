@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import classnames from 'classnames';
-import { getRenderingEngine, metaData, StackViewport } from '@cornerstonejs/core';
+import { getRenderingEngine, metaData, StackViewport, VolumeViewport } from '@cornerstonejs/core';
+import { jumpToSlice } from '@cornerstonejs/core/utilities';
 import './ViewportOverlay.css';
 import { useImageViewer, useViewportGrid } from '@ohif/ui';
 
@@ -18,6 +19,12 @@ const PMAP_STATE_KEY = 'pmap_visibility_state';
 // ADDED: A new key specifically for the original DisplaySet UID
 const ORIGINAL_DS_UID_KEY = 'original_display_set_uid';
 
+const DEFAULT_COLORMAP_NAME = 'Grayscale';
+const AI_LUNG_PRESET = {
+  window: 1500,
+  level: -600,
+};
+
 const ViewportOverlay = ({
   topLeft,
   topRight,
@@ -29,8 +36,142 @@ const ViewportOverlay = ({
   const overlay = 'absolute pointer-events-none viewport-overlay';
   const [{ activeViewportId, viewports, isHangingProtocolLayout }, viewportGridService] =
     useViewportGrid();
-  const { displaySetService, uiNotificationService, hangingProtocolService } =
-    servicesManager.services;
+  const {
+    displaySetService,
+    uiNotificationService,
+    hangingProtocolService,
+    cornerstoneViewportService,
+  } = servicesManager.services;
+
+  const waitForViewportVolumes = viewportId =>
+    new Promise<void>(resolve => {
+      const service = cornerstoneViewportService;
+      if (!service) {
+        resolve();
+        return;
+      }
+
+      let resolved = false;
+      let timeoutId: number;
+      let unsubscribe: (() => void) | undefined;
+
+      const cleanup = () => {
+        if (resolved) {
+          return;
+        }
+        resolved = true;
+        window.clearTimeout(timeoutId);
+        unsubscribe?.();
+        resolve();
+      };
+
+      timeoutId = window.setTimeout(cleanup, 750);
+
+      const subscription = service.subscribe(
+        service.EVENTS.VIEWPORT_VOLUMES_CHANGED,
+        ({ viewportInfo }) => {
+          if (viewportInfo.viewportId === viewportId) {
+            cleanup();
+          }
+        }
+      );
+
+      unsubscribe = subscription?.unsubscribe;
+
+      if (!subscription) {
+        cleanup();
+      }
+    });
+
+  const captureSliceState = viewport => {
+    if (!viewport) {
+      return null;
+    }
+
+    const currentIndex = viewport.getCurrentImageIdIndex?.();
+
+    if (currentIndex === undefined || Number.isNaN(currentIndex)) {
+      return null;
+    }
+
+    return {
+      imageIndex: currentIndex,
+    };
+  };
+
+  const restoreSliceState = ({ viewportId, sliceState }) => {
+    if (!sliceState || sliceState.imageIndex === undefined) {
+      return;
+    }
+
+    const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
+    const viewport = renderingEngine?.getViewport(viewportId);
+
+    if (!viewport) {
+      return;
+    }
+
+    const numberOfSlices = viewport.getNumberOfSlices?.();
+    const maxIndex = typeof numberOfSlices === 'number' ? numberOfSlices - 1 : null;
+    let targetIndex = sliceState.imageIndex;
+
+    if (maxIndex !== null && maxIndex >= 0) {
+      targetIndex = Math.max(0, Math.min(targetIndex, maxIndex));
+    }
+
+    if (!Number.isFinite(targetIndex)) {
+      return;
+    }
+
+    jumpToSlice(viewport.element, { imageIndex: targetIndex });
+  };
+
+  const restoreBaseAppearance = ({
+    viewportId,
+    applyAIPreset,
+  }: {
+    viewportId: string;
+    applyAIPreset: boolean;
+  }) => {
+    const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
+    if (!renderingEngine) {
+      return;
+    }
+
+    const viewport = renderingEngine.getViewport(viewportId);
+    if (!viewport) {
+      return;
+    }
+
+    const properties: Record<string, unknown> = {
+      colormap: { name: DEFAULT_COLORMAP_NAME },
+    };
+
+    if (applyAIPreset) {
+      const windowWidthNum = Number(AI_LUNG_PRESET.window);
+      const windowCenterNum = Number(AI_LUNG_PRESET.level);
+      const halfWindow = windowWidthNum / 2;
+      properties.voiRange = {
+        lower: windowCenterNum - halfWindow,
+        upper: windowCenterNum + halfWindow,
+      };
+    }
+
+    if (viewport instanceof StackViewport) {
+      viewport.setProperties(properties);
+    } else if (viewport instanceof VolumeViewport) {
+      const volumeId = viewport.getVolumeId?.();
+      if (volumeId) {
+        viewport.setProperties(properties, volumeId);
+      } else {
+        viewport.setProperties(properties);
+      }
+    } else {
+      viewport.setProperties?.(properties);
+    }
+
+    viewport.render?.();
+  };
 
   // 1. Initialize state by reading from sessionStorage.
   // We check if the stored value for our active viewport is 'true'.
@@ -70,6 +211,10 @@ const ViewportOverlay = ({
       return;
     }
 
+    let shouldRestoreAppearance = false;
+    let shouldApplyAIPreset = false;
+    const sliceState = captureSliceState(viewport);
+
     try {
       if (isPmapVisible) {
         // --- LOGIC TO HIDE (REVERT TO ORIGINAL) ---
@@ -88,6 +233,10 @@ const ViewportOverlay = ({
           originalDisplaySetUID,
           isHangingProtocolLayout
         );
+
+        const originalDisplaySet = displaySetService.getDisplaySetByUID(originalDisplaySetUID);
+        shouldRestoreAppearance = true;
+        shouldApplyAIPreset = originalDisplaySet?.Modality === 'AI';
 
         sessionStorage.removeItem(`${ORIGINAL_DS_UID_KEY}_${viewportId}`);
         sessionStorage.setItem(`${PMAP_STATE_KEY}_${viewportId}`, 'false');
@@ -134,9 +283,24 @@ const ViewportOverlay = ({
       });
       sessionStorage.setItem(`${PMAP_STATE_KEY}_${viewportId}`, 'false');
       sessionStorage.removeItem(`${ORIGINAL_DS_UID_KEY}_${viewportId}`);
+      return;
     }
 
+    const volumesReadyPromise = waitForViewportVolumes(viewportId);
     viewportGridService.setDisplaySetsForViewports(updatedViewports);
+    await volumesReadyPromise;
+
+    restoreSliceState({
+      viewportId,
+      sliceState,
+    });
+
+    if (shouldRestoreAppearance) {
+      restoreBaseAppearance({
+        viewportId,
+        applyAIPreset: shouldApplyAIPreset,
+      });
+    }
   };
 
   return (
