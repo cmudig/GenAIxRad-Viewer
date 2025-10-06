@@ -1,6 +1,7 @@
 // TODO: torn, can either bake this here; or have to create a whole new button type
 // Only ways that you can pass in a custom React component for render :l
 import { ToolbarService } from '@ohif/core';
+import { EVENTS } from '@cornerstonejs/core';
 import type { Button } from '@ohif/core/types';
 
 const { createButton } = ToolbarService;
@@ -184,6 +185,34 @@ const toolbarButtons: Button[] = [
       rows: 3,
       columns: 4,
       evaluate: 'evaluate.action',
+    },
+  },
+  {
+    id: 'ImageSliceSync',
+    uiType: 'ohif.toggle',
+    props: {
+      icon: 'link',
+      label: 'Image Slice Sync',
+      tooltip: 'Enable position synchronization on stack viewports',
+      commands: {
+        commandName: 'toggleSynchronizer',
+        commandOptions: {
+          type: 'imageSlice',
+        },
+      },
+      listeners: {
+        [EVENTS.STACK_VIEWPORT_NEW_STACK]: {
+          commandName: 'toggleImageSliceSync',
+          commandOptions: { toggledState: true },
+        },
+      },
+      evaluate: [
+        'evaluate.cornerstone.synchronizer',
+        {
+          name: 'evaluate.viewport.supported',
+          unsupportedViewportTypes: ['video', 'volume3d'],
+        },
+      ],
     },
   },
   {

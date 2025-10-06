@@ -1,5 +1,6 @@
 import type { Button } from '@ohif/core/types';
 import { ToolbarService, ViewportGridService } from '@ohif/core';
+import { EVENTS } from '@cornerstonejs/core';
 
 const { createButton } = ToolbarService;
 
@@ -155,6 +156,25 @@ const toolbarButtons: Button[] = [
               unsupportedViewportTypes: ['volume3d'],
             },
           ],
+        }),
+        createButton({
+          id: 'ImageSliceSync',
+          icon: 'link',
+          label: 'Image Slice Sync',
+          tooltip: 'Enable position synchronization on stack viewports',
+          commands: {
+            commandName: 'toggleSynchronizer',
+            commandOptions: {
+              type: 'imageSlice',
+            },
+          },
+          listeners: {
+            [EVENTS.STACK_VIEWPORT_NEW_STACK]: {
+              commandName: 'toggleImageSliceSync',
+              commandOptions: { toggledState: true },
+            },
+          },
+          evaluate: ['evaluate.cornerstone.synchronizer', 'evaluate.not3D'],
         }),
         createButton({
           id: 'ReferenceLines',
