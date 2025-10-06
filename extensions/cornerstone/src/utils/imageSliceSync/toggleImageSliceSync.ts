@@ -33,6 +33,8 @@ export default function toggleImageSliceSync({
   }
 
   // create synchronization group and add the viewports to it.
+  let syncedViewportCount = 0;
+
   viewports.forEach(gridViewport => {
     const { viewportId } = gridViewport.viewportOptions;
     const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
@@ -45,7 +47,18 @@ export default function toggleImageSliceSync({
       source: true,
       target: true,
     });
+    syncedViewportCount++;
   });
+
+  if (syncedViewportCount < 2) {
+    console.warn(
+      `Image slice synchronization requires at least two reconstructable viewports. ` +
+        `Found ${syncedViewportCount}.`
+    );
+  }
+
+  const synchronizer = syncGroupService.getSynchronizer(syncId);
+  synchronizer?.setEnabled(true);
 }
 
 function disableSync(syncName, servicesManager: AppTypes.ServicesManager) {
@@ -74,16 +87,12 @@ function getReconstructableStackViewports(
   viewportGridService: ViewportGridService,
   displaySetService: DisplaySetService
 ) {
-  let { viewports } = viewportGridService.getState();
-
-  viewports = [...viewports.values()];
-  // filter empty viewports
-  viewports = viewports.filter(
+  const gridState = viewportGridService.getState();
+  const allViewports = [...gridState.viewports.values()].filter(
     viewport => viewport.displaySetInstanceUIDs && viewport.displaySetInstanceUIDs.length
   );
 
-  // filter reconstructable viewports
-  viewports = viewports.filter(viewport => {
+  const reconstructable = allViewports.filter(viewport => {
     const { displaySetInstanceUIDs } = viewport;
 
     for (const displaySetInstanceUID of displaySetInstanceUIDs) {
@@ -97,5 +106,11 @@ function getReconstructableStackViewports(
       return false;
     }
   });
-  return viewports;
+
+  if (reconstructable.length >= 2) {
+    return reconstructable;
+  }
+
+  // Fall back to all populated viewports when fewer than two reconstructable stacks are found.
+  return allViewports;
 }
