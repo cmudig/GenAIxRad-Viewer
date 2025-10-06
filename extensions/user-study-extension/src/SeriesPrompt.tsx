@@ -1,8 +1,30 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { getMetadataFromSeries } from '../../../platform/app/src/components/dicom_helpers';
 
 type SeriesPromptProps = {
   servicesManager: any;
+};
+
+const getViewportsArray = (state: any): any[] => {
+  if (!state?.viewports) {
+    return [];
+  }
+
+  const { viewports } = state;
+
+  if (Array.isArray(viewports)) {
+    return viewports;
+  }
+
+  if (typeof viewports.values === 'function') {
+    return Array.from(viewports.values());
+  }
+
+  if (typeof viewports === 'object') {
+    return Object.values(viewports);
+  }
+
+  return [];
 };
 
 const SeriesPrompt: React.FC<SeriesPromptProps> = ({ servicesManager }) => {
@@ -24,45 +46,41 @@ const SeriesPrompt: React.FC<SeriesPromptProps> = ({ servicesManager }) => {
   // tick to force re-fetch on external events (e.g., Generate button)
   const [refreshTick, setRefreshTick] = useState(0);
 
-  // ---------- Bootstrap immediately on entry ----------
-  useEffect(() => {
+  const syncFromViewportState = useCallback(() => {
     if (!viewportGridService) {
       return;
     }
 
-    // 1) Try to get the active viewport right now
     const state = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
-    let initialActive = state?.activeViewportId ?? null;
+    const viewports = getViewportsArray(state);
 
-    // If none is marked active yet, pick the first viewport we can find
-    if (!initialActive) {
-      const vps = state?.viewports;
-      if (Array.isArray(vps) && vps.length) {
-        initialActive = vps[0]?.viewportId ?? null;
-      } else if (vps?.keys) {
-        const firstKey = vps.keys().next();
-        if (!firstKey.done) {
-          initialActive = firstKey.value ?? null;
-        }
+    const resolvedActiveId = state?.activeViewportId ?? viewports[0]?.viewportId ?? null;
+    setActiveViewportId(prev => (prev === resolvedActiveId ? prev : resolvedActiveId));
+
+    const activeViewport =
+      viewports.find(v => v?.viewportId === resolvedActiveId) ?? viewports[0] ?? null;
+
+    const candidateUID =
+      activeViewport?.displaySetInstanceUIDs?.[0] ||
+      activeViewport?.displaySetOptions?.displaySetInstanceUIDs?.[0] ||
+      null;
+
+    if (candidateUID) {
+      setDisplaySetUID(prev => (prev === candidateUID ? prev : candidateUID));
+      return;
+    }
+
+    const activeDisplaySets = displaySetService?.getActiveDisplaySets?.() ?? [];
+    if (activeDisplaySets.length) {
+      const fallbackUID = activeDisplaySets[0]?.displaySetInstanceUID ?? null;
+      if (fallbackUID) {
+        setDisplaySetUID(prev => (prev === fallbackUID ? prev : fallbackUID));
+        return;
       }
     }
-    if (initialActive) {
-      setActiveViewportId(prev => prev ?? initialActive);
-    }
 
-    // 2) If we still didn't get a display set yet, try to resolve once on mount
-    if (initialActive) {
-      const s = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
-      const vp = Array.isArray(s?.viewports)
-        ? s.viewports.find((v: any) => v?.viewportId === initialActive)
-        : s?.viewports?.get?.(initialActive);
-      const uids: string[] =
-        vp?.displaySetInstanceUIDs || vp?.displaySetOptions?.displaySetInstanceUIDs || [];
-      if (uids?.[0]) {
-        setDisplaySetUID(prev => prev ?? uids[0]);
-      }
-    }
-  }, [viewportGridService]);
+    setDisplaySetUID(null);
+  }, [displaySetService, viewportGridService]);
 
   // ---------- Listen for Generate button refresh pings ----------
   useEffect(() => {
@@ -76,50 +94,41 @@ const SeriesPrompt: React.FC<SeriesPromptProps> = ({ servicesManager }) => {
     return () => window.removeEventListener('series-metadata-refresh', onRefresh);
   }, [seriesInstanceUID]);
 
-  // ---------- Track active viewport changes ----------
+  // ---------- Track viewport grid changes ----------
   useEffect(() => {
     if (!viewportGridService) {
       return;
     }
 
-    const state = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
-    setActiveViewportId(prev => prev ?? state?.activeViewportId ?? null);
+    syncFromViewportState();
 
-    const sub1 = viewportGridService?.subscribe?.(
+    const subActive = viewportGridService.subscribe?.(
       viewportGridService.EVENTS?.ACTIVE_VIEWPORT_ID_CHANGED || 'ACTIVE_VIEWPORT_ID_CHANGED',
-      ({ viewportId }: { viewportId: string }) => setActiveViewportId(viewportId)
+      () => syncFromViewportState()
     );
 
-    const sub2 = viewportGridService?.subscribe?.(
+    const subGrid = viewportGridService.subscribe?.(
       viewportGridService.EVENTS?.GRID_STATE_CHANGED || 'GRID_STATE_CHANGED',
-      () => {
-        const s = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
-        setActiveViewportId(s?.activeViewportId ?? null);
-      }
+      () => syncFromViewportState()
+    );
+
+    const subReady = viewportGridService.subscribe?.(
+      viewportGridService.EVENTS?.VIEWPORTS_READY || 'VIEWPORTS_READY',
+      () => syncFromViewportState()
+    );
+
+    const subLayout = viewportGridService.subscribe?.(
+      viewportGridService.EVENTS?.LAYOUT_CHANGED || 'LAYOUT_CHANGED',
+      () => syncFromViewportState()
     );
 
     return () => {
-      sub1?.unsubscribe?.();
-      sub2?.unsubscribe?.();
+      subActive?.unsubscribe?.();
+      subGrid?.unsubscribe?.();
+      subReady?.unsubscribe?.();
+      subLayout?.unsubscribe?.();
     };
-  }, [viewportGridService]);
-
-  // ---------- Resolve displaySetInstanceUID for the active viewport ----------
-  useEffect(() => {
-    if (!activeViewportId || !viewportGridService) {
-      return;
-    }
-
-    const state = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
-    const vp = Array.isArray(state?.viewports)
-      ? state.viewports.find((v: any) => v?.viewportId === activeViewportId)
-      : state?.viewports?.get?.(activeViewportId);
-
-    const uids: string[] =
-      vp?.displaySetInstanceUIDs || vp?.displaySetOptions?.displaySetInstanceUIDs || [];
-
-    setDisplaySetUID(uids?.[0] ?? null);
-  }, [activeViewportId, viewportGridService]);
+  }, [syncFromViewportState, viewportGridService]);
 
   // ---------- Also listen for display sets being added (async study load) ----------
   useEffect(() => {
@@ -129,15 +138,7 @@ const SeriesPrompt: React.FC<SeriesPromptProps> = ({ servicesManager }) => {
 
     const onAdded = () => {
       // Re-resolve for current viewport when new display sets appear
-      const s = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
-      const vp = Array.isArray(s?.viewports)
-        ? s.viewports.find((v: any) => v?.viewportId === (s?.activeViewportId ?? activeViewportId))
-        : s?.viewports?.get?.(s?.activeViewportId ?? activeViewportId);
-      const uids: string[] =
-        vp?.displaySetInstanceUIDs || vp?.displaySetOptions?.displaySetInstanceUIDs || [];
-      if (uids?.[0]) {
-        setDisplaySetUID(uids[0]);
-      }
+      syncFromViewportState();
     };
 
     const sub =
@@ -148,7 +149,7 @@ const SeriesPrompt: React.FC<SeriesPromptProps> = ({ servicesManager }) => {
 
     return () => sub?.unsubscribe?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displaySetService, viewportGridService, activeViewportId]);
+  }, [displaySetService, viewportGridService, syncFromViewportState]);
 
   // ---------- Get display set & series UID ----------
   const ds = useMemo(() => {
@@ -231,9 +232,7 @@ const SeriesPrompt: React.FC<SeriesPromptProps> = ({ servicesManager }) => {
     // ].join('\n');
 
     const meta =
-      seriesPrompt != null
-        ? `\n\nPrompt used to generate CT scan:\n${seriesPrompt}`
-        : `\n\nPrompt used to generate CT scan: (not found)`;
+      seriesPrompt != null ? `${seriesPrompt}` : `Prompt used to generate CT scan not found`;
 
     // const changedLine = seriesPromptChanged ? `\n\nNote: SeriesPromptChanged = true` : '';
 

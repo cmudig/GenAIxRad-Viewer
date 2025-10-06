@@ -38,16 +38,33 @@ const markTourAsShown = (tourId: string) => {
 const defaultShowHandler = (Shepherd: ShepherdBase) => {
   const currentStep = Shepherd.activeTour?.getCurrentStep();
   if (currentStep) {
+    const tour = Shepherd.activeTour;
+    const totalSteps = tour?.steps.length ?? 0;
+    const currentIndex = tour?.steps.indexOf(currentStep) ?? 0;
+
     const progress = document.createElement('span');
     progress.className = 'shepherd-progress text-lg text-muted-foreground';
-    progress.innerText = `${Shepherd.activeTour?.steps.indexOf(currentStep) + 1}/${Shepherd.activeTour?.steps.length}`;
+    progress.innerText = `${currentIndex + 1}/${totalSteps}`;
     progress.style.position = 'absolute';
     progress.style.left = '13px';
     progress.style.bottom = '20px';
     progress.style.zIndex = '1';
 
     const footer = currentStep?.getElement()?.querySelector('.shepherd-footer');
-    footer?.appendChild(progress);
+    if (footer) {
+      footer.querySelectorAll('.shepherd-progress').forEach(node => node.remove());
+      footer.appendChild(progress);
+
+      const buttons = footer.querySelectorAll('button.shepherd-button');
+      if (buttons.length) {
+        const targetButton = buttons[buttons.length - 1] as HTMLButtonElement;
+        if (targetButton) {
+          const isFinalStep = currentIndex === totalSteps - 1;
+          const baseText = isFinalStep ? 'Finish' : 'Next';
+          targetButton.textContent = `${baseText} (${currentIndex + 1}/${totalSteps})`;
+        }
+      }
+    }
   }
 };
 

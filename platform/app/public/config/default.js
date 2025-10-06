@@ -545,7 +545,7 @@ window.config = {
         {
           id: 'rightPanel',
           title: 'AI Chest Assistant',
-          text: 'This panel contains tools you might find useful in answering the study questions. Click on any button in the navigation bar to learn more about each technique.',
+          text: 'This panel contains tools you might find useful in answering the study questions. Use the tab bar at the top of this panel to explore each assistant.',
           attachTo: {
             element: '[data-cy="explanation-component"]',
             on: 'left',
@@ -554,12 +554,13 @@ window.config = {
             selector: '[data-cy="nav-button-history"]',
             event: 'click',
           },
-          buttons: []
+          beforeShowPromise: () => waitForElement('[data-cy="explanation-component"]'),
+          buttons: [],
         },
         {
-          id: 'allGenerationsHistory',
-          title: 'All Generations History Panel',
-          text: 'Here you can view all previous generations. You can click on any generation to load into the active window in the center viewport.',
+          id: 'historyTab',
+          title: 'History Tab',
+          text: 'Review every generation you have run so far. Select any entry to load it back into the primary viewport.',
           attachTo: {
             element: '[data-cy="explanation-component"]',
             on: 'left',
@@ -568,12 +569,13 @@ window.config = {
             selector: '[data-cy="nav-button-mimic"]',
             event: 'click',
           },
-          buttons: []
+          beforeShowPromise: () => waitForElement('[data-cy="explanation-component"]'),
+          buttons: [],
         },
         {
-          id: 'mimicGeneration',
-          title: 'Mimic Generation Panel',
-          text: 'Here you can generate a mimic of the initial pathology, read an explanation, and also view previous mimic generations. Any generated scan will load into the active viewport',
+          id: 'mimicTab',
+          title: 'Mimic Tab',
+          text: 'Generate a close mimic of the original pathology, read the rationale, and review previous mimic runs.',
           attachTo: {
             element: '[data-cy="explanation-component"]',
             on: 'left',
@@ -582,57 +584,57 @@ window.config = {
             selector: '[data-cy="nav-button-variation"]',
             event: 'click',
           },
-          buttons: []
+          beforeShowPromise: () => waitForElement('[data-cy="explanation-component"]'),
+          buttons: [],
         },
         {
-          id: 'variationGeneration',
-          title: 'Variation Generation Panel',
-          text: 'Here you can generate a variation of the initial pathology, read an explanation, and also view previous variation generations. Any generated scan will load into the active viewport',
+          id: 'variationTab',
+          title: 'Variation Tab',
+          text: 'Explore variations of the case by changing findings or severity, and access your prior variation outputs.',
           attachTo: {
             element: '[data-cy="explanation-component"]',
             on: 'left',
           },
           advanceOn: {
-            selector: '[data-cy="nav-button-classification"]',
+            selector: '[data-cy="nav-button-example"]',
             event: 'click',
           },
-          buttons: []
+          beforeShowPromise: () => waitForElement('[data-cy="explanation-component"]'),
+          buttons: [],
         },
         {
-          id: 'pathologyClassification',
-          title: 'Pathology Classification & Segmentation Panel',
-          text: 'On this page, you can segmentation tools to ____. You can utilize AI to help classify pathologies and generate impressions',
+          id: 'exampleTab',
+          title: 'Example Tab',
+          text: 'Compare the active series with similar or dissimilar studies. Adjust how many examples appear and review their scores.',
           attachTo: {
             element: '[data-cy="explanation-component"]',
             on: 'left',
           },
           advanceOn: {
-            selector: '[data-cy="nav-button-other"]',
+            selector: '[data-cy="nav-button-radiopaedia"]',
             event: 'click',
           },
-          buttons: []
+          beforeShowPromise: () => waitForElement('[data-cy="explanation-component"]'),
+          buttons: [],
         },
         {
-          id: 'other',
-          title: 'Other Panel',
-          text: 'Fill in once implemented',
+          id: 'radiopaediaTab',
+          title: 'Radiopaedia Tab',
+          text: 'Search curated Radiopaedia cases that match your prompt for additional clinical context.',
           attachTo: {
             element: '[data-cy="explanation-component"]',
             on: 'left',
           },
-          advanceOn: {
-            selector: 'body',
-            event: 'click',
-          },
+          beforeShowPromise: () => waitForElement('[data-cy="explanation-component"]'),
           buttons: [
             {
               text: 'Finish',
               action() {
-                this.next();
+                this.complete();
               },
               secondary: true,
-            }
-          ]
+            },
+          ],
         },
 
       ],

@@ -21,13 +21,15 @@ function RadiopaediaComponent({ commandsManager, extensionManager, servicesManag
         return;
       }
       const formattedSeriesPrompt = seriesPrompt.replace(/ /g, '+');
-      setUrl(`https://radiopaedia.org/search?lang=us&modality=CT&q=${formattedSeriesPrompt}&scope=cases`);
+      setUrl(
+        `https://radiopaedia.org/search?lang=us&modality=CT&q=${formattedSeriesPrompt}&scope=cases`
+      );
     }
     fetchPrompt();
   }, [servicesManager]);
 
   return (
-    <div className="p-4 bg-primary-dark text-white h-full">
+    <div className="bg-primary-dark h-full p-4 text-white">
       <iframe
         src={url}
         width="100%"
