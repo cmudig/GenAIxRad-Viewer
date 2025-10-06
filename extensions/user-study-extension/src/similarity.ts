@@ -1,5 +1,5 @@
 // --- utils/similarity.ts ---
-type SeriesLike = {
+export type SeriesLike = {
   displaySetInstanceUID: string;
   SeriesInstanceUID?: string;
   SeriesDescription?: string;
@@ -35,11 +35,10 @@ const SYNONYMS: Record<string, string[]> = {
   'pleural effusion': ['effusion', 'pleural fluid'],
   left: ['lt', 'left-sided', 'lhs'],
   right: ['rt', 'right-sided', 'rhs'],
-  bilateral: ['both sides'],
-  severe: ['marked', 'high', 'grade 3', '3'],
+  bilateral: ['both sides', 'left and right', 'right and left'],
+  severe: ['marked', 'high', 'grade 3', '3', 'significant'],
   moderate: ['intermediate', 'grade 2', '2'],
-  mild: ['low', 'slight', 'grade 1', '1'],
-  // imaging-ish
+  mild: ['low', 'slight', 'grade 1', '1', 'small', 'mild', 'minimal'],
   ct: ['computed tomography'],
   mr: ['mri', 'magnetic resonance'],
   xray: ['radiograph', 'xr'],
@@ -179,6 +178,32 @@ function scoreCandidate(
   const specificity = Math.min(buildSeriesKey(ds).length / 80, 0.08);
 
   return Math.max(0, Math.min(1, base + numBonus + hint + specificity));
+}
+
+export type RankedDisplaySet = {
+  displaySet: SeriesLike;
+  score: number;
+};
+
+export function rankDisplaySetsByPrompt(
+  displaySets: SeriesLike[],
+  promptKey: string,
+  options?: {
+    promptContext?: { modality?: string; bodyPart?: string };
+  }
+): RankedDisplaySet[] {
+  if (!promptKey) {
+    return [];
+  }
+
+  const scored = displaySets.map(ds => ({
+    displaySet: ds,
+    score: scoreCandidate(promptKey, ds, options?.promptContext),
+  }));
+
+  scored.sort((a, b) => b.score - a.score);
+
+  return scored;
 }
 
 export function findBestMatchingDisplaySet(

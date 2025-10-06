@@ -3,21 +3,25 @@ import React, { useState } from 'react';
 import HistoryPanel from './tabs/HistoryPanel';
 import MimicPanel from './tabs/MimicPanel';
 import VariationPanel from './tabs/VariationPanel';
-import ClassificationPanel from './tabs/ClassificationPanel';
-import OtherPanel from './tabs/OtherPanel';
+import RadiopaediaComponent from './RadiopaediaComponent';
+import ExampleComponent from './ExampleComponent';
 
 const tabComponents = {
   history: HistoryPanel,
   mimic: MimicPanel,
   variation: VariationPanel,
-  classification: ClassificationPanel,
-  other: OtherPanel,
+  example: ExampleComponent,
+  radiopaedia: RadiopaediaComponent,
+};
+
+const tabIconExtensions: Record<string, 'png'> = {
+  radiopaedia: 'png',
 };
 
 function ExplanationComponent({ commandsManager, extensionManager, servicesManager }) {
   const [selectedLabel, setSelectedLabel] = useState('history');
 
-  const handleNavClick = (label) => {
+  const handleNavClick = label => {
     console.log(`Navigating to nav-button-${label} panel`);
     setSelectedLabel(label);
   };
@@ -28,20 +32,20 @@ function ExplanationComponent({ commandsManager, extensionManager, servicesManag
     <div className="ohif-scrollbar flex flex-col" data-cy="explanation-component">
       <div className="bg-primary-dark flex flex-col justify-center p-4">
         {/* Navigation Buttons */}
-        <div className="flex justify-between items-center">
+        <div className="flex items-center justify-between">
           {Object.keys(tabComponents).map((label, index) => (
             <button
               data-cy={`nav-button-${label}`}
               key={index}
               onClick={() => handleNavClick(label)}
-              className={`bg-black hover:bg-primary-main rounded-md p-4 w-15 h-8 flex items-center justify-center transition duration-300 ${
+              className={`hover:bg-primary-main w-15 flex h-8 items-center justify-center rounded-md bg-black p-4 transition duration-300 ${
                 selectedLabel === label ? 'bg-primary-main' : ''
               }`}
             >
               <img
-                src={`/assets/icon_${label}.png`}
+                src={`/assets/icon_${label}.${tabIconExtensions[label] ?? 'png'}`}
                 alt={`Icon ${label}`}
-                className="w-8 h-8 object-contain"
+                className="h-8 w-8 object-contain"
               />
             </button>
           ))}

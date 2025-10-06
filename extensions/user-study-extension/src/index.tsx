@@ -60,7 +60,7 @@ export default {
           extensionManager,
           servicesManager,
         }),
-      }
+      },
     ];
 
     return panels;
@@ -89,7 +89,6 @@ export default {
     //     }),
     //   }
     // ]
-
   },
   /**
    * ViewportModule should provide a list of viewports that will be available in OHIF
