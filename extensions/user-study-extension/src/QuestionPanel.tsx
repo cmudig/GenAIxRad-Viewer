@@ -12,7 +12,7 @@ type Question = {
 
 const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [answers, setAnswers] = useState<{ [key: number]: any }>({});
+  const [answers, setAnswers] = useState<{ [key: number]: string[] | number | string }>({});
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [sliderValue, setSliderValue] = useState<number>(5);
 
@@ -28,6 +28,29 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
       .catch(error => console.error('Error loading questions:', error));
   }, []);
 
+  useEffect(() => {
+    if (!currentQuestion) return;
+    if (currentQuestion.type === 'paragraph') {
+      setAnswers(prev => {return {...prev, [currentQuestion.id]: 'None'}})
+    }
+  }, [currentQuestion]);
+
+  const handleMultipleSelectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!currentQuestion) return;
+      const val = e.target.value;
+      setAnswers(prev => {
+        const currentAnswers = (prev[currentQuestion.id] as string[]) ?? [];
+        let newCurrentAnswers: string[];
+        if (e.target.checked) {
+          newCurrentAnswers = [...currentAnswers, val];
+        } else {
+          newCurrentAnswers = currentAnswers.filter(o => o !== val);
+        }
+        const newAnswers = { ...prev, [currentQuestion.id]: newCurrentAnswers };
+        return newAnswers;
+      });
+    };
+
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = Number(e.target.value);
     setSliderValue(value);
@@ -38,6 +61,8 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
       }));
     }
   };
+
+
 
   const handleNext = () => {
     if (currentQuestion.id < questions.length) {
@@ -57,7 +82,7 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
   };
 
   const handleSubmit = async () => {
-    if (Object.keys(answers).length !== questions.length - 1) {
+    if (Object.keys(answers).length !== questions.length) {
       uiNotificationService.show({
         title: 'Results Not Submitted',
         message: 'Please answer all the questions before submitting',
@@ -67,9 +92,8 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
       return;
     }
     try {
-      const docRef = await addDoc(collection(db, 'radiology-user-study'), {
-        participantId: auth.currentUser.uid,
-        studyId: `study-${auth.currentUser.uid}`,
+      const responsesCol = collection(db, 'radiology-user-study', auth.currentUser.uid, 'study-submissions');
+      const docRef = await addDoc(responsesCol, {
         timestamp: serverTimestamp(),
         answers: answers,
       });
@@ -161,7 +185,24 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
                   <span className="text-aqua-pale text-sm font-semibold">{sliderValue}</span>
                 </div>
               </div>
-            ) : currentQuestion.type === 'scale' ? (
+            ) : currentQuestion.type === 'multiple-select' ? (
+              <div className="text-aqua-pale ml-6 mt-2 flex w-full flex-col">
+                {currentQuestion.options.map((opt, idx) => (
+                  <label key={idx} className="mb-2 flex cursor-pointer items-center">
+                    <input
+                      type="checkbox"
+                      name={`question-${currentQuestion.id}`}
+                      value={opt}
+                      checked={answers[currentQuestion.id] === opt}
+                      onChange={handleMultipleSelectChange}
+                      checked={Array.isArray(answers[currentQuestion.id]) ? (answers[currentQuestion.id] as string[]).includes(opt) : false}
+                      className="form-radio text-primary-main checked:bg-aqua-pale mr-2 h-3 w-3 appearance-none bg-white checked:border-white"
+                    />
+                    <span>{opt}</span>
+                  </label>
+                ))}
+              </div>
+            ): currentQuestion.type === 'scale' ? (
               <div className="mt-2 flex flex-wrap justify-center gap-3">
                 {Array.from({ length: 10 }, (_, i) => (
                   <button

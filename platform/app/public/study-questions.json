@@ -47,7 +47,7 @@
   {
     "id": 6,
     "question": "[If yes to previous question] Which AI explanations were helpful in helping you better determine the AI's accuracy for this CT scan?",
-    "type": "multiple-choice",
+    "type": "multiple-select",
     "options": [
       "Counterfactual - Mimic",
       "Counterfactual - Variation",
