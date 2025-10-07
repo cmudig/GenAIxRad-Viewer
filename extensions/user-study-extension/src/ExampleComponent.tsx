@@ -192,7 +192,11 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
   }, []);
 
   const handleNumComparisonsChange = useCallback((value: number) => {
-    const clamped = Math.max(MIN_COMPARISONS, Math.min(MAX_COMPARISONS, Math.round(value)));
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      return;
+    }
+    const clamped = Math.max(MIN_COMPARISONS, Math.min(MAX_COMPARISONS, Math.round(parsed)));
     setNumComparisons(clamped);
   }, []);
 
@@ -234,8 +238,7 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
       const filtered = ranked.filter(item => {
         const candidateUID = item.displaySet.displaySetInstanceUID;
         const candidateModality = String(item.displaySet.Modality || '').toUpperCase();
-        const isSameDisplaySet =
-          candidateUID === (activeDisplaySet as any)?.displaySetInstanceUID;
+        const isSameDisplaySet = candidateUID === (activeDisplaySet as any)?.displaySetInstanceUID;
 
         if (isSameDisplaySet) {
           return false;
@@ -397,22 +400,23 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
             <div className="text-aqua-pale mb-2 text-xs font-semibold">
               Number of comparison examples
             </div>
-            <div className="flex items-center gap-3">
-              <input
-                type="range"
-                min={MIN_COMPARISONS}
-                max={MAX_COMPARISONS}
-                step={1}
-                value={numComparisons}
-                onChange={event => handleNumComparisonsChange(Number(event.target.value))}
-                className="flex-1"
-                aria-label="Number of comparison examples"
-              />
-              <div className="w-6 text-right text-sm font-semibold">{numComparisons}</div>
-            </div>
-            <div className="text-secondary-light mt-1 text-[11px]">
-              Select between {MIN_COMPARISONS} and {MAX_COMPARISONS} additional series to compare
-              against the current viewport.
+            <select
+              value={numComparisons}
+              onChange={event => handleNumComparisonsChange(event.target.value)}
+              className="bg-primary-dark border-secondary-main w-full rounded-md border px-2 py-2 text-sm text-white"
+              aria-label="Number of comparison examples"
+            >
+              {Array.from(
+                { length: MAX_COMPARISONS - MIN_COMPARISONS + 1 },
+                (_, idx) => MIN_COMPARISONS + idx
+              ).map(option => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            <div className="text-secondary-light mt-1 text-[11px] text-white">
+              Choose how many additional series to display alongside the original viewport.
             </div>
           </div>
 

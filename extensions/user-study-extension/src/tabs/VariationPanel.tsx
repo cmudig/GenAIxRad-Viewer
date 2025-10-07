@@ -1,6 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import WrappedPreviewStudyBrowser from '../../../text-input-extension/src/components/WrappedPreviewStudyBrowser';
-import DropdownPanel from '../DropdownPanel';
 import { GenerationOptions, GenerateButtons } from '../GenerationOptions';
 
 const getViewportsArray = (state: any): any[] => {
@@ -39,11 +37,14 @@ const abnormalOptionsList = [
   { prompt: 'Severity', options: ['Mild', 'Moderate', 'Severe'], required: true },
 ];
 
-const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) => {
+const VariationPanel = ({
+  commandsManager,
+  servicesManager,
+  extensionManager: _extensionManager,
+}) => {
   const [gateResetKey, setGateResetKey] = useState(0);
   const [abnormalResetKey, setAbnormalResetKey] = useState(0);
 
-  const [sliderValue, setSliderValue] = useState<number>(2);
   const [answers, setAnswers] = useState<{ [key: string]: any }>({});
 
   const initialViewportRef = useRef<
@@ -180,12 +181,6 @@ const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) 
   const isAbnormal = answers['Normal / Abnormal'] === 'Abnormal';
   const isNormal = answers['Normal / Abnormal'] === 'Normal';
 
-  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Number(e.target.value);
-    setSliderValue(value);
-    setAnswers(prev => ({ ...prev, Severity: value }));
-  };
-
   const handleSelection = (prompt: string, option: string) => {
     if (prompt === 'Normal / Abnormal') {
       setAnswers(prev => {
@@ -209,7 +204,6 @@ const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) 
 
   const handleCancelClick = () => {
     setAnswers({});
-    setSliderValue(2);
     // ⬇️ fully reset both sides on Cancel
     setGateResetKey(k => k + 1);
     setAbnormalResetKey(k => k + 1);
@@ -229,35 +223,37 @@ const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) 
     ((isNormal && true) || (isAbnormal && abnormalRequiredOk));
 
   return (
-    <div>
-      <div className="my-4">
-        <DropdownPanel dropdownId="variation-generation" title="Variation Explainer">
-          <div className="space-y-2">
-            {/* Gate first */}
-            <GenerationOptions
-              key={gateOption.prompt}
-              prompt={gateOption.prompt}
-              options={gateOption.options}
-              onOptionSelect={opt => handleSelection(gateOption.prompt, opt)}
-              resetKey={gateResetKey}
-            />
+    <div className="border-primary-main flex h-full flex-col rounded-md border p-3">
+      <div className="text-primary-light mb-2 text-xs uppercase tracking-wider">
+        Variation Generator
+      </div>
 
-            {/* Only render the rest when Abnormal */}
-            {isAbnormal && (
-              <>
-                {abnormalOptionsList.map(({ prompt, options }) => (
-                  <GenerationOptions
-                    key={prompt}
-                    prompt={prompt}
-                    options={options}
-                    onOptionSelect={option => handleSelection(prompt, option)}
-                    resetKey={abnormalResetKey}
-                  />
-                ))}
-              </>
-            )}
-          </div>
+      <div className="text-[13px] leading-snug text-white">
+        <div className="space-y-3">
+          <GenerationOptions
+            key={`${gateOption.prompt}-${gateResetKey}`}
+            prompt={gateOption.prompt}
+            options={gateOption.options}
+            onOptionSelect={opt => handleSelection(gateOption.prompt, opt)}
+            resetKey={gateResetKey}
+          />
 
+          {isAbnormal && (
+            <div className="space-y-3">
+              {abnormalOptionsList.map(({ prompt, options }) => (
+                <GenerationOptions
+                  key={`${prompt}-${abnormalResetKey}`}
+                  prompt={prompt}
+                  options={options}
+                  onOptionSelect={option => handleSelection(prompt, option)}
+                  resetKey={abnormalResetKey}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4">
           <GenerateButtons
             commandsManager={commandsManager}
             servicesManager={servicesManager}
@@ -266,18 +262,7 @@ const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) 
             handleCancelClick={handleCancelClick}
             disabled={!allRequiredAnswered}
           />
-        </DropdownPanel>
-      </div>
-
-      <div className="my-4">
-        <DropdownPanel dropdownId="variation-history" title="Variations History">
-          <WrappedPreviewStudyBrowser
-            commandsManager={commandsManager}
-            servicesManager={servicesManager}
-            extensionManager={extensionManager}
-            activatedTabName="variation"
-          />
-        </DropdownPanel>
+        </div>
       </div>
     </div>
   );
