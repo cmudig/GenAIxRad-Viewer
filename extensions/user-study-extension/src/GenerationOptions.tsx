@@ -323,8 +323,30 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
     return displaySets ?? [];
   }
 
-  let _lastPromptKey = '';
-  let _lastTargetUID = '';
+let _lastPromptKey = '';
+let _lastTargetUID = '';
+
+const getViewportsArray = (state: any): any[] => {
+  if (!state?.viewports) {
+    return [];
+  }
+
+  const { viewports } = state;
+
+  if (Array.isArray(viewports)) {
+    return viewports;
+  }
+
+  if (typeof viewports?.values === 'function') {
+    return Array.from(viewports.values());
+  }
+
+  if (typeof viewports === 'object') {
+    return Object.values(viewports);
+  }
+
+  return [];
+};
   // Trigger model generation and wait until completion
   // --- click handler ---
   const handleGenerateClick = async () => {
@@ -379,12 +401,87 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
         console.log('[Generate] Same match as last time — no switch.');
       } else {
         const { viewportGridService } = servicesManager.services;
-        const viewportId = viewportGridService.getActiveViewportId();
 
-        viewportGridService.setDisplaySetsForViewport({
-          viewportId,
-          displaySetInstanceUIDs: [target.displaySetInstanceUID],
+        const state = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+        const previousViewports = getViewportsArray(state);
+        const previousViewportIds = new Set(previousViewports.map(v => v?.viewportId).filter(Boolean));
+
+        const layout = state?.layout ?? {};
+        const baseNumCols = Number(layout?.numCols) || Math.max(previousViewports.length, 1);
+        const baseNumRows = Number(layout?.numRows) || 1;
+        const newNumCols = baseNumCols + 1;
+        const newNumRows = baseNumRows || 1;
+
+        const viewportsByPosition = new Map<string, any>();
+        previousViewports.forEach(existing => {
+          if (existing?.positionId) {
+            viewportsByPosition.set(existing.positionId, existing);
+          }
         });
+
+        const cloneViewport = (source: any) => {
+          if (!source) {
+            return {};
+          }
+
+          return {
+            displaySetInstanceUIDs: source.displaySetInstanceUIDs
+              ? [...source.displaySetInstanceUIDs]
+              : [],
+            displaySetOptions: source.displaySetOptions
+              ? Array.isArray(source.displaySetOptions)
+                ? [...source.displaySetOptions]
+                : { ...source.displaySetOptions }
+              : [],
+            viewportOptions: {
+              ...(source.viewportOptions || {}),
+            },
+          };
+        };
+
+        const findOrCreateViewport = (position: number, positionId: string) => {
+          const byPosition = viewportsByPosition.get(positionId);
+          if (byPosition) {
+            return cloneViewport(byPosition);
+          }
+
+          const byIndex = previousViewports[position];
+          if (byIndex) {
+            return cloneViewport(byIndex);
+          }
+
+          return {};
+        };
+
+        await viewportGridService.setLayout({
+          numCols: newNumCols,
+          numRows: newNumRows,
+          findOrCreateViewport,
+        });
+
+        const updatedState =
+          viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+        const updatedViewports = getViewportsArray(updatedState);
+        const newViewport = updatedViewports.find(v => !previousViewportIds.has(v?.viewportId));
+
+        const fallbackViewport =
+          updatedViewports.length > 0 ? updatedViewports[updatedViewports.length - 1] : null;
+        const targetViewportId = newViewport?.viewportId || fallbackViewport?.viewportId;
+
+        if (targetViewportId) {
+          await viewportGridService.setDisplaySetsForViewports([
+            {
+              viewportId: targetViewportId,
+              displaySetInstanceUIDs: [target.displaySetInstanceUID],
+            },
+          ]);
+
+          if (viewportGridService.setActiveViewportId) {
+            viewportGridService.setActiveViewportId(targetViewportId);
+          }
+        } else {
+          console.warn('[Generate] Unable to identify target viewport for new display set.');
+        }
 
         // Optionally mark so we can de-prefer it next time if needed
         await addMetadataToSeries(target.SeriesInstanceUID, 'true', 'SeriesPromptChanged');
