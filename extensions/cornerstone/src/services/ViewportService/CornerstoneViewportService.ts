@@ -39,6 +39,8 @@ const EVENTS = {
   VIEWPORT_VOLUMES_CHANGED: 'event::cornerstoneViewportService:viewportVolumesChanged',
 };
 
+const DEFAULT_INITIAL_SLICE_INDEX = 128;
+
 /**
  * Handles cornerstone viewport logic including enabling, disabling, and
  * updating the viewport.
@@ -707,7 +709,11 @@ class CornerstoneViewportService extends PubSubService implements IViewportServi
       return lastSliceIndex % 2 === 0 ? lastSliceIndex / 2 : (lastSliceIndex + 1) / 2;
     }
 
-    return 0;
+    if (numberOfSlices <= 0) {
+      return 0;
+    }
+
+    return Math.min(DEFAULT_INITIAL_SLICE_INDEX, Math.max(lastSliceIndex, 0));
   }
 
   async _setVolumeViewport(

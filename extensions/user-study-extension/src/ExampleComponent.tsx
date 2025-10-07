@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { getMetadataFromSeries } from '../../../platform/app/src/components/dicom_helpers';
 import { rankDisplaySetsByPrompt, RankedDisplaySet } from './similarity';
@@ -62,6 +62,9 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
   const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastAppliedMatches, setLastAppliedMatches] = useState<RankedDisplaySet[]>([]);
+  const [matchPrompts, setMatchPrompts] = useState<Record<string, string | null>>({});
+  const [loadingMatchPrompts, setLoadingMatchPrompts] = useState(false);
+  const promptRequestRef = useRef(0);
 
   const activeDisplaySet = useMemo(() => {
     if (!activeDisplaySetUID || !displaySetService?.getDisplaySetByUID) {
@@ -198,6 +201,54 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
     }
     const clamped = Math.max(MIN_COMPARISONS, Math.min(MAX_COMPARISONS, Math.round(parsed)));
     setNumComparisons(clamped);
+  }, []);
+
+  const loadPromptsForMatches = useCallback(async (matches: RankedDisplaySet[]) => {
+    const requestId = ++promptRequestRef.current;
+
+    if (!matches.length) {
+      setMatchPrompts({});
+      setLoadingMatchPrompts(false);
+      return;
+    }
+
+    setLoadingMatchPrompts(true);
+
+    const entries = await Promise.all(
+      matches.map(async match => {
+        const ds = match.displaySet as any;
+        const displaySetInstanceUID = ds?.displaySetInstanceUID;
+        const seriesUID = ds?.SeriesInstanceUID || ds?.seriesInstanceUID || null;
+
+        if (!displaySetInstanceUID || !seriesUID) {
+          return { displaySetInstanceUID, prompt: null };
+        }
+
+        try {
+          const value = await getMetadataFromSeries(seriesUID, 'SeriesPrompt');
+          const prompt = typeof value === 'string' && value.trim() ? value.trim() : null;
+          return { displaySetInstanceUID, prompt };
+        } catch (error) {
+          console.warn('ExampleComponent: failed to load prompt for series', seriesUID, error);
+          return { displaySetInstanceUID, prompt: null };
+        }
+      })
+    );
+
+    if (promptRequestRef.current !== requestId) {
+      return;
+    }
+
+    const promptMap: Record<string, string | null> = {};
+    entries.forEach(entry => {
+      if (!entry.displaySetInstanceUID) {
+        return;
+      }
+      promptMap[entry.displaySetInstanceUID] = entry.prompt;
+    });
+
+    setMatchPrompts(promptMap);
+    setLoadingMatchPrompts(false);
   }, []);
 
   const applyExamples = useCallback(async () => {
@@ -365,6 +416,8 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
       await viewportGridService.setDisplaySetsForViewports(assignments);
 
       setLastAppliedMatches(selected);
+      setMatchPrompts({});
+      loadPromptsForMatches(selected);
     } catch (err) {
       console.error('ExampleComponent: Failed to apply example comparisons', err);
       setError('Failed to update viewports for the requested comparisons.');
@@ -378,6 +431,7 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
     seriesPrompt,
     comparisonMode,
     numComparisons,
+    loadPromptsForMatches,
   ]);
 
   const disableApplyButton =
@@ -415,7 +469,7 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
                 </option>
               ))}
             </select>
-            <div className="text-secondary-light mt-1 text-[11px] text-white">
+            <div className="mt-1 text-[11px] text-white">
               Choose how many additional series to display alongside the original viewport.
             </div>
           </div>
@@ -476,21 +530,34 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
 
         {!error && lastAppliedMatches.length > 0 && (
           <div className="border-primary-dark mt-2 border-t pt-2 text-[12px]">
-            <div className="text-secondary-light mb-1 text-[11px] uppercase tracking-wide">
+            <div className="text-primary-light mb-1 text-[11px] uppercase tracking-wide">
               Loaded comparisons
             </div>
             <ul className="space-y-1">
               {lastAppliedMatches.map(match => (
                 <li
                   key={match.displaySet.displaySetInstanceUID}
-                  className="bg-primary-dark flex items-center justify-between rounded-md px-2 py-1"
+                  className="bg-primary-dark rounded-md px-2 py-2"
                 >
-                  <span className="truncate pr-2">
-                    {match.displaySet.SeriesDescription || 'Untitled series'}
-                  </span>
-                  <span className="text-secondary-light text-[11px]">
-                    {(match.score || 0).toFixed(2)}
-                  </span>
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="truncate pr-2">
+                      {match.displaySet.SeriesDescription || 'Untitled series'}
+                    </span>
+                    <span className="text-secondary-light text-[11px]">
+                      {(match.score || 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="text-primary-light whitespace-pre-wrap text-[11px] leading-snug">
+                    {(() => {
+                      const prompt = matchPrompts[match.displaySet.displaySetInstanceUID];
+                      if (prompt !== undefined) {
+                        return prompt || 'No prompt metadata found.';
+                      }
+                      return loadingMatchPrompts
+                        ? 'Loading prompt metadata…'
+                        : 'Prompt metadata unavailable.';
+                    })()}
+                  </div>
                 </li>
               ))}
             </ul>
