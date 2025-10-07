@@ -1,5 +1,7 @@
 import { hotkeys } from '@ohif/core';
 import { initToolGroups, toolbarButtons, moreTools } from '@ohif/mode-longitudinal';
+import { StackViewport, VolumeViewport, utilities as csUtils } from '@cornerstonejs/core';
+import { jumpToSlice } from '@cornerstonejs/core/utilities';
 import { id } from './id';
 
 const treatmentCondition = 'enhanced';
@@ -18,6 +20,30 @@ const dicomPmap = {
   sopClassHandler: '@ohif/extension-cornerstone-dicom-pmap.sopClassHandlerModule.dicom-pmap',
   viewport: '@ohif/extension-cornerstone-dicom-pmap.viewportModule.dicom-pmap',
 };
+
+const getViewportsArray = (state: any): any[] => {
+  if (!state?.viewports) {
+    return [];
+  }
+
+  const { viewports } = state;
+
+  if (Array.isArray(viewports)) {
+    return viewports;
+  }
+
+  if (typeof viewports?.values === 'function') {
+    return Array.from(viewports.values());
+  }
+
+  if (typeof viewports === 'object') {
+    return Object.values(viewports);
+  }
+
+  return [];
+};
+
+let userStudyCleanupFns: Array<() => void> = [];
 
 /**
  * Just two dependencies to be able to render a viewport with panels in order
@@ -76,6 +102,9 @@ function modeFactory({ modeConfiguration }) {
      * Services and other resources.
      */
     onModeEnter: ({ servicesManager, extensionManager, commandsManager }: withAppTypes) => {
+      userStudyCleanupFns.forEach(fn => fn?.());
+      userStudyCleanupFns = [];
+
       const { measurementService, toolbarService, toolGroupService } = servicesManager.services;
 
       measurementService.clearMeasurements();
@@ -95,8 +124,131 @@ function modeFactory({ modeConfiguration }) {
         'Crosshairs',
         'MoreTools',
       ]);
+
+      const { viewportGridService, cornerstoneViewportService, displaySetService } =
+        servicesManager.services;
+
+      const cleanupFns: Array<() => void> = [];
+      const registerCleanup = (fn?: () => void) => {
+        if (typeof fn === 'function') {
+          cleanupFns.push(fn);
+        }
+      };
+
+      const dispose = () => {
+        while (cleanupFns.length) {
+          const fn = cleanupFns.pop();
+          try {
+            fn?.();
+          } catch (err) {
+            console.warn('Error during user study cleanup', err);
+          }
+        }
+        userStudyCleanupFns = [];
+      };
+
+      let hasAppliedDefaultSlice = false;
+
+      const applyDefaultSlice = () => {
+        if (hasAppliedDefaultSlice) {
+          return true;
+        }
+
+        const state = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+        const viewports = getViewportsArray(state);
+        if (!viewports.length) {
+          return false;
+        }
+
+        let applied = false;
+
+        for (const vp of viewports) {
+          const viewportId = vp?.viewportId;
+          if (!viewportId) {
+            continue;
+          }
+
+          const viewport = cornerstoneViewportService.getCornerstoneViewport?.(viewportId);
+          if (!viewport) {
+            continue;
+          }
+
+          let numberOfSlices = 0;
+
+          if (viewport instanceof StackViewport) {
+            numberOfSlices = viewport.getImageIds?.()?.length ?? 0;
+          } else if (viewport instanceof VolumeViewport) {
+            const sliceData = csUtils.getImageSliceDataForVolumeViewport?.(viewport);
+            numberOfSlices = sliceData?.numberOfSlices ?? 0;
+          }
+
+          if (!numberOfSlices) {
+            continue;
+          }
+
+          const maxIndex = Math.max(numberOfSlices - 1, 0);
+          const targetIndex = Math.min(128, maxIndex);
+
+          jumpToSlice(viewport.element, { imageIndex: targetIndex });
+          applied = true;
+        }
+
+        if (applied) {
+          hasAppliedDefaultSlice = true;
+          dispose();
+        }
+
+        return applied;
+      };
+
+      const handleViewportEvent = () => {
+        applyDefaultSlice();
+      };
+
+      const readySub =
+        viewportGridService?.subscribe?.(
+          viewportGridService.EVENTS?.VIEWPORTS_READY || 'event::viewportsReady',
+          handleViewportEvent
+        ) || null;
+      registerCleanup(() => readySub?.unsubscribe?.());
+
+      const gridSub =
+        viewportGridService?.subscribe?.(
+          viewportGridService.EVENTS?.GRID_STATE_CHANGED || 'event::gridStateChanged',
+          handleViewportEvent
+        ) || null;
+      registerCleanup(() => gridSub?.unsubscribe?.());
+
+      const displaySetSub =
+        displaySetService?.subscribe?.(
+          displaySetService.EVENTS?.DISPLAY_SETS_ADDED || 'DISPLAY_SETS_ADDED',
+          handleViewportEvent
+        ) || null;
+      registerCleanup(() => displaySetSub?.unsubscribe?.());
+
+      const timeouts: Array<number> = [];
+      const scheduleAttempt = (delay: number) => {
+        const timeoutId = window.setTimeout(() => {
+          applyDefaultSlice();
+        }, delay);
+        timeouts.push(timeoutId);
+      };
+
+      [0, 200, 500, 1000].forEach(scheduleAttempt);
+      registerCleanup(() => {
+        timeouts.forEach(id => window.clearTimeout(id));
+      });
+
+      registerCleanup(() => {
+        hasAppliedDefaultSlice = true;
+      });
+
+      userStudyCleanupFns = cleanupFns;
     },
     onModeExit: ({ servicesManager }: withAppTypes) => {
+      userStudyCleanupFns.forEach(fn => fn?.());
+      userStudyCleanupFns = [];
+
       const {
         toolGroupService,
         syncGroupService,
