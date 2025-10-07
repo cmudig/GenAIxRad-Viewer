@@ -1,8 +1,29 @@
-import React from 'react';
-import { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import WrappedPreviewStudyBrowser from '../../../text-input-extension/src/components/WrappedPreviewStudyBrowser';
 import DropdownPanel from '../DropdownPanel';
 import { GenerationOptions, GenerateButtons } from '../GenerationOptions';
+
+const getViewportsArray = (state: any): any[] => {
+  if (!state?.viewports) {
+    return [];
+  }
+
+  const { viewports } = state;
+
+  if (Array.isArray(viewports)) {
+    return viewports;
+  }
+
+  if (typeof viewports?.values === 'function') {
+    return Array.from(viewports.values());
+  }
+
+  if (typeof viewports === 'object') {
+    return Object.values(viewports);
+  }
+
+  return [];
+};
 
 // First gate option comes first
 const gateOption = { prompt: 'Normal / Abnormal', options: ['Normal', 'Abnormal'], required: true };
@@ -24,6 +45,137 @@ const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) 
 
   const [sliderValue, setSliderValue] = useState<number>(2);
   const [answers, setAnswers] = useState<{ [key: string]: any }>({});
+
+  const initialViewportRef = useRef<
+    | null
+    | {
+        displaySetInstanceUIDs: string[];
+        displaySetOptions?: any;
+        viewportOptions?: any;
+      }
+  >(null);
+
+  const viewportGridService =
+    servicesManager?.services?.viewportGridService ||
+    servicesManager?.services?.ViewportGridService;
+
+  useEffect(() => {
+    if (!viewportGridService) {
+      return;
+    }
+
+    const captureInitialViewport = () => {
+      if (initialViewportRef.current) {
+        return;
+      }
+
+      const state = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+      const viewports = getViewportsArray(state);
+      if (!viewports.length) {
+        return;
+      }
+
+      const firstViewport = viewports[0];
+      if (!firstViewport) {
+        return;
+      }
+
+      const displaySetInstanceUIDs = firstViewport.displaySetInstanceUIDs || [];
+      if (!displaySetInstanceUIDs.length) {
+        return;
+      }
+
+      const cloneDisplaySetOptions = (options: any) => {
+        if (!options) {
+          return undefined;
+        }
+        if (Array.isArray(options)) {
+          return options.map(option => ({ ...(option || {}) }));
+        }
+        if (typeof options === 'object') {
+          return { ...options };
+        }
+        return options;
+      };
+
+      initialViewportRef.current = {
+        displaySetInstanceUIDs: [...displaySetInstanceUIDs],
+        displaySetOptions: cloneDisplaySetOptions(firstViewport.displaySetOptions),
+        viewportOptions: { ...(firstViewport.viewportOptions || {}) },
+      };
+    };
+
+    captureInitialViewport();
+
+    const sub =
+      viewportGridService.subscribe?.(
+        viewportGridService.EVENTS?.VIEWPORTS_READY || 'event::viewportsReady',
+        captureInitialViewport
+      ) || null;
+
+    return () => sub?.unsubscribe?.();
+  }, [viewportGridService]);
+
+  const restoreInitialViewport = useCallback(async () => {
+    if (!viewportGridService) {
+      return;
+    }
+
+    const initialViewport = initialViewportRef.current;
+    if (!initialViewport || !initialViewport.displaySetInstanceUIDs.length) {
+      return;
+    }
+
+    try {
+      const { displaySetInstanceUIDs, displaySetOptions, viewportOptions } = initialViewport;
+
+      const cloneDisplaySetOptions = (options: any) => {
+        if (!options) {
+          return undefined;
+        }
+        if (Array.isArray(options)) {
+          return options.map(option => ({ ...(option || {}) }));
+        }
+        if (typeof options === 'object') {
+          return { ...options };
+        }
+        return options;
+      };
+
+      const findOrCreateViewport = () => ({
+        displaySetInstanceUIDs: [...displaySetInstanceUIDs],
+        displaySetOptions: cloneDisplaySetOptions(displaySetOptions),
+        viewportOptions: { ...(viewportOptions || {}) },
+      });
+
+      await viewportGridService.setLayout({
+        numCols: 1,
+        numRows: 1,
+        findOrCreateViewport,
+      });
+
+      const updatedState =
+        viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+      const viewports = getViewportsArray(updatedState);
+      const primaryViewport = viewports[0];
+      const targetViewportId = primaryViewport?.viewportId;
+
+      if (targetViewportId) {
+        await viewportGridService.setDisplaySetsForViewports([
+          {
+            viewportId: targetViewportId,
+            displaySetInstanceUIDs: [...displaySetInstanceUIDs],
+          },
+        ]);
+
+        if (viewportGridService.setActiveViewportId) {
+          viewportGridService.setActiveViewportId(targetViewportId);
+        }
+      }
+    } catch (error) {
+      console.warn('VariationPanel: Failed to restore initial viewport state', error);
+    }
+  }, [viewportGridService]);
 
   const isAbnormal = answers['Normal / Abnormal'] === 'Abnormal';
   const isNormal = answers['Normal / Abnormal'] === 'Normal';
@@ -61,6 +213,8 @@ const VariationPanel = ({ commandsManager, servicesManager, extensionManager }) 
     // ⬇️ fully reset both sides on Cancel
     setGateResetKey(k => k + 1);
     setAbnormalResetKey(k => k + 1);
+
+    restoreInitialViewport();
   };
 
   // Button enable rules:
