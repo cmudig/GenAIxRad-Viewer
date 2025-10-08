@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 
-import HistoryPanel from './tabs/HistoryPanel';
-import MimicPanel from './tabs/MimicPanel';
+// import HistoryPanel from './tabs/HistoryPanel';
+// import MimicPanel from './tabs/MimicPanel';
 import VariationPanel from './tabs/VariationPanel';
 import RadiopaediaComponent from './RadiopaediaComponent';
 import ExampleComponent from './ExampleComponent';
 
 const tabComponents = {
-  history: HistoryPanel,
-  mimic: MimicPanel,
+  // history: HistoryPanel,
+  // mimic: MimicPanel,
   variation: VariationPanel,
   example: ExampleComponent,
   radiopaedia: RadiopaediaComponent,
@@ -19,14 +19,19 @@ const tabIconExtensions: Record<string, 'png'> = {
 };
 
 function ExplanationComponent({ commandsManager, extensionManager, servicesManager }) {
-  const [selectedLabel, setSelectedLabel] = useState('history');
+  const defaultTab = Object.keys(tabComponents)[0];
+  const [selectedLabel, setSelectedLabel] = useState(defaultTab);
 
   const handleNavClick = label => {
+    if (!tabComponents[label]) {
+      console.warn(`ExplanationComponent: unknown tab '${label}'`);
+      return;
+    }
     console.log(`Navigating to nav-button-${label} panel`);
     setSelectedLabel(label);
   };
 
-  const SelectedPanel = tabComponents[selectedLabel];
+    const ActivePanel = tabComponents[selectedLabel] ?? tabComponents[defaultTab];
 
   return (
     <div className="ohif-scrollbar flex flex-col" data-cy="explanation-component">
@@ -53,7 +58,7 @@ function ExplanationComponent({ commandsManager, extensionManager, servicesManag
 
         {/* Selected Panel Rendered Here */}
         <div className="my-4" data-cy="selected-panel">
-          <SelectedPanel
+          <ActivePanel
             commandsManager={commandsManager}
             servicesManager={servicesManager}
             extensionManager={extensionManager}
