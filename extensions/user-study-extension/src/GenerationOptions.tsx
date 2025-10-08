@@ -409,8 +409,9 @@ const getViewportsArray = (state: any): any[] => {
         const layout = state?.layout ?? {};
         const baseNumCols = Number(layout?.numCols) || Math.max(previousViewports.length, 1);
         const baseNumRows = Number(layout?.numRows) || 1;
-        const newNumCols = baseNumCols + 1;
-        const newNumRows = baseNumRows || 1;
+        const isVariationTab = tab === 'variation';
+        const newNumCols = isVariationTab ? 2 : baseNumCols + 1;
+        const newNumRows = isVariationTab ? 1 : baseNumRows || 1;
 
         const viewportsByPosition = new Map<string, any>();
         previousViewports.forEach(existing => {

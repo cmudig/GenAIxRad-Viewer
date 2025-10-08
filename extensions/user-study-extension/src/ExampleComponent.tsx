@@ -44,6 +44,16 @@ const getViewportsArray = (state: any): any[] => {
 };
 
 const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) => {
+  const initialViewportRef = useRef<
+    | null
+    | {
+        displaySetInstanceUIDs: string[];
+        displaySetOptions?: any;
+        viewportOptions?: any;
+      }
+  >(null);
+  const initialPromptRef = useRef<string | null>(null);
+
   const viewportGridService =
     servicesManager?.services?.viewportGridService ||
     servicesManager?.services?.ViewportGridService;
@@ -157,6 +167,10 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
         setSeriesPrompt(null);
         setLoadingPrompt(false);
         return;
+      }
+
+      if (!initialPromptRef.current) {
+        initialPromptRef.current = seriesInstanceUID;
       }
 
       setLoadingPrompt(true);
@@ -418,6 +432,31 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
       setLastAppliedMatches(selected);
       setMatchPrompts({});
       loadPromptsForMatches(selected);
+
+      const stateAfter =
+        viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+      const viewportsAfter = getViewportsArray(stateAfter);
+      const firstViewport = viewportsAfter[0];
+      if (firstViewport) {
+        const cloneOptions = (options: any) => {
+          if (!options) {
+            return undefined;
+          }
+          if (Array.isArray(options)) {
+            return options.map(option => ({ ...(option || {}) }));
+          }
+          if (typeof options === 'object') {
+            return { ...options };
+          }
+          return options;
+        };
+
+        initialViewportRef.current = {
+          displaySetInstanceUIDs: [...(firstViewport.displaySetInstanceUIDs || [])],
+          displaySetOptions: cloneOptions(firstViewport.displaySetOptions),
+          viewportOptions: { ...(firstViewport.viewportOptions || {}) },
+        };
+      }
     } catch (err) {
       console.error('ExampleComponent: Failed to apply example comparisons', err);
       setError('Failed to update viewports for the requested comparisons.');
@@ -433,6 +472,72 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
     numComparisons,
     loadPromptsForMatches,
   ]);
+
+  const handleResetExamples = useCallback(async () => {
+    if (!viewportGridService) {
+      return;
+    }
+
+    setError(null);
+    setLastAppliedMatches([]);
+    setMatchPrompts({});
+
+    const initialViewport = initialViewportRef.current;
+
+    if (!initialViewport || !initialViewport.displaySetInstanceUIDs?.length) {
+      return;
+    }
+
+    try {
+      const { displaySetInstanceUIDs, displaySetOptions, viewportOptions } = initialViewport;
+
+      const cloneOptions = (options: any) => {
+        if (!options) {
+          return undefined;
+        }
+        if (Array.isArray(options)) {
+          return options.map(option => ({ ...(option || {}) }));
+        }
+        if (typeof options === 'object') {
+          return { ...options };
+        }
+        return options;
+      };
+
+      const findOrCreateViewport = () => ({
+        displaySetInstanceUIDs: [...displaySetInstanceUIDs],
+        displaySetOptions: cloneOptions(displaySetOptions),
+        viewportOptions: { ...(viewportOptions || {}) },
+      });
+
+      await viewportGridService.setLayout({
+        numCols: 1,
+        numRows: 1,
+        findOrCreateViewport,
+      });
+
+      const updatedState =
+        viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+      const viewports = getViewportsArray(updatedState);
+      const primaryViewport = viewports[0];
+      const targetViewportId = primaryViewport?.viewportId;
+
+      if (targetViewportId) {
+        await viewportGridService.setDisplaySetsForViewports([
+          {
+            viewportId: targetViewportId,
+            displaySetInstanceUIDs: [...displaySetInstanceUIDs],
+          },
+        ]);
+
+        if (viewportGridService.setActiveViewportId) {
+          viewportGridService.setActiveViewportId(targetViewportId);
+        }
+      }
+    } catch (resetError) {
+      console.warn('ExampleComponent: Failed to restore original viewport state', resetError);
+    }
+  }, [viewportGridService]);
 
   const disableApplyButton =
     isApplying ||
@@ -495,18 +600,27 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={applyExamples}
-            disabled={disableApplyButton}
-            className={`w-full rounded-md px-4 py-2 text-xs font-semibold transition-colors ${
-              disableApplyButton
-                ? 'bg-primary-dark text-secondary-light cursor-not-allowed'
-                : 'bg-aqua-pale text-black hover:bg-white'
-            }`}
-          >
-            {isApplying ? 'Loading examples…' : 'Load examples into viewports'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={applyExamples}
+              disabled={disableApplyButton}
+              className={`flex-1 rounded-md px-4 py-2 text-xs font-semibold transition-colors ${
+                disableApplyButton
+                  ? 'bg-primary-dark text-secondary-light cursor-not-allowed'
+                  : 'bg-aqua-pale text-black hover:bg-white'
+              }`}
+            >
+              {isApplying ? 'Loading examples…' : 'Load examples into viewports'}
+            </button>
+            <button
+              type="button"
+              onClick={handleResetExamples}
+              className="flex-1 rounded-md border border-secondary-main px-4 py-2 text-xs font-semibold text-secondary-light transition-colors hover:border-white hover:text-white"
+            >
+              Reset
+            </button>
+          </div>
         </div>
 
         <div className="mb-3">
