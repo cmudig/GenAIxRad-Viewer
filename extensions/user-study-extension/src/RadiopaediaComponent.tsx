@@ -29,11 +29,10 @@ function RadiopaediaComponent({ commandsManager, extensionManager, servicesManag
   }, [servicesManager]);
 
   return (
-    <div className="bg-primary-dark h-full p-4 text-white">
+    <div className="bg-primary-dark flex h-full min-h-0 flex-col p-4 text-white">
       <iframe
         src={url}
-        width="100%"
-        height="100%"
+        className="h-full min-h-0 w-full flex-1"
         style={{ border: 'none' }}
         title="Embedded Radiopaedia Page"
       />

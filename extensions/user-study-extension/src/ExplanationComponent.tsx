@@ -31,11 +31,11 @@ function ExplanationComponent({ commandsManager, extensionManager, servicesManag
     setSelectedLabel(label);
   };
 
-    const ActivePanel = tabComponents[selectedLabel] ?? tabComponents[defaultTab];
+  const ActivePanel = tabComponents[selectedLabel] ?? tabComponents[defaultTab];
 
   return (
-    <div className="ohif-scrollbar flex flex-col" data-cy="explanation-component">
-      <div className="bg-primary-dark flex flex-col justify-center p-4">
+    <div className="ohif-scrollbar flex h-full flex-col" data-cy="explanation-component">
+      <div className="bg-primary-dark flex min-h-0 flex-1 flex-col p-4">
         {/* Navigation Buttons */}
         <div className="flex items-center justify-between">
           {Object.keys(tabComponents).map((label, index) => (
@@ -57,12 +57,14 @@ function ExplanationComponent({ commandsManager, extensionManager, servicesManag
         </div>
 
         {/* Selected Panel Rendered Here */}
-        <div className="my-4" data-cy="selected-panel">
-          <ActivePanel
-            commandsManager={commandsManager}
+        <div className="my-4 flex-1 min-h-0" data-cy="selected-panel">
+          <div className="h-full min-h-0">
+            <ActivePanel
+              commandsManager={commandsManager}
             servicesManager={servicesManager}
-            extensionManager={extensionManager}
-          />
+              extensionManager={extensionManager}
+            />
+          </div>
         </div>
       </div>
     </div>
