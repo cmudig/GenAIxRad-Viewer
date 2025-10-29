@@ -5,6 +5,49 @@ type SeriesPromptProps = {
   servicesManager: any;
 };
 
+const PMAP_SOP_CLASS_UID = '1.2.840.10008.5.1.4.1.1.30';
+
+const getReferencedSeriesInstanceUID = (displaySet: any): string | null => {
+  if (!displaySet) {
+    return null;
+  }
+
+  return (
+    displaySet.referencedSeriesInstanceUID ??
+    displaySet.ReferencedSeriesInstanceUID ??
+    displaySet.getAttribute?.('ReferencedSeriesInstanceUID') ??
+    displaySet.metadata?.ReferencedSeriesInstanceUID ??
+    null
+  );
+};
+
+const getSeriesPromptFromDisplaySet = (displaySet: any) => {
+  if (!displaySet) {
+    return { prompt: null as string | null, changed: false };
+  }
+
+  const prompt =
+    displaySet.SeriesPrompt ??
+    displaySet.seriesPrompt ??
+    displaySet.metadata?.SeriesPrompt ??
+    displaySet.getAttribute?.('SeriesPrompt') ??
+    null;
+
+  const changedRaw =
+    displaySet.SeriesPromptChanged ??
+    displaySet.seriesPromptChanged ??
+    displaySet.metadata?.SeriesPromptChanged ??
+    displaySet.getAttribute?.('SeriesPromptChanged') ??
+    null;
+
+  const changed = String(changedRaw).toLowerCase() === 'true';
+
+  return {
+    prompt: typeof prompt === 'string' && prompt.trim() ? prompt : null,
+    changed,
+  };
+};
+
 const getViewportsArray = (state: any): any[] => {
   if (!state?.viewports) {
     return [];
@@ -164,8 +207,44 @@ const SeriesPrompt: React.FC<SeriesPromptProps> = ({ servicesManager }) => {
   }, [displaySetUID, displaySetService]);
 
   useEffect(() => {
-    setSeriesInstanceUID((ds as any)?.SeriesInstanceUID ?? null);
+    if (!ds) {
+      setSeriesInstanceUID(null);
+      return;
+    }
+
+    const sopClassUID = String((ds as any)?.SOPClassUID ?? '');
+
+    if (sopClassUID === PMAP_SOP_CLASS_UID) {
+      const referenced = getReferencedSeriesInstanceUID(ds);
+      setSeriesInstanceUID(referenced ?? null);
+      return;
+    }
+
+    const uid =
+      (ds as any)?.SeriesInstanceUID ??
+      ds?.metadata?.SeriesInstanceUID ??
+      ds?.getAttribute?.('SeriesInstanceUID') ??
+      null;
+
+    setSeriesInstanceUID(uid ?? null);
   }, [ds]);
+
+  // ---------- Attempt to prime state from display set metadata ----------
+  useEffect(() => {
+    if (!ds) {
+      return;
+    }
+
+    const { prompt, changed } = getSeriesPromptFromDisplaySet(ds);
+
+    if (prompt && !seriesPrompt) {
+      setSeriesPrompt(prompt);
+    }
+
+    if (changed && !seriesPromptChanged) {
+      setSeriesPromptChanged(true);
+    }
+  }, [ds, seriesPrompt, seriesPromptChanged]);
 
   // ---------- Fetch SeriesPrompt and SeriesPromptChanged from metadata ----------
   useEffect(() => {
@@ -196,8 +275,8 @@ const SeriesPrompt: React.FC<SeriesPromptProps> = ({ servicesManager }) => {
         }
 
         if (!cancelled) {
-          setSeriesPrompt(prompt);
-          setSeriesPromptChanged(changed);
+          setSeriesPrompt(prev => (prompt ?? prev ?? null));
+          setSeriesPromptChanged(prev => changed || prev);
         }
       } finally {
         if (!cancelled) {
