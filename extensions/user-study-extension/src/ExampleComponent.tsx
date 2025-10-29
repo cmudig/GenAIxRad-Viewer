@@ -13,6 +13,7 @@ type ComparisonMode = 'similar' | 'dissimilar';
 
 const MIN_COMPARISONS = 2;
 const MAX_COMPARISONS = 5;
+const PMAP_SOP_CLASS_UID = '1.2.840.10008.5.1.4.1.1.30';
 
 const GRID_LAYOUTS: Record<number, { numCols: number; numRows: number }> = {
   1: { numCols: 1, numRows: 1 },
@@ -43,6 +44,60 @@ const getViewportsArray = (state: any): any[] => {
   return [];
 };
 
+const normalizeWord = (value: string): string =>
+  value
+    .replace(/[^A-Za-z0-9]+/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '');
+
+const tokenizeDescription = (description: string): string[] => {
+  if (!description) {
+    return [];
+  }
+  const tokens = new Set<string>();
+  const normalized = normalizeWord(description);
+  if (normalized) {
+    tokens.add(normalized);
+  }
+  description
+    .split(/[\s,_-]+/)
+    .map(part => normalizeWord(part))
+    .forEach(token => {
+      if (token) {
+        tokens.add(token);
+      }
+    });
+  return Array.from(tokens);
+};
+
+const getSeriesDescription = (displaySet: any): string => {
+  if (!displaySet) {
+    return '';
+  }
+  return (
+    displaySet.SeriesDescription ??
+    displaySet.seriesDescription ??
+    displaySet.metadata?.SeriesDescription ??
+    displaySet.getAttribute?.('SeriesDescription') ??
+    ''
+  );
+};
+
+const getReferencedSeriesInstanceUID = (displaySet: any): string | null => {
+  if (!displaySet) {
+    return null;
+  }
+
+  return (
+    displaySet.referencedSeriesInstanceUID ??
+    displaySet.ReferencedSeriesInstanceUID ??
+    displaySet.metadata?.ReferencedSeriesInstanceUID ??
+    displaySet.getAttribute?.('ReferencedSeriesInstanceUID') ??
+    null
+  );
+};
+
 const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) => {
   const initialViewportRef = useRef<
     | null
@@ -59,6 +114,12 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
     servicesManager?.services?.ViewportGridService;
   const displaySetService =
     servicesManager?.services?.displaySetService || servicesManager?.services?.DisplaySetService;
+  const hangingProtocolService =
+    servicesManager?.services?.hangingProtocolService ||
+    servicesManager?.services?.HangingProtocolService;
+  const uiNotificationService =
+    servicesManager?.services?.uiNotificationService ||
+    servicesManager?.services?.UINotificationService;
 
   const [activeViewportId, setActiveViewportId] = useState<string | null>(null);
   const [viewportVersion, setViewportVersion] = useState(0);
@@ -75,6 +136,20 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
   const [matchPrompts, setMatchPrompts] = useState<Record<string, string | null>>({});
   const [loadingMatchPrompts, setLoadingMatchPrompts] = useState(false);
   const promptRequestRef = useRef(0);
+  const [clsOverlaysVisible, setClsOverlaysVisible] = useState(false);
+  const [clsToggleBusy, setClsToggleBusy] = useState(false);
+  const [clsTargetsAvailable, setClsTargetsAvailable] = useState(false);
+  const clsAssignmentsRef = useRef<
+    Map<
+      string,
+      {
+        baseDisplaySetUID: string;
+        baseSeriesInstanceUID: string | null;
+        description: string;
+      }
+    >
+  >(new Map());
+  const clsPmapCacheRef = useRef<Map<string, string>>(new Map());
 
   const activeDisplaySet = useMemo(() => {
     if (!activeDisplaySetUID || !displaySetService?.getDisplaySetByUID) {
@@ -202,6 +277,7 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
   useEffect(() => {
     setError(null);
     setLastAppliedMatches([]);
+    setClsOverlaysVisible(false);
   }, [seriesInstanceUID]);
 
   const handleComparisonModeChange = useCallback((mode: ComparisonMode) => {
@@ -432,6 +508,35 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
       setLastAppliedMatches(selected);
       setMatchPrompts({});
       loadPromptsForMatches(selected);
+      clsPmapCacheRef.current.clear();
+      clsAssignmentsRef.current.clear();
+      assignments.forEach(item => {
+        if (!item?.viewportId || !item.displaySetInstanceUIDs?.length) {
+          return;
+        }
+        const baseDisplaySetUID = item.displaySetInstanceUIDs[0];
+        try {
+          const ds = displaySetService.getDisplaySetByUID(baseDisplaySetUID);
+          const seriesUID =
+            ds?.SeriesInstanceUID ??
+            ds?.metadata?.SeriesInstanceUID ??
+            ds?.getAttribute?.('SeriesInstanceUID') ??
+            null;
+          const description = getSeriesDescription(ds);
+          clsAssignmentsRef.current.set(item.viewportId, {
+            baseDisplaySetUID,
+            baseSeriesInstanceUID: seriesUID ?? null,
+            description,
+          });
+        } catch (assignmentError) {
+          console.warn(
+            'ExampleComponent: unable to resolve display set for CLS overlay mapping',
+            assignmentError
+          );
+        }
+      });
+      setClsTargetsAvailable(clsAssignmentsRef.current.size > 0);
+      setClsOverlaysVisible(false);
 
       const stateAfter =
         viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
@@ -481,6 +586,10 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
     setError(null);
     setLastAppliedMatches([]);
     setMatchPrompts({});
+    clsAssignmentsRef.current.clear();
+    clsPmapCacheRef.current.clear();
+    setClsTargetsAvailable(false);
+    setClsOverlaysVisible(false);
 
     const initialViewport = initialViewportRef.current;
 
@@ -546,6 +655,192 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
     !activeDisplaySet ||
     !seriesPrompt ||
     loadingPrompt;
+
+  const findClsPmapDisplaySet = useCallback(
+    (seriesUID: string | null) => {
+      if (!seriesUID || !displaySetService) {
+        return null;
+      }
+
+      const cached = clsPmapCacheRef.current.get(seriesUID);
+      if (cached) {
+        try {
+          return displaySetService.getDisplaySetByUID(cached);
+        } catch {
+          clsPmapCacheRef.current.delete(seriesUID);
+        }
+      }
+
+      const displaySets = displaySetService.getActiveDisplaySets?.() ?? [];
+      for (const ds of displaySets) {
+        if (!ds) {
+          continue;
+        }
+
+        const sopClassUID = String(ds.SOPClassUID ?? '');
+        if (sopClassUID !== PMAP_SOP_CLASS_UID) {
+          continue;
+        }
+
+        const referencedUID = getReferencedSeriesInstanceUID(ds);
+        if (referencedUID !== seriesUID) {
+          continue;
+        }
+
+        const description = getSeriesDescription(ds);
+        const tokens = tokenizeDescription(description);
+        if (!tokens.includes('cls')) {
+          continue;
+        }
+
+        clsPmapCacheRef.current.set(seriesUID, ds.displaySetInstanceUID);
+        return ds;
+      }
+
+      return null;
+    },
+    [displaySetService]
+  );
+
+  const toggleClsOverlays = useCallback(async () => {
+    if (!viewportGridService || !displaySetService) {
+      return;
+    }
+
+    if (!clsAssignmentsRef.current.size) {
+      uiNotificationService?.show?.({
+        title: 'Overlay unavailable',
+        message: 'Load examples first to enable entire prompt overlays.',
+        type: 'info',
+        duration: 2500,
+      });
+      return;
+    }
+
+    if (!hangingProtocolService) {
+      uiNotificationService?.show?.({
+        title: 'Service unavailable',
+        message: 'Hanging protocol service is required to update viewports.',
+        type: 'error',
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (clsToggleBusy) {
+      return;
+    }
+
+    setClsToggleBusy(true);
+
+    try {
+      const state =
+        viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+      const isHangingLayout =
+        typeof state?.isHangingProtocolLayout === 'boolean'
+          ? state.isHangingProtocolLayout
+          : true;
+
+      const updatesMap = new Map<string, any>();
+      const missingSeries: string[] = [];
+      const targetVisible = !clsOverlaysVisible;
+
+      for (const [viewportId, info] of clsAssignmentsRef.current.entries()) {
+        let targetDisplaySetUID: string | null = null;
+
+        if (targetVisible) {
+          const pmapDisplaySet = findClsPmapDisplaySet(info.baseSeriesInstanceUID);
+          if (pmapDisplaySet) {
+            targetDisplaySetUID = pmapDisplaySet.displaySetInstanceUID;
+          } else {
+            missingSeries.push(info.description || info.baseSeriesInstanceUID || viewportId);
+            continue;
+          }
+        } else {
+          targetDisplaySetUID = info.baseDisplaySetUID || null;
+        }
+
+        if (!targetDisplaySetUID) {
+          continue;
+        }
+
+        let viewportUpdates: any[] = [];
+        try {
+          viewportUpdates =
+            hangingProtocolService.getViewportsRequireUpdate?.(
+              viewportId,
+              targetDisplaySetUID,
+              isHangingLayout
+            ) ?? [];
+        } catch (hpError) {
+          console.warn(
+            'ExampleComponent: hanging protocol update failed for viewport',
+            viewportId,
+            hpError
+          );
+        }
+
+        if (!viewportUpdates.length) {
+          viewportUpdates = [
+            {
+              viewportId,
+              displaySetInstanceUIDs: [targetDisplaySetUID],
+            },
+          ];
+        }
+
+        viewportUpdates.forEach(update => updatesMap.set(update.viewportId, update));
+      }
+
+      if (!updatesMap.size) {
+        if (targetVisible) {
+          const message =
+            missingSeries.length > 0
+              ? `No CLS parametric maps found for: ${missingSeries.slice(0, 3).join(', ')}`
+              : 'No CLS parametric maps available for the displayed series.';
+          uiNotificationService?.show?.({
+            title: 'Overlay unavailable',
+            message,
+            type: 'info',
+            duration: 3000,
+          });
+        }
+        setClsOverlaysVisible(false);
+        return;
+      }
+
+      await viewportGridService.setDisplaySetsForViewports(Array.from(updatesMap.values()));
+      if (targetVisible && missingSeries.length) {
+        uiNotificationService?.show?.({
+          title: 'Partial overlay',
+          message: `CLS overlays applied, but missing for: ${missingSeries
+            .slice(0, 3)
+            .join(', ')}`,
+          type: 'warning',
+          duration: 4000,
+        });
+      }
+      setClsOverlaysVisible(targetVisible);
+    } catch (error) {
+      console.error('ExampleComponent: failed to toggle CLS overlays', error);
+      uiNotificationService?.show?.({
+        title: 'Error',
+        message: 'Unable to update viewports with CLS overlays.',
+        type: 'error',
+        duration: 3000,
+      });
+    } finally {
+      setClsToggleBusy(false);
+    }
+  }, [
+    clsOverlaysVisible,
+    clsToggleBusy,
+    displaySetService,
+    findClsPmapDisplaySet,
+    hangingProtocolService,
+    uiNotificationService,
+    viewportGridService,
+  ]);
 
   return (
     <div className="border-primary-main flex h-full flex-col rounded-md border p-3">
@@ -620,6 +915,28 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
             >
               Reset
             </button>
+          </div>
+
+          <div>
+            <button
+              type="button"
+              onClick={toggleClsOverlays}
+              disabled={!clsTargetsAvailable || clsToggleBusy}
+              className={`w-full rounded-md px-4 py-2 text-xs font-semibold transition-colors ${
+                !clsTargetsAvailable || clsToggleBusy
+                  ? 'bg-primary-dark text-secondary-light cursor-not-allowed'
+                  : clsOverlaysVisible
+                    ? 'bg-primary-main text-black hover:bg-aqua-pale'
+                    : 'bg-black text-secondary-light border border-secondary-main hover:border-white hover:text-white'
+              }`}
+            >
+              {clsOverlaysVisible ? 'Hide entire prompt overlays' : 'Show entire prompt overlays'}
+            </button>
+            {!clsTargetsAvailable && (
+              <div className="mt-1 text-[11px] text-secondary-light">
+                Load examples to enable CLS overlays.
+              </div>
+            )}
           </div>
         </div>
 

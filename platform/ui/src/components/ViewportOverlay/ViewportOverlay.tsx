@@ -340,7 +340,7 @@ const ViewportOverlay = ({
         {topRight}
 
         {/* 🔹 Updated Explain Button */}
-        <button
+        {/* <button
           style={{
             padding: '5px 10px',
             backgroundColor: '#00bcd4',
@@ -353,7 +353,7 @@ const ViewportOverlay = ({
           onClick={handleExplainClick}
         >
           {isPmapVisible ? 'Hide' : 'Explain'}
-        </button>
+        </button> */}
       </div>
       <div
         data-cy={'viewport-overlay-bottom-right'}
