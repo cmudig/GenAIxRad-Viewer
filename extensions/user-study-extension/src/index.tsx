@@ -31,8 +31,8 @@ export default {
       {
         name: 'study-question-panel',
         iconName: 'tab-studies',
-        iconLabel: 'Questions',
-        label: 'Participant Study',
+        iconLabel: 'Series Prompt',
+        label: 'Series Prompt',
         component: StudyQuestionComponent.bind(null, {
           commandsManager,
           extensionManager,
