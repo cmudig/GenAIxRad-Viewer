@@ -1,14 +1,10 @@
 import React from 'react';
-import QuestionPanel from './QuestionPanel';
+import SeriesPrompt from './SeriesPrompt';
 
 function StudyQuestionComponent({ commandsManager, extensionManager, servicesManager }) {
   return (
-    <div className="p-4 bg-primary-dark text-white" data-cy="study-question-component">
-      <QuestionPanel
-        commandsManager={commandsManager}
-        extensionManager={extensionManager}
-        servicesManager={servicesManager}
-      />
+    <div className="p-4 bg-primary-dark text-white h-full" data-cy="study-question-component">
+      <SeriesPrompt servicesManager={servicesManager} />
     </div>
   );
 }
