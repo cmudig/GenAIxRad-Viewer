@@ -1,165 +1,50 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useViewportGrid } from '@ohif/ui';
 import { getRenderingEngine, StackViewport, VolumeViewport } from '@cornerstonejs/core';
 import { jumpToSlice } from '@cornerstonejs/core/utilities';
-import { getMetadataFromSeries } from '../../../platform/app/src/components/dicom_helpers';
 
 const PMAP_SOP_CLASS_UID = '1.2.840.10008.5.1.4.1.1.30';
 const PMAP_STATE_KEY = 'pmap_visibility_state';
 const ORIGINAL_DS_UID_KEY = 'original_display_set_uid';
+const SELECTED_PMAP_UID_KEY = 'selected_pmap_uid';
+const ENTIRE_PROMPT_PATTERN = /\b(CLS|SINGLE)\b/i;
 
-const safeSession = {
-  get: (key: string) => {
-    if (typeof window === 'undefined' || !window.sessionStorage) {
-      return null;
-    }
-    try {
-      return window.sessionStorage.getItem(key);
-    } catch {
-      return null;
-    }
-  },
-  set: (key: string, value: string) => {
-    if (typeof window === 'undefined' || !window.sessionStorage) {
-      return;
-    }
-    try {
-      window.sessionStorage.setItem(key, value);
-    } catch {
-      /* ignore session storage failures */
-    }
-  },
-  remove: (key: string) => {
-    if (typeof window === 'undefined' || !window.sessionStorage) {
-      return;
-    }
-    try {
-      window.sessionStorage.removeItem(key);
-    } catch {
-      /* ignore session storage failures */
-    }
-  },
+type RadiopaediaComponentProps = {
+  commandsManager: any;
+  servicesManager: any;
+  extensionManager: any;
 };
 
-type WordEntry = {
-  original: string;
-  normalized: string;
+type ViewportEntry = {
+  viewportId: string;
+  displaySetInstanceUIDs?: string[];
+  [key: string]: any;
+} | null;
+
+type PmapEntry = {
+  displaySetInstanceUID: string;
+  seriesDescription: string;
+  label: string;
+  isEntirePrompt: boolean;
 };
 
 type ViewportState = {
   imageIndex?: number;
   voiRange?: { lower: number; upper: number };
   colormap?: Record<string, unknown>;
-} | null;
-
-const normalizeWord = (value: string): string =>
-  value
-    .replace(/[^A-Za-z0-9]+/g, ' ')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '');
-
-const tokenizeDescription = (description: string): string[] => {
-  const normalized = normalizeWord(description);
-  const tokens = new Set<string>();
-
-  if (normalized) {
-    tokens.add(normalized);
-  }
-
-  description
-    .split(/[\s,_-]+/)
-    .map(part => normalizeWord(part))
-    .forEach(token => {
-      if (token) {
-        tokens.add(token);
-      }
-    });
-
-  return Array.from(tokens);
 };
 
-const getSeriesDescription = (displaySet: any): string => {
-  if (!displaySet) {
-    return '';
-  }
-
-  return (
-    displaySet.SeriesDescription ??
-    displaySet.seriesDescription ??
-    displaySet.getAttribute?.('SeriesDescription') ??
-    displaySet.metadata?.SeriesDescription ??
-    ''
-  );
-};
-
-const getReferencedSeriesInstanceUID = (displaySet: any): string | null => {
-  if (!displaySet) {
+const getViewportEntry = (viewports: any, viewportId: string | null): ViewportEntry => {
+  if (!viewports || !viewportId) {
     return null;
   }
-
-  return (
-    displaySet.referencedSeriesInstanceUID ??
-    displaySet.ReferencedSeriesInstanceUID ??
-    displaySet.getAttribute?.('ReferencedSeriesInstanceUID') ??
-    displaySet.metadata?.ReferencedSeriesInstanceUID ??
-    null
-  );
-};
-
-const getSeriesPromptFromDisplaySet = (displaySet: any): string | null => {
-  if (!displaySet) {
-    return null;
-  }
-
-  const prompt =
-    displaySet.SeriesPrompt ??
-    displaySet.seriesPrompt ??
-    displaySet.metadata?.SeriesPrompt ??
-    displaySet.getAttribute?.('SeriesPrompt') ??
-    null;
-
-  if (typeof prompt === 'string' && prompt.trim()) {
-    return prompt;
-  }
-
-  return null;
-};
-
-const getViewportsArray = (state: any): any[] => {
-  if (!state?.viewports) {
-    return [];
-  }
-
-  const { viewports } = state;
-
-  if (Array.isArray(viewports)) {
-    return viewports;
-  }
-
-  if (typeof viewports.values === 'function') {
-    return Array.from(viewports.values());
-  }
-
-  if (typeof viewports === 'object') {
-    return Object.values(viewports);
-  }
-
-  return [];
-};
-
-const getViewportEntryById = (state: any, viewportId: string | null | undefined) => {
-  if (!viewportId || !state?.viewports) {
-    return null;
-  }
-
-  const { viewports } = state;
 
   if (typeof viewports.get === 'function') {
     return viewports.get(viewportId) ?? null;
   }
 
   if (Array.isArray(viewports)) {
-    return viewports.find(viewport => viewport?.viewportId === viewportId) ?? null;
+    return viewports.find(item => item?.viewportId === viewportId) ?? null;
   }
 
   if (typeof viewports === 'object') {
@@ -169,7 +54,136 @@ const getViewportEntryById = (state: any, viewportId: string | null | undefined)
   return null;
 };
 
-const captureViewportState = (viewport: any): ViewportState => {
+const safeString = (value: any): string => {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (value == null) {
+    return '';
+  }
+
+  return String(value);
+};
+
+const getSeriesDescription = (displaySet: any): string => {
+  if (!displaySet) {
+    return '';
+  }
+
+  return (
+    safeString(displaySet.SeriesDescription) ||
+    safeString(displaySet.seriesDescription) ||
+    safeString(displaySet.metadata?.SeriesDescription) ||
+    safeString(displaySet.getAttribute?.('SeriesDescription'))
+  );
+};
+
+const getSeriesInstanceUID = (displaySet: any): string | null => {
+  if (!displaySet) {
+    return null;
+  }
+
+  return (
+    safeString(displaySet.SeriesInstanceUID) ||
+    safeString(displaySet.seriesInstanceUID) ||
+    safeString(displaySet.metadata?.SeriesInstanceUID) ||
+    safeString(displaySet.getAttribute?.('SeriesInstanceUID')) ||
+    null
+  );
+};
+
+const getReferencedSeriesInstanceUID = (displaySet: any): string | null => {
+  if (!displaySet) {
+    return null;
+  }
+
+  return (
+    safeString(displaySet.referencedSeriesInstanceUID) ||
+    safeString(displaySet.ReferencedSeriesInstanceUID) ||
+    safeString(displaySet.metadata?.ReferencedSeriesInstanceUID) ||
+    safeString(displaySet.getAttribute?.('ReferencedSeriesInstanceUID')) ||
+    null
+  );
+};
+
+const getSOPClassUID = (displaySet: any): string => {
+  if (!displaySet) {
+    return '';
+  }
+
+  return (
+    safeString(displaySet.SOPClassUID) ||
+    safeString(displaySet.sopClassUID) ||
+    safeString(displaySet.metadata?.SOPClassUID) ||
+    safeString(displaySet.getAttribute?.('SOPClassUID'))
+  );
+};
+
+const isPmapDisplaySet = (displaySet: any): boolean =>
+  getSOPClassUID(displaySet) === PMAP_SOP_CLASS_UID;
+
+const derivePmapLabel = (description: string, fallback: string): string => {
+  if (!description) {
+    return fallback;
+  }
+
+  const sanitized = description
+    .replace(/\b(PMAP|Probability Map|Saliency Map|Map|Highlight)\b/gi, '')
+    .replace(/\b(CLS|SINGLE)\b/gi, '')
+    .replace(/[_]+/g, ' ')
+    .trim();
+
+  const quotedMatch = sanitized.match(/["']([^"']+)["']/);
+  if (quotedMatch) {
+    return quotedMatch[1];
+  }
+
+  const parentheticalMatch = sanitized.match(/\(([^()]+)\)/);
+  if (parentheticalMatch) {
+    return parentheticalMatch[1];
+  }
+
+  const colonParts = sanitized.split(':').map(part => part.trim()).filter(Boolean);
+  if (colonParts.length > 1) {
+    return colonParts[colonParts.length - 1];
+  }
+
+  const hyphenParts = sanitized.split(/[-\u2013\u2014]/).map(part => part.trim()).filter(Boolean);
+  if (hyphenParts.length > 1) {
+    return hyphenParts[hyphenParts.length - 1];
+  }
+
+  if (sanitized.includes(' ')) {
+    const tokens = sanitized.split(/\s+/).filter(Boolean);
+    if (tokens.length) {
+      return tokens[tokens.length - 1];
+    }
+  }
+
+  return sanitized || fallback;
+};
+
+const buildPmapEntry = (displaySet: any): PmapEntry | null => {
+  if (!displaySet || !displaySet.displaySetInstanceUID) {
+    return null;
+  }
+
+  const seriesDescription = getSeriesDescription(displaySet);
+  const isEntirePrompt = ENTIRE_PROMPT_PATTERN.test(seriesDescription);
+  const label = isEntirePrompt
+    ? `Entire Prompt${seriesDescription ? ` (${seriesDescription})` : ''}`
+    : derivePmapLabel(seriesDescription, seriesDescription || 'Word Overlay');
+
+  return {
+    displaySetInstanceUID: displaySet.displaySetInstanceUID,
+    seriesDescription,
+    label,
+    isEntirePrompt,
+  };
+};
+
+const captureViewportState = (viewport: any): ViewportState | null => {
   if (!viewport) {
     return null;
   }
@@ -184,21 +198,37 @@ const captureViewportState = (viewport: any): ViewportState => {
 
   if (viewport instanceof StackViewport) {
     const properties = viewport.getProperties?.();
-    state.voiRange = properties?.voiRange;
-    state.colormap = properties?.colormap;
+    if (properties?.voiRange) {
+      state.voiRange = properties.voiRange;
+    }
+    if (properties?.colormap) {
+      state.colormap = properties.colormap;
+    }
   } else if (viewport instanceof VolumeViewport) {
     const volumeId = viewport.getVolumeId?.();
     if (volumeId) {
       const properties = viewport.getProperties?.(volumeId);
-      state.voiRange = properties?.voiRange;
-      state.colormap = properties?.colormap;
+      if (properties?.voiRange) {
+        state.voiRange = properties.voiRange;
+      }
+      if (properties?.colormap) {
+        state.colormap = properties.colormap;
+      }
+    }
+  } else {
+    const properties = viewport.getProperties?.();
+    if (properties?.voiRange) {
+      state.voiRange = properties.voiRange;
+    }
+    if (properties?.colormap) {
+      state.colormap = properties.colormap;
     }
   }
 
   return state;
 };
 
-const setInitialImageOverrides = (viewportsToUpdate: any[], viewportState: ViewportState) => {
+const setInitialImageOverrides = (viewportsToUpdate: any[], viewportState: ViewportState | null) => {
   if (!viewportState || viewportState.imageIndex === undefined) {
     return viewportsToUpdate;
   }
@@ -226,7 +256,13 @@ const setInitialImageOverrides = (viewportsToUpdate: any[], viewportState: Viewp
   });
 };
 
-const restoreViewportState = (viewportId: string, viewportState: ViewportState) => {
+const restoreViewportState = ({
+  viewportId,
+  viewportState,
+}: {
+  viewportId: string;
+  viewportState: ViewportState | null;
+}) => {
   if (!viewportState) {
     return;
   }
@@ -287,777 +323,502 @@ const restoreViewportState = (viewportId: string, viewportState: ViewportState) 
   viewport.render?.();
 };
 
-const waitForViewportVolumes = (cornerstoneViewportService: any, viewportId: string) => {
-  if (!cornerstoneViewportService || !viewportId) {
-    return Promise.resolve();
-  }
+const RadiopaediaComponent: React.FC<RadiopaediaComponentProps> = ({ servicesManager }) => {
+  const [{ activeViewportId, viewports, isHangingProtocolLayout }, viewportGridService] =
+    useViewportGrid();
+  const [displaySetVersion, setDisplaySetVersion] = useState(0);
+  const [selectedPmapUID, setSelectedPmapUID] = useState<string | null>(null);
+  const [isBusy, setIsBusy] = useState(false);
 
-  return new Promise<void>(resolve => {
-    let resolved = false;
-    let timeoutId: number | undefined;
-    let unsubscribe: (() => void) | undefined;
+  const {
+    displaySetService,
+    hangingProtocolService,
+    uiNotificationService,
+    cornerstoneViewportService,
+  } = servicesManager?.services ?? {};
 
-    const cleanup = () => {
-      if (resolved) {
-        return;
-      }
-      resolved = true;
-      if (timeoutId !== undefined) {
-        window.clearTimeout(timeoutId);
-      }
-      unsubscribe?.();
-      resolve();
-    };
+  useEffect(() => {
+    if (!displaySetService?.subscribe) {
+      return;
+    }
 
-    timeoutId = window.setTimeout(cleanup, 750);
+    const events = [
+      displaySetService.EVENTS?.DISPLAY_SETS_ADDED,
+      displaySetService.EVENTS?.DISPLAY_SETS_CHANGED,
+      displaySetService.EVENTS?.DISPLAY_SETS_REMOVED,
+      displaySetService.EVENTS?.DISPLAY_SET_SERIES_METADATA_INVALIDATED,
+    ].filter(Boolean);
 
-    const subscription = cornerstoneViewportService.subscribe(
-      cornerstoneViewportService.EVENTS?.VIEWPORT_VOLUMES_CHANGED || 'VIEWPORT_VOLUMES_CHANGED',
-      ({ viewportInfo }) => {
-        if (viewportInfo?.viewportId === viewportId) {
-          cleanup();
-        }
-      }
+    const subscriptions = events.map(event =>
+      displaySetService.subscribe(event, () => {
+        setDisplaySetVersion(prev => prev + 1);
+      })
     );
 
-    unsubscribe = subscription?.unsubscribe;
-
-    if (!subscription) {
-      cleanup();
-    }
-  });
-};
-
-function RadiopaediaComponent({ servicesManager }: any) {
-  const viewportGridService =
-    servicesManager?.services?.viewportGridService ||
-    servicesManager?.services?.ViewportGridService;
-  const displaySetService =
-    servicesManager?.services?.displaySetService || servicesManager?.services?.DisplaySetService;
-  const hangingProtocolService =
-    servicesManager?.services?.hangingProtocolService ||
-    servicesManager?.services?.HangingProtocolService;
-  const cornerstoneViewportService =
-    servicesManager?.services?.cornerstoneViewportService ||
-    servicesManager?.services?.CornerstoneViewportService;
-  const uiNotificationService =
-    servicesManager?.services?.uiNotificationService ||
-    servicesManager?.services?.UINotificationService;
-
-  const [activeViewportId, setActiveViewportId] = useState<string | null>(null);
-  const [activeDisplaySetUID, setActiveDisplaySetUID] = useState<string | null>(null);
-  const [seriesInstanceUID, setSeriesInstanceUID] = useState<string | null>(null);
-  const [seriesPrompt, setSeriesPrompt] = useState<string | null>(null);
-  const [promptError, setPromptError] = useState<string | null>(null);
-  const [isLoadingPrompt, setIsLoadingPrompt] = useState<boolean>(false);
-  const [selectedWord, setSelectedWord] = useState<string | null>(null);
-  const [isBusy, setIsBusy] = useState<boolean>(false);
-  const [displaySetsVersion, setDisplaySetsVersion] = useState(0);
-
-  const busyRef = useRef(false);
-  const originalDisplaySetRef = useRef<Map<string, string>>(new Map());
-  const lastBaseIdentityRef = useRef<string | null>(null);
-
-  const setBusy = useCallback((value: boolean) => {
-    busyRef.current = value;
-    setIsBusy(value);
-  }, []);
-
-  const syncFromViewportState = useCallback(() => {
-    if (!viewportGridService) {
-      return;
-    }
-
-    const state =
-      viewportGridService.getState?.() || viewportGridService.getViewportGridState?.() || {};
-
-    const viewports = getViewportsArray(state);
-    const resolvedActiveId = state?.activeViewportId ?? viewports[0]?.viewportId ?? null;
-
-    setActiveViewportId(prev => (prev === resolvedActiveId ? prev : resolvedActiveId));
-
-    const activeViewport =
-      viewports.find(viewport => viewport?.viewportId === resolvedActiveId) ?? viewports[0] ?? null;
-
-    const candidateUID =
-      activeViewport?.displaySetInstanceUIDs?.[0] ||
-      activeViewport?.displaySetOptions?.displaySetInstanceUIDs?.[0] ||
-      null;
-
-    if (candidateUID) {
-      setActiveDisplaySetUID(prev => (prev === candidateUID ? prev : candidateUID));
-      return;
-    }
-
-    if (displaySetService?.getActiveDisplaySets) {
-      const activeDisplaySets = displaySetService.getActiveDisplaySets() ?? [];
-      if (activeDisplaySets.length) {
-        const fallback = activeDisplaySets[0]?.displaySetInstanceUID ?? null;
-        setActiveDisplaySetUID(prev => (prev === fallback ? prev : fallback));
-        return;
-      }
-    }
-
-    setActiveDisplaySetUID(prev => (prev === null ? prev : null));
-  }, [displaySetService, viewportGridService]);
-
-  useEffect(() => {
-    if (!viewportGridService) {
-      return;
-    }
-
-    syncFromViewportState();
-
-    const subscriptions = [
-      viewportGridService.subscribe?.(
-        viewportGridService.EVENTS?.ACTIVE_VIEWPORT_ID_CHANGED || 'ACTIVE_VIEWPORT_ID_CHANGED',
-        syncFromViewportState
-      ),
-      viewportGridService.subscribe?.(
-        viewportGridService.EVENTS?.GRID_STATE_CHANGED || 'GRID_STATE_CHANGED',
-        syncFromViewportState
-      ),
-      viewportGridService.subscribe?.(
-        viewportGridService.EVENTS?.VIEWPORTS_READY || 'VIEWPORTS_READY',
-        syncFromViewportState
-      ),
-      viewportGridService.subscribe?.(
-        viewportGridService.EVENTS?.LAYOUT_CHANGED || 'LAYOUT_CHANGED',
-        syncFromViewportState
-      ),
-    ].filter(Boolean);
-
-    return () => subscriptions.forEach(sub => sub?.unsubscribe?.());
-  }, [syncFromViewportState, viewportGridService]);
-
-  useEffect(() => {
-    if (!displaySetService) {
-      return;
-    }
-
-    const bumpVersion = () => setDisplaySetsVersion(current => current + 1);
-
-    const onAdded = () => {
-      syncFromViewportState();
-      bumpVersion();
-    };
-
-    const subscriptions = [
-      displaySetService.subscribe?.(
-        displaySetService.EVENTS?.DISPLAY_SETS_ADDED || 'DISPLAY_SETS_ADDED',
-        onAdded
-      ),
-      displaySetService.subscribe?.(
-        displaySetService.EVENTS?.DISPLAY_SETS_CHANGED || 'DISPLAY_SETS_CHANGED',
-        bumpVersion
-      ),
-      displaySetService.subscribe?.(
-        displaySetService.EVENTS?.DISPLAY_SETS_REMOVED || 'DISPLAY_SETS_REMOVED',
-        bumpVersion
-      ),
-    ].filter(Boolean);
-
-    return () => subscriptions.forEach(sub => sub?.unsubscribe?.());
-  }, [displaySetService, syncFromViewportState]);
-
-  const activeDisplaySet = useMemo(() => {
-    if (!activeDisplaySetUID || !displaySetService) {
-      return null;
-    }
-
-    try {
-      return displaySetService.getDisplaySetByUID(activeDisplaySetUID);
-    } catch {
-      return null;
-    }
-  }, [activeDisplaySetUID, displaySetService]);
-
-  useEffect(() => {
-    const ds: any = activeDisplaySet;
-
-    if (!ds) {
-      setSeriesInstanceUID(null);
-      return;
-    }
-
-    const sopClassUID = String(ds?.SOPClassUID ?? '');
-    if (sopClassUID === PMAP_SOP_CLASS_UID) {
-      const referenced = getReferencedSeriesInstanceUID(ds);
-      setSeriesInstanceUID(referenced ?? null);
-      return;
-    }
-
-    const uid =
-      ds.SeriesInstanceUID ??
-      ds?.metadata?.SeriesInstanceUID ??
-      ds?.getAttribute?.('SeriesInstanceUID') ??
-      null;
-
-    setSeriesInstanceUID(uid ?? null);
-  }, [activeDisplaySet]);
-
-  useEffect(() => {
-    if (!activeDisplaySet) {
-      return;
-    }
-
-    const prompt = getSeriesPromptFromDisplaySet(activeDisplaySet);
-    if (prompt) {
-      setSeriesPrompt(prompt);
-      setPromptError(null);
-    }
-  }, [activeDisplaySet]);
-
-  useEffect(() => {
-    if (!activeViewportId) {
-      return;
-    }
-
-    const ds: any = activeDisplaySet;
-    const sopClassUID = String(ds?.SOPClassUID ?? '');
-
-    if (sopClassUID === PMAP_SOP_CLASS_UID) {
-      return;
-    }
-
-    const displaySetInstanceUID = ds?.displaySetInstanceUID ?? activeDisplaySetUID;
-    if (!displaySetInstanceUID) {
-      return;
-    }
-
-    const identity = `${activeViewportId}::${displaySetInstanceUID}`;
-
-    if (identity === lastBaseIdentityRef.current) {
-      return;
-    }
-
-    lastBaseIdentityRef.current = identity;
-    setSelectedWord(null);
-    originalDisplaySetRef.current.delete(activeViewportId);
-    safeSession.remove(`${ORIGINAL_DS_UID_KEY}_${activeViewportId}`);
-    safeSession.set(`${PMAP_STATE_KEY}_${activeViewportId}`, 'false');
-  }, [activeDisplaySet, activeDisplaySetUID, activeViewportId]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadPrompt() {
-      if (!seriesInstanceUID) {
-        setSeriesPrompt(null);
-        setPromptError(null);
-        return;
-      }
-
-      setIsLoadingPrompt(true);
-      setPromptError(null);
-
-      try {
-        const prompt = await getMetadataFromSeries(seriesInstanceUID, 'SeriesPrompt');
-        if (!cancelled) {
-          const promptText = typeof prompt === 'string' && prompt.trim() ? prompt : null;
-          setSeriesPrompt(prev => promptText ?? prev ?? null);
-          if (!promptText) {
-            setPromptError(prev => prev ?? 'No prompt metadata found for this series.');
-          } else {
-            setPromptError(null);
-          }
-        }
-      } catch (error) {
-        console.warn('Prompt tab: failed to load SeriesPrompt metadata', error);
-        if (!cancelled) {
-          setSeriesPrompt(prev => prev ?? null);
-          setPromptError(prev => prev ?? 'Unable to load prompt metadata for this series.');
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingPrompt(false);
-        }
-      }
-    }
-
-    loadPrompt();
-
     return () => {
-      cancelled = true;
+      subscriptions.forEach(sub => sub?.unsubscribe?.());
     };
-  }, [seriesInstanceUID]);
+  }, [displaySetService]);
 
-  const promptWords = useMemo<WordEntry[]>(() => {
-    if (!seriesPrompt) {
+  useEffect(() => {
+    if (!activeViewportId || !displaySetService) {
+      setSelectedPmapUID(null);
+      return;
+    }
+
+    const hasSessionStorage = typeof window !== 'undefined' && !!window.sessionStorage;
+
+    const viewportEntry = getViewportEntry(viewports, activeViewportId);
+    const currentDisplaySetUID = viewportEntry?.displaySetInstanceUIDs?.[0] ?? null;
+    if (!currentDisplaySetUID) {
+      setSelectedPmapUID(null);
+      return;
+    }
+
+    let detectedSelectedUID: string | null = null;
+    try {
+      const displaySet = displaySetService.getDisplaySetByUID(currentDisplaySetUID);
+      if (displaySet && isPmapDisplaySet(displaySet)) {
+        detectedSelectedUID = currentDisplaySetUID;
+        if (hasSessionStorage) {
+          sessionStorage.setItem(
+            `${SELECTED_PMAP_UID_KEY}_${activeViewportId}`,
+            currentDisplaySetUID
+          );
+        }
+      } else {
+        detectedSelectedUID = hasSessionStorage
+          ? sessionStorage.getItem(`${SELECTED_PMAP_UID_KEY}_${activeViewportId}`) ?? null
+          : null;
+      }
+    } catch (error) {
+      console.warn('RadiopaediaComponent: failed to resolve current viewport display set', error);
+    }
+
+    setSelectedPmapUID(prev =>
+      prev === detectedSelectedUID ? prev : detectedSelectedUID
+    );
+  }, [activeViewportId, displaySetService, displaySetVersion, viewports]);
+
+  const waitForViewportVolumes = useCallback(
+    (viewportId: string) =>
+      new Promise<void>(resolve => {
+        if (!cornerstoneViewportService) {
+          resolve();
+          return;
+        }
+
+        let resolved = false;
+        let timeoutId: number;
+        let unsubscribe: (() => void) | undefined;
+
+        const cleanup = () => {
+          if (resolved) {
+            return;
+          }
+          resolved = true;
+          window.clearTimeout(timeoutId);
+          unsubscribe?.();
+          resolve();
+        };
+
+        timeoutId = window.setTimeout(cleanup, 750);
+
+        const subscription = cornerstoneViewportService.subscribe(
+          cornerstoneViewportService.EVENTS.VIEWPORT_VOLUMES_CHANGED,
+          ({ viewportInfo }) => {
+            if (viewportInfo.viewportId === viewportId) {
+              cleanup();
+            }
+          }
+        );
+
+        unsubscribe = subscription?.unsubscribe;
+
+        if (!subscription) {
+          cleanup();
+        }
+      }),
+    [cornerstoneViewportService]
+  );
+
+  const availablePmaps: PmapEntry[] = useMemo(() => {
+    if (!displaySetService || !activeViewportId) {
       return [];
     }
 
-    const seen = new Set<string>();
-    const entries: WordEntry[] = [];
-
-    seriesPrompt
-      .split(/\s+/)
-      .map(word => word.trim())
-      .filter(Boolean)
-      .forEach(original => {
-        const normalized = normalizeWord(original);
-        if (!normalized || seen.has(normalized)) {
-          return;
-        }
-        seen.add(normalized);
-        entries.push({ original, normalized });
-      });
-
-    return entries;
-  }, [seriesPrompt]);
-
-  const pmapDisplaySetsByWord = useMemo(() => {
-    const map = new Map<string, any[]>();
-
-    if (!displaySetService || !seriesInstanceUID) {
-      return map;
-    }
-
-    const baseStudyInstanceUID =
-      activeDisplaySet?.StudyInstanceUID ??
-      activeDisplaySet?.metadata?.StudyInstanceUID ??
-      activeDisplaySet?.getAttribute?.('StudyInstanceUID') ??
-      null;
-
-    const cache = displaySetService.getDisplaySetCache?.();
-    const cachedDisplaySets = cache ? Array.from(cache.values()) : [];
-    const activeDisplaySets = displaySetService.getActiveDisplaySets?.() ?? [];
-    const allDisplaySets = cachedDisplaySets.length ? cachedDisplaySets : activeDisplaySets;
-
-    let totalCandidateSeries = 0;
-
-    allDisplaySets.forEach(ds => {
-      if (!ds) {
-        return;
-      }
-
-      if (
-        baseStudyInstanceUID &&
-        ((ds as any).StudyInstanceUID ??
-          ds?.metadata?.StudyInstanceUID ??
-          ds?.getAttribute?.('StudyInstanceUID') ??
-          null) !== baseStudyInstanceUID
-      ) {
-        return;
-      }
-
-      const description = String(getSeriesDescription(ds) || '').trim();
-      if (!description) {
-        return;
-      }
-
-      const tokens = tokenizeDescription(description);
-      if (!tokens.length) {
-        return;
-      }
-
-      tokens.forEach(token => {
-        if (!map.has(token)) {
-          map.set(token, []);
-        }
-        map.get(token)!.push(ds);
-      });
-
-      totalCandidateSeries += 1;
-    });
-
-    console.log('[Prompt words] Indexed study series', {
-      seriesInstanceUID,
-      totalCandidateSeries,
-      tokenBuckets: map.size,
-      tokens: Array.from(map.keys()),
-    });
-
-    return map;
-  }, [activeDisplaySet, displaySetService, seriesInstanceUID, displaySetsVersion]);
-
-  const displayWords = useMemo<WordEntry[]>(() => {
-    const ordered: WordEntry[] = [];
-    const seen = new Set<string>();
-
-    const clsCandidates = pmapDisplaySetsByWord.get('cls');
-    if (clsCandidates?.length) {
-      ordered.push({ original: 'Entire prompt', normalized: 'cls' });
-      seen.add('cls');
-    }
-
-    promptWords.forEach(word => {
-      if (!seen.has(word.normalized)) {
-        ordered.push(word);
-        seen.add(word.normalized);
-      }
-    });
-
-    return ordered;
-  }, [pmapDisplaySetsByWord, promptWords]);
-
-  const findPmapDisplaySetForWord = useCallback(
-    (word: WordEntry) => {
-      const candidates = pmapDisplaySetsByWord.get(word.normalized);
-      if (!candidates?.length) {
-        console.warn('[Prompt words] No candidate probability maps found', {
-          word: word.original,
-          normalized: word.normalized,
-          seriesInstanceUID,
-        });
+    const resolveDisplaySet = (uid: string | null) => {
+      if (!uid) {
         return null;
       }
-
-      const prioritize = (list: any[]) => {
-        const withProbability = list.filter(candidate => {
-          const description = String(getSeriesDescription(candidate) || '');
-          return /probability\s+map/i.test(description);
-        });
-
-        if (withProbability.length) {
-          return withProbability;
-        }
-        return list;
-      };
-
-      const prioritized = prioritize(candidates);
-
-      const exact =
-        prioritized.find(candidate => {
-          const description = String(getSeriesDescription(candidate) || '');
-          return normalizeWord(description) === word.normalized;
-        }) ?? null;
-
-      const chosen = exact ?? prioritized[0];
-
-      console.log('[Prompt words] Matched series for word', {
-        word: word.original,
-        normalized: word.normalized,
-        chosenSeriesDescription: String(getSeriesDescription(chosen) || ''),
-        chosenDisplaySetUID: chosen?.displaySetInstanceUID,
-        totalCandidates: candidates.length,
-        prioritizedCount: prioritized.length,
-        matchType: exact ? 'exact' : 'first-priority',
-      });
-
-      return chosen;
-    },
-    [pmapDisplaySetsByWord]
-  );
-
-  const showPmapForDisplaySet = useCallback(
-    async (word: WordEntry, pmapDisplaySet: any) => {
-      if (!viewportGridService) {
-        uiNotificationService?.show?.({
-          title: 'Error',
-          message: 'Viewport service is unavailable.',
-          type: 'error',
-          duration: 3000,
-        });
-        return;
-      }
-
-      if (!pmapDisplaySet?.displaySetInstanceUID) {
-        uiNotificationService?.show?.({
-          title: 'Error',
-          message: 'Invalid parametric map display set.',
-          type: 'error',
-          duration: 3000,
-        });
-        return;
-      }
-
-      if (busyRef.current) {
-        return;
-      }
-
-      setBusy(true);
-
       try {
-        const state =
-          viewportGridService.getState?.() || viewportGridService.getViewportGridState?.() || {};
-        const viewports = getViewportsArray(state);
-
-        const viewportId =
-          activeViewportId ?? state?.activeViewportId ?? viewports[0]?.viewportId ?? null;
-
-        if (!viewportId) {
-          throw new Error('No active viewport is available.');
-        }
-
-        const isHangingLayout =
-          typeof state?.isHangingProtocolLayout === 'boolean'
-            ? state.isHangingProtocolLayout
-            : true;
-
-        const viewportEntry = getViewportEntryById(state, viewportId);
-        const storedBaseUID = originalDisplaySetRef.current.get(viewportId);
-        const baseUID =
-          storedBaseUID ||
-          safeSession.get(`${ORIGINAL_DS_UID_KEY}_${viewportId}`) ||
-          viewportEntry?.displaySetInstanceUIDs?.[0] ||
-          null;
-
-        if (baseUID) {
-          originalDisplaySetRef.current.set(viewportId, baseUID);
-          safeSession.set(`${ORIGINAL_DS_UID_KEY}_${viewportId}`, baseUID);
-        }
-
-        const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
-        if (!renderingEngine) {
-          throw new Error('Rendering engine is not ready.');
-        }
-
-        const viewport = renderingEngine.getViewport(viewportId);
-        if (!viewport) {
-          throw new Error('Viewport is not available.');
-        }
-
-        const viewportState = captureViewportState(viewport);
-
-        let updatedViewports =
-          hangingProtocolService?.getViewportsRequireUpdate?.(
-            viewportId,
-            pmapDisplaySet.displaySetInstanceUID,
-            isHangingLayout
-          ) ?? [];
-
-        if (!Array.isArray(updatedViewports) || !updatedViewports.length) {
-          updatedViewports = [
-            {
-              viewportId,
-              displaySetInstanceUIDs: [pmapDisplaySet.displaySetInstanceUID],
-            },
-          ];
-        }
-
-        updatedViewports = setInitialImageOverrides(updatedViewports, viewportState);
-
-        const volumesReadyPromise = waitForViewportVolumes(cornerstoneViewportService, viewportId);
-
-        safeSession.set(`${PMAP_STATE_KEY}_${viewportId}`, 'true');
-
-        viewportGridService.setDisplaySetsForViewports(updatedViewports);
-        await volumesReadyPromise;
-
-        restoreViewportState(viewportId, viewportState);
-
-        setSelectedWord(word.normalized);
+        return displaySetService.getDisplaySetByUID(uid);
       } catch (error) {
-        console.error('Prompt words tab: failed to display parametric map', error);
-        uiNotificationService?.show?.({
-          title: 'Error',
-          message: 'Could not display the explanation overlay.',
-          type: 'error',
-          duration: 3000,
-        });
-      } finally {
-        setBusy(false);
+        console.warn('RadiopaediaComponent: failed to resolve display set', error);
+        return null;
       }
-    },
-    [
-      activeViewportId,
-      cornerstoneViewportService,
-      hangingProtocolService,
-      setBusy,
-      uiNotificationService,
-      viewportGridService,
-    ]
-  );
+    };
 
-  const hidePmap = useCallback(async () => {
-    if (!viewportGridService) {
-      setSelectedWord(null);
-      return;
+    const viewportEntry = getViewportEntry(viewports, activeViewportId);
+    const candidateDisplaySetUID = viewportEntry?.displaySetInstanceUIDs?.[0] ?? null;
+
+    let baseDisplaySetUID: string | null = null;
+    let baseDisplaySet: any = null;
+
+    const candidateDisplaySet = resolveDisplaySet(candidateDisplaySetUID);
+    if (candidateDisplaySet && !isPmapDisplaySet(candidateDisplaySet)) {
+      baseDisplaySetUID = candidateDisplaySetUID;
+      baseDisplaySet = candidateDisplaySet;
     }
 
-    if (busyRef.current) {
-      return;
+    if (!baseDisplaySetUID) {
+      const storedOriginal =
+        (typeof window !== 'undefined' && window.sessionStorage
+          ? sessionStorage.getItem(`${ORIGINAL_DS_UID_KEY}_${activeViewportId}`)
+          : null) ?? null;
+      if (storedOriginal) {
+        baseDisplaySetUID = storedOriginal;
+        baseDisplaySet = resolveDisplaySet(storedOriginal);
+      }
     }
 
-    setBusy(true);
+    let targetSeriesInstanceUID: string | null = null;
+    if (baseDisplaySet) {
+      targetSeriesInstanceUID = getSeriesInstanceUID(baseDisplaySet);
+    }
 
-    try {
-      const state =
-        viewportGridService.getState?.() || viewportGridService.getViewportGridState?.() || {};
-      const viewports = getViewportsArray(state);
+    if (!targetSeriesInstanceUID && candidateDisplaySet && isPmapDisplaySet(candidateDisplaySet)) {
+      targetSeriesInstanceUID = getReferencedSeriesInstanceUID(candidateDisplaySet);
+    }
 
-      const viewportId =
-        activeViewportId ?? state?.activeViewportId ?? viewports[0]?.viewportId ?? null;
-
-      if (!viewportId) {
-        throw new Error('No active viewport is available.');
+    if (!targetSeriesInstanceUID && selectedPmapUID) {
+      const selectedDisplaySet = resolveDisplaySet(selectedPmapUID);
+      if (selectedDisplaySet && isPmapDisplaySet(selectedDisplaySet)) {
+        targetSeriesInstanceUID = getReferencedSeriesInstanceUID(selectedDisplaySet);
       }
+    }
 
-      const isHangingLayout =
-        typeof state?.isHangingProtocolLayout === 'boolean' ? state.isHangingProtocolLayout : true;
+    if (!targetSeriesInstanceUID) {
+      return [];
+    }
 
-      const viewportEntry = getViewportEntryById(state, viewportId);
+    const displaySetCache = displaySetService.getDisplaySetCache?.();
+    const allDisplaySets: any[] = displaySetCache
+      ? Array.from(displaySetCache.values())
+      : displaySetService.getActiveDisplaySets?.() ?? [];
 
-      const originalUID =
-        originalDisplaySetRef.current.get(viewportId) ||
-        safeSession.get(`${ORIGINAL_DS_UID_KEY}_${viewportId}`) ||
-        viewportEntry?.displaySetInstanceUIDs?.[0] ||
-        null;
+    const entryMap = new Map<string, PmapEntry>();
 
-      if (!originalUID) {
-        safeSession.set(`${PMAP_STATE_KEY}_${viewportId}`, 'false');
-        safeSession.remove(`${ORIGINAL_DS_UID_KEY}_${viewportId}`);
-        originalDisplaySetRef.current.delete(viewportId);
-        setSelectedWord(null);
+    allDisplaySets.forEach(displaySet => {
+      if (!isPmapDisplaySet(displaySet)) {
+        return;
+      }
+      const referencedUID = getReferencedSeriesInstanceUID(displaySet);
+      if (referencedUID !== targetSeriesInstanceUID) {
+        return;
+      }
+      const entry = buildPmapEntry(displaySet);
+      if (entry) {
+        entryMap.set(entry.displaySetInstanceUID, entry);
+      }
+    });
+
+    if (!entryMap.size && selectedPmapUID) {
+      const selectedDisplaySet = resolveDisplaySet(selectedPmapUID);
+      if (selectedDisplaySet && isPmapDisplaySet(selectedDisplaySet)) {
+        const entry = buildPmapEntry(selectedDisplaySet);
+        if (entry) {
+          entryMap.set(entry.displaySetInstanceUID, entry);
+        }
+      }
+    }
+
+    const entries = Array.from(entryMap.values());
+
+    entries.sort((a, b) => {
+      if (a.isEntirePrompt && !b.isEntirePrompt) {
+        return -1;
+      }
+      if (!a.isEntirePrompt && b.isEntirePrompt) {
+        return 1;
+      }
+      return a.label.localeCompare(b.label);
+    });
+
+    return entries;
+  }, [activeViewportId, displaySetService, displaySetVersion, selectedPmapUID, viewports]);
+
+  const applyDisplaySetToViewport = useCallback(
+    async (viewportId: string, targetDisplaySetUID: string, viewportState: ViewportState | null) => {
+      if (!viewportGridService || !hangingProtocolService) {
         return;
       }
 
-      const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
-      if (!renderingEngine) {
-        throw new Error('Rendering engine is not ready.');
+      let updates: any[] = [];
+      try {
+        updates =
+          hangingProtocolService.getViewportsRequireUpdate?.(
+            viewportId,
+            targetDisplaySetUID,
+            isHangingProtocolLayout
+          ) ?? [];
+      } catch (error) {
+        console.warn('RadiopaediaComponent: hanging protocol update failed', error);
       }
 
-      const viewport = renderingEngine.getViewport(viewportId);
-      if (!viewport) {
-        throw new Error('Viewport is not available.');
-      }
-
-      const viewportState = captureViewportState(viewport);
-
-      let updatedViewports =
-        hangingProtocolService?.getViewportsRequireUpdate?.(
-          viewportId,
-          originalUID,
-          isHangingLayout
-        ) ?? [];
-
-      if (!Array.isArray(updatedViewports) || !updatedViewports.length) {
-        updatedViewports = [
+      if (!updates.length) {
+        updates = [
           {
             viewportId,
-            displaySetInstanceUIDs: [originalUID],
+            displaySetInstanceUIDs: [targetDisplaySetUID],
           },
         ];
       }
 
-      updatedViewports = setInitialImageOverrides(updatedViewports, viewportState);
+      updates = setInitialImageOverrides(updates, viewportState);
 
-      const volumesReadyPromise = waitForViewportVolumes(cornerstoneViewportService, viewportId);
-
-      viewportGridService.setDisplaySetsForViewports(updatedViewports);
+      const volumesReadyPromise = waitForViewportVolumes(viewportId);
+      viewportGridService.setDisplaySetsForViewports(updates);
       await volumesReadyPromise;
 
-      restoreViewportState(viewportId, viewportState);
-
-      safeSession.set(`${PMAP_STATE_KEY}_${viewportId}`, 'false');
-      safeSession.remove(`${ORIGINAL_DS_UID_KEY}_${viewportId}`);
-      originalDisplaySetRef.current.delete(viewportId);
-      setSelectedWord(null);
-    } catch (error) {
-      console.error('Prompt words tab: failed to hide parametric map', error);
-      uiNotificationService?.show?.({
-        title: 'Error',
-        message: 'Could not hide the explanation overlay.',
-        type: 'error',
-        duration: 3000,
+      restoreViewportState({
+        viewportId,
+        viewportState,
       });
-    } finally {
-      setBusy(false);
-    }
-  }, [
-    activeViewportId,
-    cornerstoneViewportService,
-    hangingProtocolService,
-    setBusy,
-    uiNotificationService,
-    viewportGridService,
-  ]);
+    },
+    [hangingProtocolService, isHangingProtocolLayout, viewportGridService, waitForViewportVolumes]
+  );
 
-  const handleWordToggle = useCallback(
-    async (word: WordEntry, shouldActivate: boolean) => {
-      if (busyRef.current) {
+  const ensureOriginalDisplaySetStored = useCallback((): string | null => {
+    if (!activeViewportId || !displaySetService) {
+      return null;
+    }
+
+    const storedOriginal =
+      sessionStorage.getItem(`${ORIGINAL_DS_UID_KEY}_${activeViewportId}`) ?? null;
+    if (storedOriginal) {
+      return storedOriginal;
+    }
+
+    const viewportEntry = getViewportEntry(viewports, activeViewportId);
+    const currentDisplaySetUID = viewportEntry?.displaySetInstanceUIDs?.[0] ?? null;
+    if (!currentDisplaySetUID) {
+      return null;
+    }
+
+    try {
+      const currentDisplaySet = displaySetService.getDisplaySetByUID(currentDisplaySetUID);
+      if (currentDisplaySet && !isPmapDisplaySet(currentDisplaySet)) {
+        sessionStorage.setItem(`${ORIGINAL_DS_UID_KEY}_${activeViewportId}`, currentDisplaySetUID);
+        return currentDisplaySetUID;
+      }
+    } catch (error) {
+      console.warn('RadiopaediaComponent: failed to capture original display set', error);
+    }
+
+    return null;
+  }, [activeViewportId, displaySetService, viewports]);
+
+  const handleToggle = useCallback(
+    async (targetDisplaySetUID: string) => {
+      if (!activeViewportId || !displaySetService) {
         return;
       }
 
-      if (shouldActivate) {
-        const pmapDisplaySet = findPmapDisplaySetForWord(word);
-        if (!pmapDisplaySet) {
-          uiNotificationService?.show?.({
-            title: 'Not Available',
-            message: `No parametric map found with a series description matching "${word.original}".`,
-            type: 'info',
-            duration: 3000,
-          });
-          return;
+      if (isBusy) {
+        return;
+      }
+
+      setIsBusy(true);
+
+      try {
+        const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
+        const viewport = renderingEngine?.getViewport(activeViewportId);
+        if (!viewport) {
+          throw new Error('Unable to resolve active viewport for overlay toggle.');
         }
 
-        await showPmapForDisplaySet(word, pmapDisplaySet);
-      } else if (selectedWord === word.normalized) {
-        await hidePmap();
+        const viewportState = captureViewportState(viewport);
+
+        if (selectedPmapUID === targetDisplaySetUID) {
+          const originalUID =
+            sessionStorage.getItem(`${ORIGINAL_DS_UID_KEY}_${activeViewportId}`) ?? null;
+          if (!originalUID) {
+            uiNotificationService?.show?.({
+              title: 'Unable to restore',
+              message: 'Original viewport state was not recorded.',
+              type: 'warning',
+              duration: 3000,
+            });
+            return;
+          }
+
+          await applyDisplaySetToViewport(activeViewportId, originalUID, viewportState);
+          sessionStorage.setItem(`${PMAP_STATE_KEY}_${activeViewportId}`, 'false');
+          sessionStorage.removeItem(`${SELECTED_PMAP_UID_KEY}_${activeViewportId}`);
+          setSelectedPmapUID(null);
+        } else {
+          const originalUID = ensureOriginalDisplaySetStored();
+          if (!originalUID) {
+            uiNotificationService?.show?.({
+              title: 'Overlay unavailable',
+              message: 'No base series found for the active viewport.',
+              type: 'info',
+              duration: 3000,
+            });
+            return;
+          }
+
+          await applyDisplaySetToViewport(activeViewportId, targetDisplaySetUID, viewportState);
+          sessionStorage.setItem(`${PMAP_STATE_KEY}_${activeViewportId}`, 'true');
+          sessionStorage.setItem(
+            `${SELECTED_PMAP_UID_KEY}_${activeViewportId}`,
+            targetDisplaySetUID
+          );
+          setSelectedPmapUID(targetDisplaySetUID);
+        }
+      } catch (error) {
+        console.error('RadiopaediaComponent: failed to toggle PMAP overlay', error);
+        uiNotificationService?.show?.({
+          title: 'Error',
+          message: 'Unable to update the viewport with the requested overlay.',
+          type: 'error',
+          duration: 3000,
+        });
+      } finally {
+        setIsBusy(false);
       }
     },
     [
-      findPmapDisplaySetForWord,
-      hidePmap,
-      selectedWord,
-      showPmapForDisplaySet,
+      activeViewportId,
+      applyDisplaySetToViewport,
+      ensureOriginalDisplaySetStored,
+      displaySetService,
+      isBusy,
+      selectedPmapUID,
       uiNotificationService,
     ]
   );
 
-  const activeWordLabel = useMemo(() => {
-    if (!selectedWord) {
-      return null;
-    }
-    return displayWords.find(entry => entry.normalized === selectedWord)?.original ?? selectedWord;
-  }, [displayWords, selectedWord]);
+  const entirePromptEntries = useMemo(
+    () => availablePmaps.filter(item => item.isEntirePrompt),
+    [availablePmaps]
+  );
+  const wordEntries = useMemo(
+    () => availablePmaps.filter(item => !item.isEntirePrompt),
+    [availablePmaps]
+  );
+
+  const renderToggleButton = (entry: PmapEntry) => {
+    const isSelected = selectedPmapUID === entry.displaySetInstanceUID;
+    const baseClasses =
+      'w-full rounded-md border px-3 py-2 text-left text-sm transition focus:outline-none';
+    const selectedClasses =
+      'border-aqua-pale bg-aqua-pale/20 text-white shadow-sm hover:bg-aqua-pale/30';
+    const defaultClasses =
+      'border-primary-dark bg-black text-white hover:border-primary-light hover:bg-primary-dark';
+
+    return (
+      <button
+        key={entry.displaySetInstanceUID}
+        className={`${baseClasses} ${isSelected ? selectedClasses : defaultClasses}`}
+        disabled={isBusy}
+        onClick={() => handleToggle(entry.displaySetInstanceUID)}
+      >
+        <div className="flex items-center justify-between">
+          <span className="font-semibold">
+            {entry.isEntirePrompt
+              ? isSelected
+                ? 'Hide Entire Prompt'
+                : 'Show Entire Prompt'
+              : entry.label}
+          </span>
+          {isBusy && isSelected && (
+            <span className="text-xs uppercase text-primary-light">Updating...</span>
+          )}
+        </div>
+        {!entry.isEntirePrompt && entry.seriesDescription && (
+          <div className="text-primary-light mt-1 text-xs">{entry.seriesDescription}</div>
+        )}
+      </button>
+    );
+  };
+
+  if (!displaySetService || !viewportGridService) {
+    return (
+      <div className="ohif-scrollbar flex h-full flex-col p-4 text-sm text-white">
+        <div className="rounded-md border border-primary-dark bg-black p-3">
+          Radiopaedia overlays require display set services, which are not available.
+        </div>
+      </div>
+    );
+  }
+
+  if (!activeViewportId) {
+    return (
+      <div className="ohif-scrollbar flex h-full flex-col p-4 text-sm text-white">
+        <div className="rounded-md border border-primary-dark bg-black p-3">
+          Select a viewport to access Radiopaedia overlays.
+        </div>
+      </div>
+    );
+  }
+
+  if (!availablePmaps.length) {
+    return (
+      <div className="ohif-scrollbar flex h-full flex-col gap-3 p-4 text-sm text-white">
+        <div className="rounded-md border border-primary-dark bg-black p-3">
+          No Radiopaedia overlays were detected for the active series.
+        </div>
+        {selectedPmapUID ? (
+          <button
+            className="border-primary-dark bg-black text-white hover:border-primary-light hover:bg-primary-dark rounded-md border px-3 py-2 text-sm"
+            disabled={isBusy}
+            onClick={() => handleToggle(selectedPmapUID)}
+          >
+            Hide current overlay
+          </button>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-primary-dark flex h-full min-h-0 flex-col p-4 text-white">
-      <h3 className="text-base font-semibold">Prompt Keywords</h3>
-      <p className="text-primary-light/70 text-xs">
-        Toggle a term to see what region of the image the AI generated.
-      </p>
-
-      {isLoadingPrompt ? (
-        <p className="text-primary-light/80 mt-4 text-sm">Loading prompt metadata…</p>
-      ) : null}
-
-      {!isLoadingPrompt && promptError ? (
-        <p className="mt-4 text-sm text-red-300">{promptError}</p>
-      ) : null}
-
-      {!isLoadingPrompt && !promptWords.length && !promptError ? (
-        <p className="text-primary-light/80 mt-4 text-sm">
-          No prompt keywords available for the current series.
+    <div className="ohif-scrollbar flex h-full flex-col p-4 text-white">
+      <div className="flex-0 mb-4">
+        <h3 className="text-lg font-semibold leading-tight">Radiopaedia Overlays</h3>
+        <p className="text-primary-light mt-1 text-xs">
+          Toggle AI-generated probability maps to explore the prompt and individual keywords.
         </p>
-      ) : null}
-
-      <div className="ohif-scrollbar mt-4 min-h-0 flex-1 overflow-y-auto">
-        {displayWords.map(word => (
-          <label
-            key={word.normalized}
-            className={`border-primary-light/40 mb-2 flex items-center justify-between rounded-md border bg-black/40 px-3 py-2 text-sm ${
-              selectedWord === word.normalized ? 'border-primary-main bg-primary-main/20' : ''
-            }`}
-          >
-            <span className="mr-4">{word.original}</span>
-            <input
-              type="checkbox"
-              className="accent-primary-main h-4 w-4 cursor-pointer"
-              checked={selectedWord === word.normalized}
-              onChange={event => handleWordToggle(word, event.target.checked)}
-              disabled={isBusy}
-            />
-          </label>
-        ))}
       </div>
 
-      <div className="mt-3 flex items-center justify-between">
-        <span className="text-primary-light/70 text-xs">
-          {activeWordLabel ? `Showing overlay for “${activeWordLabel}”` : 'No overlay selected.'}
-        </span>
-        <button
-          className="bg-primary-main ml-3 rounded px-3 py-2 text-xs font-semibold text-black disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={() => hidePmap()}
-          disabled={!selectedWord || isBusy}
-        >
-          Hide overlays
-        </button>
+      {entirePromptEntries.length > 0 && (
+        <div className="mb-4 rounded-md border border-primary-dark bg-black p-3">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-aqua-pale">
+            Entire Prompt
+          </div>
+          <div className="space-y-2">
+            {entirePromptEntries.map(entry => renderToggleButton(entry))}
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-md border border-primary-dark bg-black p-3">
+        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-aqua-pale">
+          Prompt Keywords
+        </div>
+        {wordEntries.length ? (
+          <div className="grid grid-cols-1 gap-2">
+            {wordEntries.map(entry => renderToggleButton(entry))}
+          </div>
+        ) : (
+          <div className="text-primary-light text-xs">
+            No keyword-level overlays detected for this series.
+          </div>
+        )}
       </div>
     </div>
   );
-}
+};
 
 export default RadiopaediaComponent;
