@@ -613,20 +613,31 @@ function RadiopaediaComponent({ servicesManager }: any) {
       return map;
     }
 
-    const activeDisplaySets = displaySetService.getActiveDisplaySets?.() ?? [];
+    const baseStudyInstanceUID =
+      activeDisplaySet?.StudyInstanceUID ??
+      activeDisplaySet?.metadata?.StudyInstanceUID ??
+      activeDisplaySet?.getAttribute?.('StudyInstanceUID') ??
+      null;
 
-    activeDisplaySets.forEach(ds => {
+    const cache = displaySetService.getDisplaySetCache?.();
+    const cachedDisplaySets = cache ? Array.from(cache.values()) : [];
+    const activeDisplaySets = displaySetService.getActiveDisplaySets?.() ?? [];
+    const allDisplaySets = cachedDisplaySets.length ? cachedDisplaySets : activeDisplaySets;
+
+    let totalCandidateSeries = 0;
+
+    allDisplaySets.forEach(ds => {
       if (!ds) {
         return;
       }
 
-      const sopClassUID = String(ds.SOPClassUID ?? '');
-      if (sopClassUID !== PMAP_SOP_CLASS_UID) {
-        return;
-      }
-
-      const referencedUID = getReferencedSeriesInstanceUID(ds);
-      if (referencedUID && referencedUID !== seriesInstanceUID) {
+      if (
+        baseStudyInstanceUID &&
+        ((ds as any).StudyInstanceUID ??
+          ds?.metadata?.StudyInstanceUID ??
+          ds?.getAttribute?.('StudyInstanceUID') ??
+          null) !== baseStudyInstanceUID
+      ) {
         return;
       }
 
@@ -646,10 +657,19 @@ function RadiopaediaComponent({ servicesManager }: any) {
         }
         map.get(token)!.push(ds);
       });
+
+      totalCandidateSeries += 1;
+    });
+
+    console.log('[Prompt words] Indexed study series', {
+      seriesInstanceUID,
+      totalCandidateSeries,
+      tokenBuckets: map.size,
+      tokens: Array.from(map.keys()),
     });
 
     return map;
-  }, [displaySetService, seriesInstanceUID, displaySetsVersion]);
+  }, [activeDisplaySet, displaySetService, seriesInstanceUID, displaySetsVersion]);
 
   const displayWords = useMemo<WordEntry[]>(() => {
     const ordered: WordEntry[] = [];
@@ -675,16 +695,47 @@ function RadiopaediaComponent({ servicesManager }: any) {
     (word: WordEntry) => {
       const candidates = pmapDisplaySetsByWord.get(word.normalized);
       if (!candidates?.length) {
+        console.warn('[Prompt words] No candidate probability maps found', {
+          word: word.original,
+          normalized: word.normalized,
+          seriesInstanceUID,
+        });
         return null;
       }
 
+      const prioritize = (list: any[]) => {
+        const withProbability = list.filter(candidate => {
+          const description = String(getSeriesDescription(candidate) || '');
+          return /probability\s+map/i.test(description);
+        });
+
+        if (withProbability.length) {
+          return withProbability;
+        }
+        return list;
+      };
+
+      const prioritized = prioritize(candidates);
+
       const exact =
-        candidates.find(candidate => {
+        prioritized.find(candidate => {
           const description = String(getSeriesDescription(candidate) || '');
           return normalizeWord(description) === word.normalized;
         }) ?? null;
 
-      return exact ?? candidates[0];
+      const chosen = exact ?? prioritized[0];
+
+      console.log('[Prompt words] Matched series for word', {
+        word: word.original,
+        normalized: word.normalized,
+        chosenSeriesDescription: String(getSeriesDescription(chosen) || ''),
+        chosenDisplaySetUID: chosen?.displaySetInstanceUID,
+        totalCandidates: candidates.length,
+        prioritizedCount: prioritized.length,
+        matchType: exact ? 'exact' : 'first-priority',
+      });
+
+      return chosen;
     },
     [pmapDisplaySetsByWord]
   );
