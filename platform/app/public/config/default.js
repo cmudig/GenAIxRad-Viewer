@@ -23,6 +23,12 @@ window.config = {
     // above, the number of requests can be go a lot higher.
     prefetch: 25,
   },
+  chatgptAssistant: {
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    model: 'gpt-4o-mini',
+    temperature: 0.2,
+    // apiKey: 'sk-...'
+  },
   // filterQueryParam: false,
   defaultDataSourceName: 'orthanc',
   /* Dynamic config allows user to pass "configUrl" query string this allows to load config without recompiling application. The regex will ensure valid configuration source */
