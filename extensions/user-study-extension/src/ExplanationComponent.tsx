@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import VariationPanel from './tabs/VariationPanel';
 import RadiopaediaComponent from './RadiopaediaComponent';
 import ExampleComponent from './ExampleComponent';
+import ChatGPTPanel from './tabs/ChatGPTPanel';
 
 const tabComponents = {
   // history: HistoryPanel,
@@ -12,10 +13,12 @@ const tabComponents = {
   variation: VariationPanel,
   example: ExampleComponent,
   radiopaedia: RadiopaediaComponent,
+  assistant: ChatGPTPanel,
 };
 
 const tabIconExtensions: Record<string, 'png'> = {
   radiopaedia: 'png',
+  assistant: 'png',
 };
 
 function ExplanationComponent({ commandsManager, extensionManager, servicesManager }) {
@@ -61,7 +64,7 @@ function ExplanationComponent({ commandsManager, extensionManager, servicesManag
           <div className="h-full min-h-0">
             <ActivePanel
               commandsManager={commandsManager}
-            servicesManager={servicesManager}
+              servicesManager={servicesManager}
               extensionManager={extensionManager}
             />
           </div>
