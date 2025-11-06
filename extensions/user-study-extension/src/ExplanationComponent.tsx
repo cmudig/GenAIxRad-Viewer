@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useRef } from 'react';
 
 // import HistoryPanel from './tabs/HistoryPanel';
 // import MimicPanel from './tabs/MimicPanel';
@@ -22,16 +22,96 @@ function ExplanationComponent({ commandsManager, extensionManager, servicesManag
   const defaultTab = Object.keys(tabComponents)[0];
   const [selectedLabel, setSelectedLabel] = useState(defaultTab);
 
+  const initialViewportRef = useRef<{
+    displaySetInstanceUIDs: string[];
+    displaySetOptions?: any;
+    viewportOptions?: any;
+  } | null>(null);
+
+  const handleResetExamples = async () => {
+    const viewportGridService =
+      servicesManager?.services?.viewportGridService ||
+      servicesManager?.services?.ViewportGridService;
+
+    if (!viewportGridService) {
+      return;
+    }
+
+    // Clear any existing state
+    const initialViewport = initialViewportRef.current;
+    if (!initialViewport?.displaySetInstanceUIDs?.length) {
+      return;
+    }
+
+    try {
+      const { displaySetInstanceUIDs, displaySetOptions, viewportOptions } = initialViewport;
+
+      const cloneOptions = (options: any) => {
+        if (!options) return undefined;
+        if (Array.isArray(options)) {
+          return options.map(option => ({ ...(option || {}) }));
+        }
+        return typeof options === 'object' ? { ...options } : options;
+      };
+
+      const findOrCreateViewport = () => ({
+        displaySetInstanceUIDs: [...displaySetInstanceUIDs],
+        displaySetOptions: cloneOptions(displaySetOptions),
+        viewportOptions: { ...(viewportOptions || {}) },
+      });
+
+      await viewportGridService.setLayout({
+        numCols: 1,
+        numRows: 1,
+        findOrCreateViewport,
+      });
+
+      const updatedState = viewportGridService.getState?.() ||
+                          viewportGridService.getViewportGridState?.();
+      const viewports = Array.from(updatedState?.viewports?.values?.() || []);
+      const primaryViewport = viewports[0];
+
+      if (primaryViewport?.viewportId) {
+        await viewportGridService.setDisplaySetsForViewports([
+          {
+            viewportId: primaryViewport.viewportId,
+            displaySetInstanceUIDs: [...displaySetInstanceUIDs],
+          },
+        ]);
+
+        viewportGridService.setActiveViewportId?.(primaryViewport.viewportId);
+      }
+
+
+      // Dispatch event to notify components
+      document.dispatchEvent(new CustomEvent('examplesReset'));
+    } catch (error) {
+      console.warn('ExplanationComponent: Failed to restore original viewport state', error);
+    }
+  };
+
   const handleNavClick = label => {
     if (!tabComponents[label]) {
       console.warn(`ExplanationComponent: unknown tab '${label}'`);
       return;
     }
     console.log(`Navigating to nav-button-${label} panel`);
+    document.dispatchEvent(new CustomEvent('tabChanged', {
+      detail: { tab: label }
+    }));
     setSelectedLabel(label);
+    handleResetExamples();
+
   };
 
   const ActivePanel = tabComponents[selectedLabel] ?? tabComponents[defaultTab];
+   const activePanelProps = {
+    commandsManager,
+    servicesManager,
+    extensionManager,
+    onReset: handleResetExamples,
+    initialViewportRef,
+  };
 
   return (
     <div className="ohif-scrollbar flex h-full flex-col" data-cy="explanation-component">
@@ -59,11 +139,7 @@ function ExplanationComponent({ commandsManager, extensionManager, servicesManag
         {/* Selected Panel Rendered Here */}
         <div className="my-4 flex-1 min-h-0" data-cy="selected-panel">
           <div className="h-full min-h-0">
-            <ActivePanel
-              commandsManager={commandsManager}
-            servicesManager={servicesManager}
-              extensionManager={extensionManager}
-            />
+            <ActivePanel {...activePanelProps} />
           </div>
         </div>
       </div>
