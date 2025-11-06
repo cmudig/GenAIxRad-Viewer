@@ -23,6 +23,12 @@ window.config = {
     // above, the number of requests can be go a lot higher.
     prefetch: 25,
   },
+  chatgptAssistant: {
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    model: 'gpt-5',
+    temperature: 1,
+    // apiKey: 'sk-...'
+  },
   // filterQueryParam: false,
   defaultDataSourceName: 'orthanc',
   /* Dynamic config allows user to pass "configUrl" query string this allows to load config without recompiling application. The regex will ensure valid configuration source */
@@ -199,7 +205,7 @@ window.config = {
         supportsFuzzyMatching: true,
         supportsWildcard: true,
       },
-    }
+    },
   ],
   httpErrorHandler: error => {
     // This is 429 when rejected from the public idc sandbox too often.
@@ -628,10 +634,9 @@ window.config = {
             },
           ],
         },
-
       ],
       tourOptions: {
-        useModalOverlay:true,
+        useModalOverlay: true,
         defaultStepOptions: {
           buttons: [
             {
@@ -640,10 +645,10 @@ window.config = {
                 this.next();
               },
               secondary: true,
-            }
-          ]
-        }
-      }
+            },
+          ],
+        },
+      },
     },
   ],
 };
