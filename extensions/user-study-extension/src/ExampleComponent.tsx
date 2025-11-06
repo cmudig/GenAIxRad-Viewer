@@ -895,23 +895,23 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="gap-2">
             <button
               type="button"
               onClick={applyExamples}
               disabled={disableApplyButton}
-              className={`flex-1 rounded-md px-4 py-2 text-xs font-semibold transition-colors ${
-                disableApplyButton
-                  ? 'bg-primary-dark text-secondary-light cursor-not-allowed'
-                  : 'bg-aqua-pale text-black hover:bg-white'
-              }`}
+              className={`bg-primary-light mr-2 text-primary-dark rounded px-3 py-2 text-[14px] text-sm ${
+                    disableApplyButton
+                      ? 'text-white'
+                      : 'text-secondary-light'
+                  }`}
             >
               {isApplying ? 'Loading examples…' : 'Load examples into viewports'}
             </button>
             <button
               type="button"
               onClick={handleResetExamples}
-              className="flex-1 rounded-md border border-secondary-main px-4 py-2 text-xs font-semibold text-secondary-light transition-colors hover:border-white hover:text-white"
+              className="bg-primary-dark text-primary-light border-primary-light rounded border px-3 py-2 text-[14px] text-sm"
             >
               Reset
             </button>
@@ -922,12 +922,12 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
               type="button"
               onClick={toggleClsOverlays}
               disabled={!clsTargetsAvailable || clsToggleBusy}
-              className={`w-full rounded-md px-4 py-2 text-xs font-semibold transition-colors ${
+              className={`w-full rounded-md px-3 py-2 text-xs font-semibold transition-colors bg-primary-main text-white ${
                 !clsTargetsAvailable || clsToggleBusy
-                  ? 'bg-primary-dark text-secondary-light cursor-not-allowed'
+                  ? 'bg-primary-dark text-white cursor-not-allowed'
                   : clsOverlaysVisible
-                    ? 'bg-primary-main text-black hover:bg-aqua-pale'
-                    : 'bg-black text-secondary-light border border-secondary-main hover:border-white hover:text-white'
+                    ? 'bg-primary-main text-white hover:bg-aqua-pale'
+                    : 'bg-black text-white border border-secondary-main hover:border-white hover:text-white'
               }`}
             >
               {clsOverlaysVisible ? 'Hide entire prompt overlays' : 'Show entire prompt overlays'}

@@ -550,27 +550,19 @@ window.config = {
             element: '[data-cy="explanation-component"]',
             on: 'left',
           },
-          advanceOn: {
-            selector: '[data-cy="nav-button-history"]',
-            event: 'click',
-          },
           beforeShowPromise: () => waitForElement('[data-cy="explanation-component"]'),
-          buttons: [],
-        },
-        {
-          id: 'historyTab',
-          title: 'History Tab',
-          text: 'Review every generation you have run so far. Select any entry to load it back into the primary viewport.',
-          attachTo: {
-            element: '[data-cy="explanation-component"]',
-            on: 'left',
-          },
-          advanceOn: {
-            selector: '[data-cy="nav-button-mimic"]',
-            event: 'click',
-          },
-          beforeShowPromise: () => waitForElement('[data-cy="explanation-component"]'),
-          buttons: [],
+          buttons: [
+            {
+              text: 'Next',
+              action() {
+                const nextTab = document.querySelector('[data-cy="nav-button-variation"]');
+                if (nextTab) {
+                  nextTab.click();
+                  setTimeout(() => this.next(), 100); // Small delay to ensure state updates
+                }
+              }
+            }
+          ]
         },
         {
           id: 'mimicTab',
