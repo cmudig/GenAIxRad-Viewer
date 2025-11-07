@@ -11,6 +11,7 @@ import {
   addMetadataToSeries,
 } from '../../../platform/app/src/components/dicom_helpers';
 import { findBestMatchingDisplaySet } from './similarity';
+import { setDisplaySetOrigin } from './utils/displaySetOrigin';
 
 // CURL COMMANDS
 // Generation 4 STANDARD FALSE curl -k https://orthanc.katelyncmorrison.com/pacs/series/c8903fa5-bbca061d-8c5f69e7-17a98c10-64355063/metadata/SeriesPromptChanged
@@ -400,7 +401,7 @@ const getViewportsArray = (state: any): any[] => {
       if (_lastPromptKey === promptKey && _lastTargetUID === target.displaySetInstanceUID) {
         console.log('[Generate] Same match as last time — no switch.');
       } else {
-        const { viewportGridService } = servicesManager.services;
+        const { viewportGridService, displaySetService } = servicesManager.services;
 
         const state = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
         const previousViewports = getViewportsArray(state);
@@ -479,6 +480,10 @@ const getViewportsArray = (state: any): any[] => {
 
           if (viewportGridService.setActiveViewportId) {
             viewportGridService.setActiveViewportId(targetViewportId);
+          }
+
+          if (displaySetService) {
+            setDisplaySetOrigin(displaySetService, target.displaySetInstanceUID, 'ai');
           }
         } else {
           console.warn('[Generate] Unable to identify target viewport for new display set.');

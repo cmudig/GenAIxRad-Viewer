@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { getMetadataFromSeries } from '../../../platform/app/src/components/dicom_helpers';
 import { rankDisplaySetsByPrompt, RankedDisplaySet } from './similarity';
+import { setDisplaySetOrigin } from './utils/displaySetOrigin';
 
 type ExampleComponentProps = {
   commandsManager: any;
@@ -504,6 +505,19 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
       }
 
       await viewportGridService.setDisplaySetsForViewports(assignments);
+
+      if (displaySetService) {
+        const patientUID = (activeDisplaySet as any)?.displaySetInstanceUID ?? null;
+        if (patientUID) {
+          setDisplaySetOrigin(displaySetService, patientUID, 'patient');
+        }
+        const comparisonUIDs = selected
+          .map(match => match.displaySet?.displaySetInstanceUID)
+          .filter(Boolean) as string[];
+        if (comparisonUIDs.length) {
+          setDisplaySetOrigin(displaySetService, comparisonUIDs, 'ai');
+        }
+      }
 
       setLastAppliedMatches(selected);
       setMatchPrompts({});

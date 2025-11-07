@@ -42,6 +42,8 @@ const OverlayItemComponents = {
   'ohif.overlayItem.windowLevel': VOIOverlayItem,
   'ohif.overlayItem.zoomLevel': ZoomOverlayItem,
   'ohif.overlayItem.instanceNumber': InstanceNumberOverlayItem,
+  'ohif.overlayItem.originLabel': OriginLabelOverlayItem,
+  'ohif.overlayItem.originBadge': OriginBadgeOverlayItem,
 };
 
 const studyDateItem = {
@@ -54,23 +56,22 @@ const studyDateItem = {
     formatDate(referenceInstance.StudyDate),
 };
 
-const seriesDescriptionItem = {
-  id: 'SeriesDescription',
-  customizationType: 'ohif.overlayItem',
-  label: '',
-  title: 'Series description',
-  condition: ({ referenceInstance }) => {
-    return referenceInstance && referenceInstance.SeriesDescription;
-  },
-  contentF: ({ referenceInstance }) => referenceInstance.SeriesDescription,
+const originLabelItem = {
+  id: 'SeriesOriginLabel',
+  customizationType: 'ohif.overlayItem.originLabel',
+};
+
+const originBadgeItem = {
+  id: 'SeriesOriginBadge',
+  customizationType: 'ohif.overlayItem.originBadge',
 };
 
 const topLeftItems = {
   id: 'cornerstoneOverlayTopLeft',
-  items: [studyDateItem, seriesDescriptionItem],
+  items: [studyDateItem, originLabelItem],
 };
 
-const topRightItems = { id: 'cornerstoneOverlayTopRight', items: [] };
+const topRightItems = { id: 'cornerstoneOverlayTopRight', items: [originBadgeItem] };
 
 const bottomLeftItems = {
   id: 'cornerstoneOverlayBottomLeft',
@@ -513,6 +514,89 @@ function InstanceNumberOverlayItem({
           `${imageIndex + 1}/${numberOfSlices}`
         )}
       </span>
+    </div>
+  );
+}
+
+const deriveDisplaySetOrigin = (displaySet: any): 'patient' | 'ai' | null => {
+  if (!displaySet) {
+    return null;
+  }
+
+  const explicitOrigin = (displaySet as any).__caseOrigin;
+  if (explicitOrigin === 'patient' || explicitOrigin === 'ai') {
+    return explicitOrigin;
+  }
+
+  const promptChanged =
+    displaySet?.SeriesPromptChanged ??
+    displaySet?.metadata?.SeriesPromptChanged ??
+    displaySet?.getAttribute?.('SeriesPromptChanged') ??
+    null;
+
+  if (String(promptChanged).toLowerCase() === 'true') {
+    return 'ai';
+  }
+
+  return null;
+};
+
+const isCTSeries = (displaySet: any) => {
+  if (!displaySet) {
+    return false;
+  }
+  const modality = String(displaySet.Modality ?? displaySet?.metadata?.Modality ?? '').toUpperCase();
+  return modality === 'CT';
+};
+
+function OriginLabelOverlayItem({ displaySet }: OverlayItemProps) {
+  if (!displaySet) {
+    return null;
+  }
+
+  const origin = deriveDisplaySetOrigin(displaySet) ?? 'patient';
+
+  const isAI = origin === 'ai';
+  const text = isAI ? 'AI-generated scan' : 'Patient CT scan';
+  const baseClasses =
+    'inline-flex items-center rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide';
+  const palette = isAI
+    ? 'bg-[#431016] text-[#fecdd3] border border-[#fb7185]/70'
+    : 'bg-[#0c1f41] text-[#bfdbfe] border border-[#60a5fa]/60';
+
+  return (
+    <div className="overlay-item flex flex-row">
+      <span className={`${baseClasses} ${palette}`}>{text}</span>
+    </div>
+  );
+}
+
+function OriginBadgeOverlayItem({ displaySet }: OverlayItemProps) {
+  if (!displaySet || !isCTSeries(displaySet)) {
+    return null;
+  }
+
+  const origin = deriveDisplaySetOrigin(displaySet);
+
+  if (!origin) {
+    return null;
+  }
+
+  const isAI = origin === 'ai';
+  const label = isAI ? 'AI-generated case' : 'Patient CT scan';
+  const helper = isAI ? 'Model-generated comparison' : 'Original acquisition';
+  const badgeClasses = isAI
+    ? 'bg-[#312e81] text-[#c4b5fd]'
+    : 'bg-[#064e3b] text-[#a7f3d0]';
+
+  return (
+    <div className="overlay-item flex flex-col items-end text-right">
+      <span
+        className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide ${badgeClasses}`}
+      >
+        {label}
+      </span>
+      <span className="mt-1 text-[11px] text-white/70">{helper}</span>
     </div>
   );
 }
