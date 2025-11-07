@@ -571,21 +571,6 @@ window.config = {
           ]
         },
         {
-          id: 'mimicTab',
-          title: 'Mimic Tab',
-          text: 'Generate a close mimic of the original pathology, read the rationale, and review previous mimic runs.',
-          attachTo: {
-            element: '[data-cy="explanation-component"]',
-            on: 'left',
-          },
-          advanceOn: {
-            selector: '[data-cy="nav-button-variation"]',
-            event: 'click',
-          },
-          beforeShowPromise: () => waitForElement('[data-cy="explanation-component"]'),
-          buttons: [],
-        },
-        {
           id: 'variationTab',
           title: 'Variation Tab',
           text: 'Explore variations of the case by changing findings or severity, and access your prior variation outputs.',
@@ -619,6 +604,21 @@ window.config = {
           id: 'radiopaediaTab',
           title: 'Radiopaedia Tab',
           text: 'Search curated Radiopaedia cases that match your prompt for additional clinical context.',
+          attachTo: {
+            element: '[data-cy="explanation-component"]',
+            on: 'left',
+          },
+          advanceOn: {
+            selector: '[data-cy="nav-button-assistant"]',
+            event: 'click',
+          },
+          beforeShowPromise: () => waitForElement('[data-cy="explanation-component"]'),
+          buttons: [],
+        },
+        {
+          id: 'openaiTab',
+          title: 'OpenAI Tab',
+          text: 'Capture the active viewport slice and send it to GPT for an abnormality summary.',
           attachTo: {
             element: '[data-cy="explanation-component"]',
             on: 'left',
