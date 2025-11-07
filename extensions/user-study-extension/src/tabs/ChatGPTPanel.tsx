@@ -19,6 +19,27 @@ const LOCAL_STORAGE_KEY = 'chatgpt-panel-openai-key';
 const DEFAULT_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 const DEFAULT_MODEL = 'gpt-5';
 
+const QUESTION_PRESETS = [
+  {
+    id: 'describe',
+    title: 'Describe the findings in this image.',
+    prompt:
+      'Analyze this CT slice and describe the visible abnormalities. Focus on pleural effusion and summarize the findings in no more than five sentences.',
+  },
+  {
+    id: 'evidence',
+    title: 'How do you know this scan contains a pleural effusion?',
+    prompt:
+      'Explain the specific imaging clues in this CT slice that support or refute the presence of a pleural effusion.',
+  },
+  {
+    id: 'cardiomegaly',
+    title: 'Is there evidence of cardiomegaly in this image?',
+    prompt:
+      'Assess the heart size in this CT slice and describe whether the findings suggest cardiomegaly. Mention any supporting measurements or visible cues.',
+  },
+];
+
 const readConfig = (): AssistantConfig => {
   if (typeof window === 'undefined') {
     return {};
@@ -75,10 +96,11 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
 
   const [storedKey, setStoredKey] = useState(() => loadStoredKey());
   const [pendingKey, setPendingKey] = useState(storedKey);
-  const [description, setDescription] = useState('');
-  const [error, setError] = useState('');
-  const [isBusy, setIsBusy] = useState(false);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [questionErrors, setQuestionErrors] = useState<Record<string, string>>({});
+  const [busyQuestionId, setBusyQuestionId] = useState<string | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
+  const activeQuestionRef = useRef<string | null>(null);
 
   const apiKey = config.apiKey ?? storedKey;
   const endpoint = config.endpoint ?? DEFAULT_ENDPOINT;
@@ -132,104 +154,114 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
   const handleSaveKey = useCallback(() => {
     setStoredKey(pendingKey);
     persistKey(pendingKey);
-    setError('');
+    setQuestionErrors({});
   }, [pendingKey]);
 
-  const analyzeSlice = useCallback(async () => {
-    abortInFlight();
-    setIsBusy(true);
-    setError('');
-    setDescription('');
+  const analyzeSlice = useCallback(
+    async (questionId: string) => {
+      const question = QUESTION_PRESETS.find(item => item.id === questionId) ?? QUESTION_PRESETS[0];
 
-    try {
-      if (!apiKey) {
-        throw new Error('Add an OpenAI API key to run the analysis.');
-      }
+      abortInFlight();
+      setQuestionErrors(prev => ({ ...prev, [question.id]: '' }));
+      setAnswers(prev => ({ ...prev, [question.id]: '' }));
+      setBusyQuestionId(question.id);
+      activeQuestionRef.current = question.id;
 
-      const dataUrl = await captureActiveViewport();
-
-      const controller = new AbortController();
-      controllerRef.current = controller;
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          temperature,
-          messages: [
-            {
-              role: 'system',
-              content:
-                'You are an expert radiology assistant, with expertise in identifying pleural effusion. Remember that the right and left sides are flipped. Describe only the imaging abnormalities you can see in the format of an impression. If the slice is normal, explicitly state that no abnormalities are visible. Do not provide more than 5 sentences of information.',
-            },
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: 'Analyze this CT slice and describe the visible abnormalities.',
-                },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: dataUrl,
-                  },
-                },
-              ],
-            },
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        let message = `OpenAI request failed (status ${response.status})`;
-
-        try {
-          const payload = await response.json();
-          if (payload?.error?.message) {
-            message = payload.error.message;
-          }
-        } catch (err) {
-          // Swallow parsing errors and report the status only
+      try {
+        if (!apiKey) {
+          throw new Error('Add an OpenAI API key to run the analysis.');
         }
 
-        throw new Error(message);
-      }
+        const dataUrl = await captureActiveViewport();
 
-      const payload = await response.json();
-      const content = payload?.choices?.[0]?.message?.content ?? payload?.data?.[0]?.content ?? '';
+        const controller = new AbortController();
+        controllerRef.current = controller;
 
-      if (!content) {
-        throw new Error('OpenAI did not return a description.');
-      }
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model,
+            temperature,
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'You are an expert radiology assistant, with expertise in identifying pleural effusion. Remember that the right and left sides are flipped. Describe only the imaging abnormalities you can see in the format of an impression. If the slice is normal, explicitly state that no abnormalities are visible. Do not provide more than 5 sentences of information.',
+              },
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: question.prompt,
+                  },
+                  {
+                    type: 'image_url',
+                    image_url: {
+                      url: dataUrl,
+                    },
+                  },
+                ],
+              },
+            ],
+          }),
+        });
 
-      setDescription(content);
-    } catch (err: any) {
-      if (err?.name === 'AbortError') {
-        return;
+        if (!response.ok) {
+          let message = `OpenAI request failed (status ${response.status})`;
+
+          try {
+            const payload = await response.json();
+            if (payload?.error?.message) {
+              message = payload.error.message;
+            }
+          } catch (err) {
+            // Swallow parsing errors and report the status only
+          }
+
+          throw new Error(message);
+        }
+
+        const payload = await response.json();
+        const content =
+          payload?.choices?.[0]?.message?.content ?? payload?.data?.[0]?.content ?? '';
+
+        if (!content) {
+          throw new Error('OpenAI did not return a description.');
+        }
+
+        setAnswers(prev => ({ ...prev, [question.id]: content }));
+      } catch (err: any) {
+        if (err?.name === 'AbortError') {
+          return;
+        }
+        const message = err?.message || 'Unexpected error while contacting OpenAI.';
+        setQuestionErrors(prev => ({ ...prev, [question.id]: message }));
+      } finally {
+        controllerRef.current = null;
+        if (activeQuestionRef.current === question.id) {
+          activeQuestionRef.current = null;
+          setBusyQuestionId(null);
+        }
       }
-      const message = err?.message || 'Unexpected error while contacting OpenAI.';
-      setError(message);
-    } finally {
-      controllerRef.current = null;
-      setIsBusy(false);
-    }
-  }, [abortInFlight, apiKey, captureActiveViewport, endpoint, model, temperature]);
+    },
+    [abortInFlight, apiKey, captureActiveViewport, endpoint, model, temperature]
+  );
 
   return (
     <div className="flex h-full flex-col text-white">
-      <div className="space-y-4">
+      <div className="space-y-6">
         {!config.apiKey && (
-          <div className="flex flex-col space-y-2">
+          <div className="rounded-2xl bg-white/5 p-4 shadow-inner shadow-black/40">
             <label className="text-primary-light text-sm font-semibold">OpenAI API key</label>
             <input
               type="password"
-              className="focus:ring-primary-main rounded bg-black/40 p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2"
+              className="focus:ring-primary-main mt-2 rounded bg-black/40 p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2"
               value={pendingKey}
               onChange={event => setPendingKey(event.target.value.trim())}
               placeholder="sk-..."
@@ -261,31 +293,51 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
           </div>
         )}
 
-        <button
-          className="bg-primary-main hover:bg-primary-light disabled:bg-primary-main/40 w-full rounded px-4 py-2 font-semibold text-black transition duration-200 disabled:cursor-not-allowed"
-          onClick={analyzeSlice}
-          disabled={isBusy}
-        >
-          {isBusy ? 'Analyzing current slice…' : 'Describe abnormalities'}
-        </button>
+        <div>
+          <h2 className="text-base font-semibold">Q&amp;A</h2>
+          <p className="text-sm text-white/70">Ask AI about the currently-viewing slice.</p>
+        </div>
 
-        {error && (
-          <div className="rounded border border-red-500/60 bg-red-500/10 p-3 text-sm text-red-200">
-            {error}
-          </div>
-        )}
+        <div className="flex flex-col gap-4">
+          {QUESTION_PRESETS.map(question => {
+            const answer = answers[question.id];
+            const error = questionErrors[question.id];
+            const isBusy = busyQuestionId === question.id;
+            const hasResponse = Boolean(answer);
+            const buttonLabel = isBusy ? 'Asking…' : hasResponse ? 'Ask Again' : 'Ask';
 
-        {description && !error && (
-          <div className="border-primary-main/40 rounded border bg-black/40 p-3 text-sm leading-relaxed text-gray-100">
-            {description}
-          </div>
-        )}
-
-        {!isBusy && !error && !description && (
-          <p className="text-sm text-gray-400">
-            Capture the active viewport slice and send it to GPT for an abnormality summary.
-          </p>
-        )}
+            return (
+              <div
+                key={question.id}
+                className="rounded-3xl bg-[#0b1433] p-4 shadow-lg shadow-black/40"
+              >
+                <p className="font-mono text-sm text-white">{question.title}</p>
+                {answer && (
+                  <p className="text-primary-light mt-3 rounded-2xl bg-[#0e1c4a] p-3 text-sm leading-relaxed text-white">
+                    {answer}
+                  </p>
+                )}
+                {!answer && !error && (
+                  <p className="mt-3 text-sm text-white/60">
+                    No response yet. Send this question to the model to see its answer.
+                  </p>
+                )}
+                {error && (
+                  <p className="mt-3 rounded-2xl bg-red-500/10 p-3 text-sm text-red-300">{error}</p>
+                )}
+                <div className="mt-4 flex justify-end">
+                  <button
+                    className="bg-primary-main hover:bg-primary-light disabled:bg-primary-main/40 rounded-full px-4 py-2 text-sm font-semibold text-black transition disabled:cursor-not-allowed"
+                    onClick={() => analyzeSlice(question.id)}
+                    disabled={isBusy || !apiKey}
+                  >
+                    {buttonLabel}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
