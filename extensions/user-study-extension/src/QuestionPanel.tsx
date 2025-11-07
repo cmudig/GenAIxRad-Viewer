@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { auth, db } from '../../../platform/app/src/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import SeriesPrompt from './SeriesPrompt';
+import PatientVignette from './PatientVignette';
 
 type Question = {
   id: number;
@@ -119,9 +119,9 @@ const QuestionPanel = ({ commandsManager, servicesManager, extensionManager }) =
 
   return (
     <div style={{ height: '100vh' }} className="flex h-screen flex-col">
-      {/* Top half: Series Prompt */}
+      {/* Top half: Patient Vignette */}
       <div className="h-1/2 w-full p-4">
-        <SeriesPrompt servicesManager={servicesManager} />
+        <PatientVignette servicesManager={servicesManager} />
       </div>
 
       {/* Bottom half: Questions */}
