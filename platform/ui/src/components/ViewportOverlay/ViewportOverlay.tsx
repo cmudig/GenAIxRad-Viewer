@@ -242,13 +242,34 @@ const ViewportOverlay = ({
     try {
       if (isPmapVisible) {
         // --- LOGIC TO HIDE (REVERT TO ORIGINAL) ---
-        const originalDisplaySetUID = sessionStorage.getItem(
-          `${ORIGINAL_DS_UID_KEY}_${viewportId}` // Uses consistent viewportId
+        let originalDisplaySetUID = sessionStorage.getItem(
+          `${ORIGINAL_DS_UID_KEY}_${viewportId}`
         );
 
         if (!originalDisplaySetUID) {
-          // This is the error you are seeing. The fix ensures this won't happen.
-          console.error('Original DisplaySet UID not found in session. Cannot revert.');
+          const fallbackDisplaySet =
+            allDisplaySets?.find(ds => {
+              const dsSeriesUID =
+                ds?.SeriesInstanceUID ??
+                ds?.seriesInstanceUID ??
+                ds?.metadata?.SeriesInstanceUID;
+              const sopUID = ds?.SOPClassUID || ds?.sopClassUID;
+              return dsSeriesUID === seriesInstanceUID && sopUID !== '1.2.840.10008.5.1.4.1.1.30';
+            }) ?? null;
+
+          if (fallbackDisplaySet?.displaySetInstanceUID) {
+            originalDisplaySetUID = fallbackDisplaySet.displaySetInstanceUID;
+            sessionStorage.setItem(`${ORIGINAL_DS_UID_KEY}_${viewportId}`, originalDisplaySetUID);
+          }
+        }
+
+        if (!originalDisplaySetUID) {
+          uiNotificationService?.show?.({
+            title: 'Unable to hide overlay',
+            message: 'Original series could not be resolved.',
+            type: 'warning',
+            duration: 3000,
+          });
           return;
         }
 
