@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useRef,
   useMemo,
+  createRef,
 } from 'react';
 
 import PropTypes from 'prop-types';
@@ -166,6 +167,11 @@ const DialogProvider = ({ children, service = null }) => {
         position = centerPositions.find(position => position.id === id);
       }
 
+      if (!dialog.nodeRef) {
+        dialog.nodeRef = createRef<HTMLDivElement>();
+      }
+      const nodeRef = dialog.nodeRef;
+
       const dragableItem = () => (
         <Draggable
           key={id}
@@ -173,6 +179,7 @@ const DialogProvider = ({ children, service = null }) => {
           position={position}
           defaultPosition={position}
           bounds="parent"
+          nodeRef={nodeRef}
           onStart={event => {
             const e = event || (typeof window !== 'undefined' && window.event);
             const target = e.target || e.srcElement;
@@ -203,6 +210,7 @@ const DialogProvider = ({ children, service = null }) => {
           }}
         >
           <div
+            ref={nodeRef}
             id={`draggableItem-${id}`}
             className={classNames(
               'DraggableItem',

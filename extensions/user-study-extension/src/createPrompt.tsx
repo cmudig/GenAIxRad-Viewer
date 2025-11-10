@@ -8,7 +8,8 @@ const createPrompt = (tab, answerList) => {
   if (tab === 'variation') {
     // ⬇️ New: if Normal, force "normal chest CT"
     if (answerList['Normal / Abnormal'] === 'Normal') {
-      const text = 'Normal chest with no abnormalities present';
+      const text =
+        'No signs of any abnormalities. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs pleural thickening. No signs of any nodules.';
       const key = normalize(text);
       return { text, key };
     }

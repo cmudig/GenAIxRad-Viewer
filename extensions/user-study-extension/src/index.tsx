@@ -42,8 +42,8 @@ export default {
       {
         name: 'explanation-panel',
         iconName: 'tab-studies',
-        iconLabel: 'AI Chest Assistant',
-        label: 'AI Chest Assistant',
+        iconLabel: 'AI Tools',
+        label: 'AI Tools',
         component: ExplanationComponent.bind(null, {
           commandsManager,
           extensionManager,

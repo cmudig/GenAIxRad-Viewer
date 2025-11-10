@@ -1,5 +1,7 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useViewportGrid } from '@ohif/ui';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../../../platform/app/src/firebase';
 
 type ChatGPTPanelProps = {
   commandsManager: any;
@@ -95,12 +97,13 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
   const config = useMemo(() => readConfig(), []);
 
   const [storedKey, setStoredKey] = useState(() => loadStoredKey());
-  const [pendingKey, setPendingKey] = useState(storedKey);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [questionErrors, setQuestionErrors] = useState<Record<string, string>>({});
   const [busyQuestionId, setBusyQuestionId] = useState<string | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
   const activeQuestionRef = useRef<string | null>(null);
+  const [isFetchingRemoteKey, setIsFetchingRemoteKey] = useState(false);
+  const [remoteKeyError, setRemoteKeyError] = useState('');
 
   const apiKey = config.apiKey ?? storedKey;
   const endpoint = config.endpoint ?? DEFAULT_ENDPOINT;
@@ -151,11 +154,46 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
     }
   }, []);
 
-  const handleSaveKey = useCallback(() => {
-    setStoredKey(pendingKey);
-    persistKey(pendingKey);
-    setQuestionErrors({});
-  }, [pendingKey]);
+  useEffect(() => {
+    if (config.apiKey || storedKey) {
+      return;
+    }
+
+    let isMounted = true;
+    setIsFetchingRemoteKey(true);
+    setRemoteKeyError('');
+
+    const fetchKey = async () => {
+      try {
+        const keyDoc = await getDoc(doc(db, 'api_keys', 'openAI'));
+        if (!keyDoc.exists()) {
+          throw new Error('OpenAI key is not configured in Firestore.');
+        }
+        const keyValue = keyDoc.get('key');
+        if (typeof keyValue !== 'string' || !keyValue.trim()) {
+          throw new Error('Firestore key entry is empty.');
+        }
+        if (isMounted) {
+          setStoredKey(keyValue.trim());
+          persistKey(keyValue.trim());
+        }
+      } catch (error: any) {
+        if (isMounted) {
+          setRemoteKeyError(error?.message || 'Failed to load OpenAI key.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsFetchingRemoteKey(false);
+        }
+      }
+    };
+
+    fetchKey();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [config.apiKey, storedKey]);
 
   const analyzeSlice = useCallback(
     async (questionId: string) => {
@@ -256,46 +294,21 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
   return (
     <div className="flex h-full flex-col text-white">
       <div className="space-y-6">
-        {!config.apiKey && (
-          <div className="rounded-2xl bg-white/5 p-4 shadow-inner shadow-black/40">
-            <label className="text-primary-light text-sm font-semibold">OpenAI API key</label>
-            <input
-              type="password"
-              className="focus:ring-primary-main mt-2 rounded bg-black/40 p-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2"
-              value={pendingKey}
-              onChange={event => setPendingKey(event.target.value.trim())}
-              placeholder="sk-..."
-            />
-            <div className="flex items-center justify-between">
-              <button
-                className="bg-primary-main disabled:bg-primary-main/40 rounded px-3 py-1 text-sm font-semibold text-black transition disabled:cursor-not-allowed"
-                onClick={handleSaveKey}
-                disabled={pendingKey === storedKey}
-              >
-                Save key
-              </button>
-              {storedKey && (
-                <button
-                  className="text-xs text-red-300 hover:text-red-200"
-                  onClick={() => {
-                    setPendingKey('');
-                    setStoredKey('');
-                    persistKey('');
-                  }}
-                >
-                  Clear stored key
-                </button>
-              )}
-            </div>
-            <p className="text-xs text-gray-400">
-              The key is stored locally in this browser. Use a restricted key when possible.
-            </p>
+        {/* {!config.apiKey && (
+          <div className="rounded-2xl bg-white/5 p-4 text-sm text-white shadow-inner shadow-black/40">
+            {isFetchingRemoteKey && <p>Loading OpenAI credentials…</p>}
+            {!isFetchingRemoteKey && remoteKeyError && (
+              <p className="text-red-300">{remoteKeyError}</p>
+            )}
+            {!isFetchingRemoteKey && !remoteKeyError && storedKey && (
+              <p className="text-white/70">OpenAI key loaded from secure storage.</p>
+            )}
           </div>
-        )}
+        )} */}
 
         <div>
           <h2 className="text-base font-semibold">Q&amp;A</h2>
-          <p className="text-sm text-white/70">Ask AI about the currently-viewing slice.</p>
+          <p className="text-sm text-white/70">Ask AI about the currently-viewed slice.</p>
         </div>
 
         <div className="flex flex-col gap-4">
@@ -317,10 +330,13 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
                     {answer}
                   </p>
                 )}
-                {!answer && !error && (
+                {!answer && !error && !isBusy && (
                   <p className="mt-3 text-sm text-white/60">
                     No response yet. Send this question to the model to see its answer.
                   </p>
+                )}
+                {isBusy && !error && (
+                  <p className="mt-3 text-sm text-white/70">Loading response from OpenAI…</p>
                 )}
                 {error && (
                   <p className="mt-3 rounded-2xl bg-red-500/10 p-3 text-sm text-red-300">{error}</p>

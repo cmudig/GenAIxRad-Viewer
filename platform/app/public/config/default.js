@@ -550,7 +550,7 @@ window.config = {
         },
         {
           id: 'rightPanel',
-          title: 'AI Chest Assistant',
+          title: 'AI Tools',
           text: 'This panel contains tools you might find useful in answering the study questions. Use the tab bar at the top of this panel to explore each assistant.',
           attachTo: {
             element: '[data-cy="explanation-component"]',
@@ -566,9 +566,9 @@ window.config = {
                   nextTab.click();
                   setTimeout(() => this.next(), 100); // Small delay to ensure state updates
                 }
-              }
-            }
-          ]
+              },
+            },
+          ],
         },
         {
           id: 'variationTab',
