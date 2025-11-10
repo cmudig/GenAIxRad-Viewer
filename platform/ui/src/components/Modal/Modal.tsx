@@ -26,6 +26,7 @@ const Modal = ({
   contentDimensions = null,
 }) => {
   const { hide } = useModal();
+  const draggableRef = React.useRef<HTMLDivElement>(null);
 
   const handleClose = () => {
     hide();
@@ -89,8 +90,9 @@ const Modal = ({
         <Draggable
           handle=".drag-handle"
           defaultClassName="bg-primary-dark pointer-events-auto"
+          nodeRef={draggableRef}
         >
-          <div>{modalContent}</div>
+          <div ref={draggableRef}>{modalContent}</div>
         </Draggable>
       ) : (
         modalContent

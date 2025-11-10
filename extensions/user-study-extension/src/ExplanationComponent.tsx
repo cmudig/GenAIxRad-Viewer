@@ -43,7 +43,9 @@ function ExplanationComponent({ commandsManager, extensionManager, servicesManag
       const { displaySetInstanceUIDs, displaySetOptions, viewportOptions } = initialViewport;
 
       const cloneOptions = (options: any) => {
-        if (!options) return undefined;
+        if (!options) {
+          return undefined;
+        }
         if (Array.isArray(options)) {
           return options.map(option => ({ ...(option || {}) }));
         }
@@ -62,8 +64,8 @@ function ExplanationComponent({ commandsManager, extensionManager, servicesManag
         findOrCreateViewport,
       });
 
-      const updatedState = viewportGridService.getState?.() ||
-                          viewportGridService.getViewportGridState?.();
+      const updatedState =
+        viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
       const viewports = Array.from(updatedState?.viewports?.values?.() || []);
       const primaryViewport = viewports[0];
 
@@ -78,12 +80,23 @@ function ExplanationComponent({ commandsManager, extensionManager, servicesManag
         viewportGridService.setActiveViewportId?.(primaryViewport.viewportId);
       }
 
-
       // Dispatch event to notify components
       document.dispatchEvent(new CustomEvent('examplesReset'));
     } catch (error) {
       console.warn('ExplanationComponent: Failed to restore original viewport state', error);
     }
+  };
+
+  const resetOnTransition = (from: string, to: string) => {
+    const combos = new Set([
+      'variation->example',
+      'example->variation',
+      'variation->assistant',
+      'example->assistant',
+      'assistant->variation',
+      'assistant->example',
+    ]);
+    return combos.has(`${from}->${to}`);
   };
 
   const handleNavClick = (tabId: string) => {
@@ -98,8 +111,10 @@ function ExplanationComponent({ commandsManager, extensionManager, servicesManag
         detail: { tab: tabId },
       })
     );
+    if (resetOnTransition(selectedTabId, tabId)) {
+      handleResetExamples();
+    }
     setSelectedTabId(tabId);
-    handleResetExamples();
   };
 
   const activeTab = TABS.find(tab => tab.id === selectedTabId) ?? defaultTab;
@@ -108,26 +123,26 @@ function ExplanationComponent({ commandsManager, extensionManager, servicesManag
   return (
     <div className="ohif-scrollbar flex h-full flex-col" data-cy="explanation-component">
       <div className="bg-primary-dark flex min-h-0 flex-1 flex-col p-4">
-        <div className="mb-3 text-center">
+        {/* <div className="mb-3 text-center">
           <p className="text-white/70 text-xs uppercase tracking-[0.2em]">AI Tools</p>
-        </div>
+        </div> */}
 
         <div className="grid grid-cols-2 gap-3">
           {TABS.map(tab => {
             const isActive = tab.id === selectedTabId;
             return (
-            <button
-              data-cy={`nav-button-${tab.id}`}
-              key={tab.id}
-              onClick={() => handleNavClick(tab.id)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition duration-200 ${
-                isActive
-                  ? 'bg-primary-main text-black shadow-lg shadow-primary-main/40'
-                  : 'bg-black/70 text-white/80 hover:bg-black'
-              }`}
-            >
-              {tab.label}
-            </button>
+              <button
+                data-cy={`nav-button-${tab.id}`}
+                key={tab.id}
+                onClick={() => handleNavClick(tab.id)}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition duration-200 ${
+                  isActive
+                    ? 'bg-primary-main shadow-primary-main/40 text-black shadow-lg'
+                    : 'bg-black/70 text-white/80 hover:bg-black'
+                }`}
+              >
+                {tab.label}
+              </button>
             );
           })}
         </div>

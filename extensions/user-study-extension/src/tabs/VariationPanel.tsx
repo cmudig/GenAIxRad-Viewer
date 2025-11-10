@@ -202,14 +202,28 @@ const VariationPanel = ({
     setAnswers(prev => ({ ...prev, [prompt]: option }));
   };
 
-  const handleCancelClick = () => {
+  const handleCancelClick = useCallback(() => {
     setAnswers({});
     // ⬇️ fully reset both sides on Cancel
     setGateResetKey(k => k + 1);
     setAbnormalResetKey(k => k + 1);
 
     restoreInitialViewport();
-  };
+  }, [restoreInitialViewport]);
+
+  useEffect(() => {
+    const handleTabChange = (event: Event) => {
+      const detail = (event as CustomEvent<{ tab?: string }>).detail;
+      if (detail?.tab === 'example' || detail?.tab === 'assistant') {
+        handleCancelClick();
+      }
+    };
+
+    document.addEventListener('tabChanged', handleTabChange);
+    return () => {
+      document.removeEventListener('tabChanged', handleTabChange);
+    };
+  }, [handleCancelClick]);
 
   // Button enable rules:
   // - If Normal: only need the gate answered

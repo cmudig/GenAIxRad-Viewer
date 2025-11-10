@@ -131,7 +131,9 @@ const generatePleuralEffusionVignette = (): RandomVignette => {
   const side = randomFrom(effusionSides);
   const severity = randomFrom(effusionSeverities);
   const effusionPhrase =
-    side === 'bilateral' ? `${severity} bilateral pleural effusions` : `${severity} ${side}-sided pleural effusion`;
+    side === 'bilateral'
+      ? `${severity} bilateral pleural effusions`
+      : `${severity} ${side}-sided pleural effusion`;
 
   const headline = `A ${randomAge()} ${sexDescriptor} with ${randomFrom(
     symptomTriggers
@@ -337,32 +339,29 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
     [displaySetService]
   );
 
-  const isPatientDisplaySet = useCallback(
-    (displaySet: any) => {
-      if (!displaySet) {
-        return false;
-      }
+  const isPatientDisplaySet = useCallback((displaySet: any) => {
+    if (!displaySet) {
+      return false;
+    }
 
-      const origin = (displaySet as any).__caseOrigin;
-      if (origin === 'ai') {
-        return false;
-      }
+    const origin = (displaySet as any).__caseOrigin;
+    if (origin === 'ai') {
+      return false;
+    }
 
-      const promptChanged =
-        displaySet.SeriesPromptChanged ??
-        displaySet.seriesPromptChanged ??
-        displaySet.metadata?.SeriesPromptChanged ??
-        displaySet.getAttribute?.('SeriesPromptChanged') ??
-        null;
+    const promptChanged =
+      displaySet.SeriesPromptChanged ??
+      displaySet.seriesPromptChanged ??
+      displaySet.metadata?.SeriesPromptChanged ??
+      displaySet.getAttribute?.('SeriesPromptChanged') ??
+      null;
 
-      if (String(promptChanged).toLowerCase() === 'true') {
-        return false;
-      }
+    if (String(promptChanged).toLowerCase() === 'true') {
+      return false;
+    }
 
-      return true;
-    },
-    []
-  );
+    return true;
+  }, []);
 
   const syncFromViewportState = useCallback(() => {
     if (!viewportGridService) {
@@ -413,7 +412,13 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
     if (!displaySetUID && candidateUIDs.length) {
       setDisplaySetUID(candidateUIDs[0]);
     }
-  }, [displaySetUID, displaySetService, isPatientDisplaySet, resolveDisplaySet, viewportGridService]);
+  }, [
+    displaySetUID,
+    displaySetService,
+    isPatientDisplaySet,
+    resolveDisplaySet,
+    viewportGridService,
+  ]);
 
   useEffect(() => {
     const onRefresh = (e: Event) => {
@@ -558,7 +563,7 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
         }
 
         if (!cancelled) {
-          setSeriesPrompt(prev => (prompt ?? prev ?? null));
+          setSeriesPrompt(prev => prompt ?? prev ?? null);
           setSeriesPromptChanged(prev => changed || prev);
         }
       } finally {
@@ -667,7 +672,7 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
   const imagingMetaHighlights = [
     imagingMeta.modality && imagingMeta.seriesDescription
       ? `${imagingMeta.modality} · ${imagingMeta.seriesDescription}`
-      : imagingMeta.modality ?? imagingMeta.seriesDescription,
+      : (imagingMeta.modality ?? imagingMeta.seriesDescription),
     imagingMeta.studyDescription,
     imagingMeta.seriesNumber ? `Series #${imagingMeta.seriesNumber}` : null,
   ].filter(Boolean);
@@ -682,43 +687,49 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
 
   const studyDateToShow = imagingMeta.studyDate ?? fallbackVignette.studyDate;
 
-  const demographicLine = [effectiveDemographics.age, effectiveDemographics.sex, effectiveDemographics.bodyPart]
+  const demographicLine = [
+    effectiveDemographics.age,
+    effectiveDemographics.sex,
+    effectiveDemographics.bodyPart,
+  ]
     .filter(Boolean)
     .join(' • ');
 
   return (
     <div className="h-full w-full overflow-auto">
-      <div className="border-white/10 bg-black/40 text-white shadow-inner shadow-black/40 rounded-3xl border p-4">
+      <div className="rounded-3xl border border-white/10 bg-black/40 p-4 text-white shadow-inner shadow-black/40">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-white/60 text-xs uppercase tracking-[0.3em]">Patient Vignette</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-white/60">Patient Vignette</p>
             {seriesPromptChanged && (
-              <span className="text-primary-light mt-1 inline-flex items-center rounded-full bg-primary-main/10 px-3 py-0.5 text-xs font-semibold">
+              <span className="text-primary-light bg-primary-main/10 mt-1 inline-flex items-center rounded-full px-3 py-0.5 text-xs font-semibold">
                 Clinician-edited details
               </span>
             )}
           </div>
           {studyDateToShow && (
-            <p className="text-white/60 text-xs">Study date · {studyDateToShow}</p>
+            <p className="text-xs text-white/60">Study date · {studyDateToShow}</p>
           )}
         </div>
 
         <div className="mt-4 space-y-4">
-          <section className="rounded-2xl bg-white/5 p-4">
-            <p className="text-white/50 text-xs uppercase tracking-wide">Demographics</p>
+          <section className="rounded-2xl bg-[#0b1433] p-4 shadow-lg shadow-black/40">
+            <p className="text-xs uppercase tracking-wide text-white/50">Demographics</p>
             <p className="mt-2 text-lg font-semibold">
               {effectiveDemographics.patientName ?? 'Generated patient'}
             </p>
-            <p className="text-white/70 text-sm">
+            <p className="text-sm text-white/70">
               {demographicLine || 'Patient age, sex, or body part not provided.'}
             </p>
             {effectiveDemographics.patientId && (
-              <p className="text-white/40 mt-2 text-xs">Patient ID: {effectiveDemographics.patientId}</p>
+              <p className="mt-2 text-xs text-white/40">
+                Patient ID: {effectiveDemographics.patientId}
+              </p>
             )}
           </section>
 
           <section className="rounded-2xl bg-[#0b1433] p-4 shadow-lg shadow-black/40">
-            <p className="text-white/60 text-xs uppercase tracking-wide">Clinical Context</p>
+            <p className="text-xs uppercase tracking-wide text-white/60">Patient History</p>
             {isLoadingNarrative && (
               <p className="mt-2 text-sm text-white/70">Loading vignette narrative…</p>
             )}
@@ -741,7 +752,7 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
             )}
           </section>
 
-          <section className="rounded-2xl bg-white/5 p-4">
+          {/* <section className="rounded-2xl bg-white/5 p-4">
             <p className="text-white/60 text-xs uppercase tracking-wide">Imaging Details</p>
             {displayImagingHighlights.length ? (
               <ul className="mt-2 space-y-1 text-sm text-white/80">
@@ -755,7 +766,7 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
             {seriesInstanceUID && (
               <p className="text-white/40 mt-3 truncate text-xs">Series UID: {seriesInstanceUID}</p>
             )}
-          </section>
+          </section> */}
         </div>
       </div>
     </div>
