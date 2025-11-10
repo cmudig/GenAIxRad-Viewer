@@ -323,40 +323,97 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
   const [refreshTick, setRefreshTick] = useState(0);
   const randomVignetteCacheRef = useRef<Map<string, RandomVignette>>(new Map());
 
+  const resolveDisplaySet = useCallback(
+    (uid: string | null | undefined) => {
+      if (!uid || !displaySetService?.getDisplaySetByUID) {
+        return null;
+      }
+      try {
+        return displaySetService.getDisplaySetByUID(uid);
+      } catch {
+        return null;
+      }
+    },
+    [displaySetService]
+  );
+
+  const isPatientDisplaySet = useCallback(
+    (displaySet: any) => {
+      if (!displaySet) {
+        return false;
+      }
+
+      const origin = (displaySet as any).__caseOrigin;
+      if (origin === 'ai') {
+        return false;
+      }
+
+      const promptChanged =
+        displaySet.SeriesPromptChanged ??
+        displaySet.seriesPromptChanged ??
+        displaySet.metadata?.SeriesPromptChanged ??
+        displaySet.getAttribute?.('SeriesPromptChanged') ??
+        null;
+
+      if (String(promptChanged).toLowerCase() === 'true') {
+        return false;
+      }
+
+      return true;
+    },
+    []
+  );
+
   const syncFromViewportState = useCallback(() => {
     if (!viewportGridService) {
+      return;
+    }
+
+    const currentDisplaySet = resolveDisplaySet(displaySetUID);
+    if (currentDisplaySet && isPatientDisplaySet(currentDisplaySet)) {
       return;
     }
 
     const state = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
     const viewports = getViewportsArray(state);
 
-    const resolvedActiveId = state?.activeViewportId ?? viewports[0]?.viewportId ?? null;
+    const collectCandidateUIDs = (): string[] => {
+      const uids: string[] = [];
 
-    const activeViewport =
-      viewports.find(v => v?.viewportId === resolvedActiveId) ?? viewports[0] ?? null;
+      viewports.forEach(vp => {
+        const ids =
+          vp?.displaySetInstanceUIDs ??
+          vp?.displaySetOptions?.displaySetInstanceUIDs ??
+          vp?.displaySetOptions?.map?.(opt => opt?.displaySetInstanceUIDs)?.flat?.() ??
+          [];
+        if (Array.isArray(ids)) {
+          uids.push(...ids.filter(Boolean));
+        }
+      });
 
-    const candidateUID =
-      activeViewport?.displaySetInstanceUIDs?.[0] ||
-      activeViewport?.displaySetOptions?.displaySetInstanceUIDs?.[0] ||
-      null;
+      const activeDisplaySets = displaySetService?.getActiveDisplaySets?.() ?? [];
+      activeDisplaySets.forEach(ds => {
+        if (ds?.displaySetInstanceUID) {
+          uids.push(ds.displaySetInstanceUID);
+        }
+      });
 
-    if (candidateUID) {
-      setDisplaySetUID(prev => (prev === candidateUID ? prev : candidateUID));
-      return;
-    }
+      return uids;
+    };
 
-    const activeDisplaySets = displaySetService?.getActiveDisplaySets?.() ?? [];
-    if (activeDisplaySets.length) {
-      const fallbackUID = activeDisplaySets[0]?.displaySetInstanceUID ?? null;
-      if (fallbackUID) {
-        setDisplaySetUID(prev => (prev === fallbackUID ? prev : fallbackUID));
+    const candidateUIDs = collectCandidateUIDs();
+    for (const uid of candidateUIDs) {
+      const ds = resolveDisplaySet(uid);
+      if (isPatientDisplaySet(ds)) {
+        setDisplaySetUID(prev => (prev === uid ? prev : uid));
         return;
       }
     }
 
-    setDisplaySetUID(null);
-  }, [displaySetService, viewportGridService]);
+    if (!displaySetUID && candidateUIDs.length) {
+      setDisplaySetUID(candidateUIDs[0]);
+    }
+  }, [displaySetUID, displaySetService, isPatientDisplaySet, resolveDisplaySet, viewportGridService]);
 
   useEffect(() => {
     const onRefresh = (e: Event) => {
