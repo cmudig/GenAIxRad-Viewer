@@ -79,6 +79,15 @@ const getSeriesDescription = (displaySet: any): string => {
   );
 };
 
+const textOrNull = (...values: Array<string | null | undefined>): string | null => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return null;
+};
+
 const getSeriesInstanceUID = (displaySet: any): string | null => {
   if (!displaySet) {
     return null;
@@ -442,13 +451,9 @@ const RadiopaediaComponent: React.FC<RadiopaediaComponentProps> = ({ servicesMan
     [cornerstoneViewportService]
   );
 
-  const availablePmaps: PmapEntry[] = useMemo(() => {
-    if (!displaySetService || !activeViewportId) {
-      return [];
-    }
-
-    const resolveDisplaySet = (uid: string | null) => {
-      if (!uid) {
+  const resolveDisplaySet = useCallback(
+    (uid: string | null) => {
+      if (!uid || !displaySetService?.getDisplaySetByUID) {
         return null;
       }
       try {
@@ -457,39 +462,96 @@ const RadiopaediaComponent: React.FC<RadiopaediaComponentProps> = ({ servicesMan
         console.warn('RadiopaediaComponent: failed to resolve display set', error);
         return null;
       }
-    };
+    },
+    [displaySetService]
+  );
 
-    const viewportEntry = getViewportEntry(viewports, activeViewportId);
-    const candidateDisplaySetUID = viewportEntry?.displaySetInstanceUIDs?.[0] ?? null;
-
-    let baseDisplaySetUID: string | null = null;
-    let baseDisplaySet: any = null;
-
-    const candidateDisplaySet = resolveDisplaySet(candidateDisplaySetUID);
-    if (candidateDisplaySet && !isPmapDisplaySet(candidateDisplaySet)) {
-      baseDisplaySetUID = candidateDisplaySetUID;
-      baseDisplaySet = candidateDisplaySet;
+  const baseInfo = useMemo(() => {
+    if (!activeViewportId) {
+      return { baseDisplaySet: null, targetSeriesInstanceUID: null, basePrompt: null };
     }
 
-    if (!baseDisplaySetUID) {
-      const storedOriginal =
-        (typeof window !== 'undefined' && window.sessionStorage
-          ? sessionStorage.getItem(`${ORIGINAL_DS_UID_KEY}_${activeViewportId}`)
-          : null) ?? null;
-      if (storedOriginal) {
-        baseDisplaySetUID = storedOriginal;
-        baseDisplaySet = resolveDisplaySet(storedOriginal);
+    const viewportEntry = getViewportEntry(viewports, activeViewportId);
+    const candidateUID = viewportEntry?.displaySetInstanceUIDs?.[0] ?? null;
+
+    const resolveSeriesUID = (ds: any): string | null =>
+      ds
+        ? ds.SeriesInstanceUID ??
+          ds.seriesInstanceUID ??
+          ds.metadata?.SeriesInstanceUID ??
+          null
+        : null;
+
+    let baseDisplaySet = resolveDisplaySet(candidateUID);
+
+    if (baseDisplaySet && isPmapDisplaySet(baseDisplaySet)) {
+      baseDisplaySet = null;
+    }
+
+    if (!baseDisplaySet) {
+      const storedUID =
+        (typeof window !== 'undefined' ? sessionStorage.getItem(`${ORIGINAL_DS_UID_KEY}_${activeViewportId}`) : null) ??
+        null;
+      if (storedUID) {
+        const storedSet = resolveDisplaySet(storedUID);
+        if (storedSet && !isPmapDisplaySet(storedSet)) {
+          baseDisplaySet = storedSet;
+        }
       }
     }
 
-    let targetSeriesInstanceUID: string | null = null;
-    if (baseDisplaySet) {
-      targetSeriesInstanceUID = getSeriesInstanceUID(baseDisplaySet);
+    let targetSeriesInstanceUID = resolveSeriesUID(baseDisplaySet);
+
+    if (!baseDisplaySet && candidateUID) {
+      const candidate = resolveDisplaySet(candidateUID);
+      if (candidate && isPmapDisplaySet(candidate)) {
+        targetSeriesInstanceUID = getReferencedSeriesInstanceUID(candidate);
+        if (targetSeriesInstanceUID) {
+          const displaySetCache = displaySetService?.getDisplaySetCache?.();
+          const allDisplaySets: any[] = displaySetCache
+            ? Array.from(displaySetCache.values())
+            : displaySetService?.getActiveDisplaySets?.() ?? [];
+          baseDisplaySet =
+            allDisplaySets.find(ds => {
+              if (isPmapDisplaySet(ds)) {
+                return false;
+              }
+              const uid =
+                ds.SeriesInstanceUID ?? ds.seriesInstanceUID ?? ds.metadata?.SeriesInstanceUID ?? null;
+              return uid === targetSeriesInstanceUID;
+            }) ?? null;
+        }
+      }
     }
 
-    if (!targetSeriesInstanceUID && candidateDisplaySet && isPmapDisplaySet(candidateDisplaySet)) {
-      targetSeriesInstanceUID = getReferencedSeriesInstanceUID(candidateDisplaySet);
+    if (!targetSeriesInstanceUID && baseDisplaySet) {
+      targetSeriesInstanceUID = resolveSeriesUID(baseDisplaySet);
     }
+
+    const basePrompt =
+      safeString(
+        baseDisplaySet?.SeriesPrompt ??
+          baseDisplaySet?.seriesPrompt ??
+          baseDisplaySet?.metadata?.SeriesPrompt ??
+          baseDisplaySet?.getAttribute?.('SeriesPrompt')
+      ) || null;
+
+    const baseSeriesDescription =
+      textOrNull(
+        baseDisplaySet?.SeriesDescription,
+        baseDisplaySet?.seriesDescription,
+        baseDisplaySet?.metadata?.SeriesDescription
+      ) || null;
+
+    return { baseDisplaySet, targetSeriesInstanceUID, basePrompt, baseSeriesDescription };
+  }, [activeViewportId, displaySetService, viewports, displaySetVersion, resolveDisplaySet]);
+
+  const availablePmaps: PmapEntry[] = useMemo(() => {
+    if (!displaySetService || !activeViewportId) {
+      return [];
+    }
+
+    let { targetSeriesInstanceUID } = baseInfo;
 
     if (!targetSeriesInstanceUID && selectedPmapUID) {
       const selectedDisplaySet = resolveDisplaySet(selectedPmapUID);
@@ -546,7 +608,13 @@ const RadiopaediaComponent: React.FC<RadiopaediaComponentProps> = ({ servicesMan
     });
 
     return entries;
-  }, [activeViewportId, displaySetService, displaySetVersion, selectedPmapUID, viewports]);
+  }, [
+    activeViewportId,
+    baseInfo,
+    displaySetService,
+    resolveDisplaySet,
+    selectedPmapUID,
+  ]);
 
   const applyDisplaySetToViewport = useCallback(
     async (viewportId: string, targetDisplaySetUID: string, viewportState: ViewportState | null) => {
@@ -709,40 +777,63 @@ const RadiopaediaComponent: React.FC<RadiopaediaComponentProps> = ({ servicesMan
     [availablePmaps]
   );
 
-  const renderToggleButton = (entry: PmapEntry) => {
+  const renderCard = (entry: PmapEntry) => {
     const isSelected = selectedPmapUID === entry.displaySetInstanceUID;
-    const baseClasses =
-      'w-full rounded-md border px-3 py-2 text-left text-sm transition focus:outline-none';
-    const selectedClasses =
-      'border-aqua-pale bg-aqua-pale/20 text-white shadow-sm hover:bg-aqua-pale/30';
-    const defaultClasses =
-      'border-primary-dark bg-black text-white hover:border-primary-light hover:bg-primary-dark';
+    const entirePromptText =
+      baseInfo.baseSeriesDescription ||
+      baseInfo.basePrompt ||
+      entry.seriesDescription ||
+      'Prompt used to generate CT scan';
+    const title = entry.isEntirePrompt
+      ? entirePromptText
+      : entry.label;
+    const note = entry.isEntirePrompt
+      ? '(Prompt used to generate CT scan)'
+      : entry.seriesDescription || '';
 
     return (
       <button
         key={entry.displaySetInstanceUID}
-        className={`${baseClasses} ${isSelected ? selectedClasses : defaultClasses}`}
-        disabled={isBusy}
         onClick={() => handleToggle(entry.displaySetInstanceUID)}
+        disabled={isBusy}
+        className={`w-full rounded-2xl border px-4 py-3 text-left shadow-lg shadow-black/40 transition ${
+          isSelected
+            ? 'border-aqua-pale bg-[#13234d]'
+            : 'border-transparent bg-[#0b1433] hover:border-white/20'
+        }`}
       >
-        <div className="flex items-center justify-between">
-          <span className="font-semibold">
-            {entry.isEntirePrompt
-              ? isSelected
-                ? 'Hide Entire Prompt'
-                : 'Show Entire Prompt'
-              : entry.label}
-          </span>
-          {isBusy && isSelected && (
-            <span className="text-xs uppercase text-primary-light">Updating...</span>
-          )}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="font-mono text-sm">{title}</p>
+            {note && (
+              <p className="text-primary-light mt-1 text-xs italic">
+                {entry.isEntirePrompt && isSelected ? 'Tap to hide overlay' : note}
+              </p>
+            )}
+          </div>
+          <span className="text-white/60 text-lg">{isSelected ? '×' : '›'}</span>
         </div>
-        {!entry.isEntirePrompt && entry.seriesDescription && (
-          <div className="text-primary-light mt-1 text-xs">{entry.seriesDescription}</div>
-        )}
       </button>
     );
   };
+
+  const isPatientScan = useMemo(() => {
+    const displaySet = baseInfo.baseDisplaySet;
+    if (!displaySet) {
+      return true;
+    }
+    const origin = (displaySet as any).__caseOrigin;
+    if (origin === 'ai') {
+      return false;
+    }
+    const promptChanged =
+      displaySet.SeriesPromptChanged ??
+      displaySet.seriesPromptChanged ??
+      displaySet.metadata?.SeriesPromptChanged ??
+      displaySet.getAttribute?.('SeriesPromptChanged') ??
+      null;
+    return String(promptChanged).toLowerCase() !== 'true';
+  }, [baseInfo]);
 
   if (!displaySetService || !viewportGridService) {
     return (
@@ -783,39 +874,37 @@ const RadiopaediaComponent: React.FC<RadiopaediaComponentProps> = ({ servicesMan
     );
   }
 
+  if (isPatientScan) {
+    return (
+      <div className="ohif-scrollbar flex h-full flex-col p-4 text-white">
+        <div className="rounded-2xl border border-white/10 bg-black/40 p-4 text-sm text-white/80">
+          You first need to generate a CT scan from the Variations or Similar Cases tab before
+          viewing important regions.
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="ohif-scrollbar flex h-full flex-col p-4 text-white">
-      <div className="flex-0 mb-4">
-        <h3 className="text-lg font-semibold leading-tight">Radiopaedia Overlays</h3>
-        <p className="text-primary-light mt-1 text-xs">
-          Toggle AI-generated probability maps to explore the prompt and individual keywords.
+    <div className="ohif-scrollbar flex h-full flex-col gap-4 p-4 text-white">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-white/60">
+          Important Regions
+        </p>
+        <p className="text-sm text-white/70">
+          Highlight areas of the image that are most related to parts of the text description.
         </p>
       </div>
 
-      {entirePromptEntries.length > 0 && (
-        <div className="mb-4 rounded-md border border-primary-dark bg-black p-3">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-aqua-pale">
-            Entire Prompt
-          </div>
-          <div className="space-y-2">
-            {entirePromptEntries.map(entry => renderToggleButton(entry))}
-          </div>
-        </div>
-      )}
-
-      <div className="rounded-md border border-primary-dark bg-black p-3">
-        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-aqua-pale">
-          Prompt Keywords
-        </div>
-        {wordEntries.length ? (
-          <div className="grid grid-cols-1 gap-2">
-            {wordEntries.map(entry => renderToggleButton(entry))}
-          </div>
-        ) : (
-          <div className="text-primary-light text-xs">
-            No keyword-level overlays detected for this series.
-          </div>
-        )}
+      <div className="space-y-3">
+        {entirePromptEntries.map(entry => renderCard(entry))}
+        {wordEntries.length
+          ? wordEntries.map(entry => renderCard(entry))
+          : !entirePromptEntries.length && (
+              <div className="rounded-2xl border border-white/10 bg-black/40 p-3 text-sm text-white/70">
+                No keyword overlays are available for this series.
+              </div>
+            )}
       </div>
     </div>
   );
