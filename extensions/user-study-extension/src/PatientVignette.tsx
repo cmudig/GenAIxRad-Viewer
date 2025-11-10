@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../../../platform/app/src/firebase';
 import { getMetadataFromSeries } from '../../../platform/app/src/components/dicom_helpers';
 
 type PatientVignetteProps = {
@@ -321,6 +323,8 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
   const [seriesPrompt, setSeriesPrompt] = useState<string | null>(null);
   const [seriesPromptChanged, setSeriesPromptChanged] = useState<boolean>(false);
   const [loadingMeta, setLoadingMeta] = useState<boolean>(false);
+  const [remoteDemographics, setRemoteDemographics] = useState<Record<string, any> | null>(null);
+  const [remoteDemographicsError, setRemoteDemographicsError] = useState<string | null>(null);
 
   const [refreshTick, setRefreshTick] = useState(0);
   const randomVignetteCacheRef = useRef<Map<string, RandomVignette>>(new Map());
@@ -650,6 +654,56 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
     return { modality, studyDescription, seriesDescription, seriesNumber, studyDate };
   }, [ds]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const patientId = demographics.patientId;
+
+    if (!patientId) {
+      setRemoteDemographics(null);
+      setRemoteDemographicsError(null);
+      return;
+    }
+
+    const fetchDemographics = async () => {
+      try {
+        let data: Record<string, any> | null = null;
+        const normalizedId = patientId.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
+
+        if (normalizedId) {
+          const docSnap = await getDoc(doc(db, 'vignettes', normalizedId));
+          if (docSnap.exists()) {
+            data = docSnap.data() as Record<string, any>;
+          }
+        }
+
+        if (!data) {
+          const q = query(collection(db, 'vignettes'), where('Patient ID', '==', patientId));
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            data = snapshot.docs[0].data() as Record<string, any>;
+          }
+        }
+
+        if (!cancelled) {
+          setRemoteDemographics(data);
+          setRemoteDemographicsError(null);
+        }
+      } catch (error) {
+        console.warn('PatientVignette: failed to fetch demographics from Firestore', error);
+        if (!cancelled) {
+          setRemoteDemographics(null);
+          setRemoteDemographicsError('Unable to load demographics from secure storage.');
+        }
+      }
+    };
+
+    fetchDemographics();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [demographics.patientId]);
+
   const fallbackVignette = useMemo(() => {
     const cacheKey = seriesInstanceUID ?? displaySetUID ?? 'global';
     if (!randomVignetteCacheRef.current.has(cacheKey)) {
@@ -661,13 +715,24 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
   const promptNarrative = useMemo(() => buildPromptNarrative(seriesPrompt), [seriesPrompt]);
   const isLoadingNarrative = loadingMeta && !seriesPrompt;
 
-  const effectiveDemographics = {
-    patientName: demographics.patientName ?? fallbackVignette.patientName,
-    patientId: demographics.patientId ?? fallbackVignette.patientId,
-    age: demographics.age ?? fallbackVignette.age,
-    sex: demographics.sex ?? fallbackVignette.sex,
-    bodyPart: demographics.bodyPart ?? fallbackVignette.bodyPart,
-  };
+  const effectiveDemographics = useMemo(() => {
+    const merged = {
+      patientName: demographics.patientName ?? fallbackVignette.patientName,
+      patientId: demographics.patientId ?? fallbackVignette.patientId,
+      age: demographics.age ?? fallbackVignette.age,
+      sex: demographics.sex ?? fallbackVignette.sex,
+      bodyPart: demographics.bodyPart ?? fallbackVignette.bodyPart,
+    };
+
+    if (remoteDemographics) {
+      merged.patientName = remoteDemographics.name ?? merged.patientName;
+      merged.patientId = remoteDemographics['Patient ID'] ?? merged.patientId;
+      merged.age = remoteDemographics.age ?? merged.age;
+      merged.sex = remoteDemographics.Sex ?? merged.sex;
+    }
+
+    return merged;
+  }, [demographics, fallbackVignette, remoteDemographics]);
 
   const imagingMetaHighlights = [
     imagingMeta.modality && imagingMeta.seriesDescription
@@ -725,6 +790,9 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
               <p className="mt-2 text-xs text-white/40">
                 Patient ID: {effectiveDemographics.patientId}
               </p>
+            )}
+            {remoteDemographicsError && (
+              <p className="mt-2 text-xs text-red-300">{remoteDemographicsError}</p>
             )}
           </section>
 
