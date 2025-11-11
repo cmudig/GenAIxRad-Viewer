@@ -1,4 +1,4 @@
-import React, { useEffect, useState, CSSProperties } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -60,38 +60,29 @@ const GenerationOptions: React.FC<GenerationOptionsProps> = ({
     }
   };
 
-  const getOptionButtonStyle = (option: string): CSSProperties => {
-    const isSelected = selectedOption === option;
-    return {
-      padding: '6px 12px',
-      border: 'none',
-      borderRight: options.indexOf(option) < options.length - 1 ? '1px solid #2B166B' : 'none', // Add right border to all but the last
-      cursor: 'pointer',
-      backgroundColor: isSelected ? '#0944B3' : '#090C29',
-      color: 'white',
-      fontSize: '11px',
-      outline: 'none',
-      transition: 'background-color 0.2s ease',
-    };
-  };
-
   return (
-    <div className="mb-2 flex items-center justify-between font-medium">
-      <span className="text-aqua-pale mr-2 flex items-center text-[12px] font-semibold font-medium">
+    <div className="flex flex-col gap-2 font-medium sm:flex-row sm:items-center sm:justify-between">
+      <span className="text-aqua-pale mr-2 flex min-w-[120px] items-center text-[12px] font-semibold">
         {prompt}
       </span>
-      <div className="border-secondary-main flex overflow-hidden rounded-md border">
-        {options.map((option, index) => (
-          <button
-            key={index}
-            onClick={() => handleOptionClick(option)}
-            style={getOptionButtonStyle(option)}
-            className={`${selectedOption === option ? 'selected' : ''}`}
-            aria-pressed={selectedOption === option}
-          >
-            {option}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-2">
+        {options.map(option => {
+          const isSelected = selectedOption === option;
+          return (
+            <button
+              key={option}
+              onClick={() => handleOptionClick(option)}
+              className={`rounded-full border px-4 py-2 text-[12px] font-semibold transition-colors ${
+                isSelected
+                  ? 'border-[#8cb6ff] bg-white text-black shadow-lg'
+                  : 'border-[#2b166b] bg-[#090c29] text-white hover:border-[#4b2ca6]'
+              }`}
+              aria-pressed={isSelected}
+            >
+              {option}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

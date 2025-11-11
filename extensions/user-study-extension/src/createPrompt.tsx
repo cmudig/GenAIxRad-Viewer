@@ -18,14 +18,28 @@ const createPrompt = (tab, answerList) => {
     const findings = answerList['Findings'] || '';
     const location = answerList['Location'] || '';
     const severity = answerList['Severity'] || ''; // could be number
-    const assoc = answerList['Associated Findings'] || '';
+    const assocRaw = answerList['Associated Findings'] || '';
+    const assoc = typeof assocRaw === 'string' ? assocRaw.trim() : '';
+    const hasAssoc = assoc && assoc.toLowerCase() !== 'none';
 
     // Build pretty text with only present parts
-    const parts = [findings, location, severity, 'pleural effusion with signs of', assoc].filter(
-      Boolean
-    );
+    const parts = [findings].filter(Boolean);
+    const severityText = severity ? `${severity} pleural effusion` : 'pleural effusion';
+    const locationText = location
+      ? location.toLowerCase() === 'bilateral'
+        ? 'left and right lungs'
+        : `the ${location.toLowerCase()} lung${location.toLowerCase() === 'left' || location.toLowerCase() === 'right' ? '' : 's'}`
+      : '';
 
-    const text = parts.join(' ').replace(/\s+/g, ' ').trim();
+    let text = `${parts.join(' ')} ${severityText}`.trim();
+    if (locationText) {
+      text = `${text} in ${locationText}`.trim();
+    }
+
+    if (hasAssoc) {
+      text = `${text} with signs of ${assoc}`.trim();
+    }
+
     const key = normalize(text);
     return { text, key };
   }
