@@ -76,14 +76,11 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
   const [viewportVersion, setViewportVersion] = useState(0);
   const [activeDisplaySetUID, setActiveDisplaySetUID] = useState<string | null>(null);
 
-  const initialViewportRef = useRef<
-    | null
-    | {
-        displaySetInstanceUIDs: string[];
-        displaySetOptions?: any;
-        viewportOptions?: any;
-      }
-  >(null);
+  const initialViewportRef = useRef<null | {
+    displaySetInstanceUIDs: string[];
+    displaySetOptions?: any;
+    viewportOptions?: any;
+  }>(null);
 
   const [similarMatches, setSimilarMatches] = useState<RankedDisplaySet[]>([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
@@ -710,12 +707,10 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
   }, [similarMatches]);
 
   return (
-    <div className="flex h-full flex-col rounded-2xl bg-[#050c24] p-4 text-white shadow-lg shadow-primary-main/10">
+    <div className="shadow-primary-main/10 flex h-full flex-col rounded-2xl bg-[#050c24] p-4 text-white shadow-lg">
       <div className="flex flex-wrap items-start gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-white/60">
-            Similar Cases
-          </p>
+          <p className="text-base font-semibold">Similar Cases</p>
           <p className="text-sm text-white/80">
             Search for examples from the database that have related impressions.
           </p>
@@ -727,7 +722,7 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
             disabled={isApplying || loadingSimilar || !cardsAvailable}
             className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
               isApplying || loadingSimilar || !cardsAvailable
-                ? 'bg-white/10 text-white/40 cursor-not-allowed'
+                ? 'cursor-not-allowed bg-white/10 text-white/40'
                 : 'bg-primary-light text-black hover:bg-white'
             }`}
           >
@@ -750,7 +745,9 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
       )}
 
       {error && (
-        <div className="mt-3 rounded-xl bg-[#42182c] px-3 py-2 text-sm text-error-light">{error}</div>
+        <div className="text-error-light mt-3 rounded-xl bg-[#42182c] px-3 py-2 text-sm">
+          {error}
+        </div>
       )}
 
       <div className="ohif-scrollbar mt-4 flex-1 space-y-3 overflow-y-auto pr-1">
@@ -815,7 +812,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
         <button
           type="button"
           onClick={primaryAction}
-          className="rounded-full bg-primary-light px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-white"
+          className="bg-primary-light rounded-full px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-white"
         >
           {primaryActionLabel}
         </button>

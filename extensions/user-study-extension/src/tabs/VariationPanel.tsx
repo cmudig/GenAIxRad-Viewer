@@ -250,9 +250,7 @@ const VariationPanel = ({
     <div className="shadow-primary-main/10 flex h-full flex-col rounded-2xl bg-[#050c24] p-3 text-white shadow-lg">
       <div className="flex flex-wrap items-start gap-2">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/60">
-            Variations
-          </p>
+          <p className="text-base font-semibold">Variations</p>
           <p className="text-[13px] text-white/80">
             Generate a new image that is the same as the current one except for characteristics you
             select.
