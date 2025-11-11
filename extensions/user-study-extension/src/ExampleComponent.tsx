@@ -49,6 +49,19 @@ const getSeriesDescription = (displaySet: any): string => {
   );
 };
 
+const tokenize = (value: string): Set<string> => {
+  if (!value) {
+    return new Set();
+  }
+  return new Set(
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]+/g, ' ')
+      .split(/\s+/)
+      .filter(Boolean)
+  );
+};
+
 const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) => {
   const viewportGridService =
     servicesManager?.services?.viewportGridService ||
@@ -77,6 +90,8 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
   const [similarError, setSimilarError] = useState('');
   const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [addedMatchUIDs, setAddedMatchUIDs] = useState<string[]>([]);
+  const [addedDisplaySets, setAddedDisplaySets] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     if (!viewportGridService) {
@@ -320,65 +335,44 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
     return matches;
   }, [computeMatches, similarMatches]);
 
-  const addMatchToViewport = useCallback(
-    async (match: RankedDisplaySet) => {
-      if (!viewportGridService) {
-        return;
+  const layoutPatientWithMatches = useCallback(
+    async (matchUIDs: string[]) => {
+      if (!viewportGridService || !displaySetService || !patientDisplaySet) {
+        return false;
       }
 
-      const matchUID = match?.displaySet?.displaySetInstanceUID;
-      if (!matchUID) {
+      const patientUID = (patientDisplaySet as any)?.displaySetInstanceUID;
+      if (!patientUID) {
         uiNotificationService?.show?.({
-          title: 'Series unavailable',
-          message: 'This similar case cannot be loaded right now.',
-          type: 'warning',
-          duration: 2500,
+          title: 'Unable to display',
+          message: 'The patient series is unavailable.',
+          type: 'error',
+          duration: 3000,
         });
-        return;
+        return false;
+      }
+
+      const unique = matchUIDs.filter(
+        (uid, index) => uid && matchUIDs.indexOf(uid) === index
+      ) as string[];
+      const limited = unique.slice(0, 3);
+      const totalViewports = Math.min(4, 1 + limited.length);
+      const layout = GRID_LAYOUTS[totalViewports];
+
+      if (!layout) {
+        uiNotificationService?.show?.({
+          title: 'Layout unavailable',
+          message: 'Unable to create space for another viewport.',
+          type: 'error',
+          duration: 3000,
+        });
+        return false;
       }
 
       try {
-        const state =
+        const previousState =
           viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
-        const previousViewports = getViewportsArray(state);
-
-        const layout = state?.layout ?? {};
-        const layoutCols = Number(layout?.numCols) || 0;
-        const layoutRows = Number(layout?.numRows) || 0;
-        const layoutViewportCount =
-          layoutCols > 0 && layoutRows > 0 ? layoutCols * layoutRows : 0;
-        const existingViewportCount = Math.max(
-          previousViewports.length,
-          layoutViewportCount,
-          1
-        );
-
-        if (existingViewportCount >= 4) {
-          uiNotificationService?.show?.({
-            title: 'Viewport limit reached',
-            message: 'Close a similar case before loading another.',
-            type: 'info',
-            duration: 3000,
-          });
-          return;
-        }
-
-        const targetCount = Math.min(4, existingViewportCount + 1);
-        const layoutConfig = GRID_LAYOUTS[targetCount];
-        if (!layoutConfig) {
-          uiNotificationService?.show?.({
-            title: 'Layout unavailable',
-            message: 'Unable to create space for another viewport.',
-            type: 'error',
-            duration: 3000,
-          });
-          return;
-        }
-
-        const previousViewportIds = new Set(
-          previousViewports.map(v => v?.viewportId).filter(Boolean)
-        );
-
+        const previousViewports = getViewportsArray(previousState);
         const viewportsByPosition = new Map<string, any>();
         previousViewports.forEach(existing => {
           if (existing?.positionId) {
@@ -420,228 +414,79 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
         };
 
         await viewportGridService.setLayout({
-          ...layoutConfig,
-          findOrCreateViewport,
-        });
-
-        const updatedState =
-          viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
-        const updatedViewports = getViewportsArray(updatedState);
-        const newViewport =
-          updatedViewports.find(v => !previousViewportIds.has(v?.viewportId)) ??
-          updatedViewports[updatedViewports.length - 1];
-
-        if (!newViewport?.viewportId) {
-          throw new Error('Unable to allocate a viewport for the similar case.');
-        }
-
-        await viewportGridService.setDisplaySetsForViewports([
-          {
-            viewportId: newViewport.viewportId,
-            displaySetInstanceUIDs: [matchUID],
-          },
-        ]);
-
-        viewportGridService.setActiveViewportId?.(newViewport.viewportId);
-        if (displaySetService && matchUID) {
-          setDisplaySetOrigin(displaySetService, [matchUID], 'ai');
-        }
-      } catch (err) {
-        console.error('ExampleComponent: failed to display similar case', err);
-        uiNotificationService?.show?.({
-          title: 'Unable to display case',
-          message: 'Please try again in a moment.',
-          type: 'error',
-          duration: 3000,
-        });
-      }
-    },
-    [viewportGridService, displaySetService, uiNotificationService]
-  );
-
-  const replaceMatchInViewport = useCallback(
-    async (match: RankedDisplaySet) => {
-      if (!viewportGridService) {
-        return;
-      }
-
-      const matchUID = match?.displaySet?.displaySetInstanceUID;
-      if (!matchUID) {
-        uiNotificationService?.show?.({
-          title: 'Series unavailable',
-          message: 'This similar case cannot be loaded right now.',
-          type: 'warning',
-          duration: 2500,
-        });
-        return;
-      }
-
-      try {
-        const state =
-          viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
-        const viewports = getViewportsArray(state);
-        const targetViewportId =
-          state?.activeViewportId ?? activeViewportId ?? viewports[0]?.viewportId ?? null;
-
-        if (!targetViewportId) {
-          throw new Error('No active viewport available.');
-        }
-
-        await viewportGridService.setDisplaySetsForViewports([
-          {
-            viewportId: targetViewportId,
-            displaySetInstanceUIDs: [matchUID],
-          },
-        ]);
-
-        viewportGridService.setActiveViewportId?.(targetViewportId);
-        if (displaySetService) {
-          setDisplaySetOrigin(displaySetService, [matchUID], 'ai');
-        }
-      } catch (err) {
-        console.error('ExampleComponent: failed to replace viewport', err);
-        uiNotificationService?.show?.({
-          title: 'Unable to display case',
-          message: 'Please try again in a moment.',
-          type: 'error',
-          duration: 3000,
-        });
-      }
-    },
-    [viewportGridService, displaySetService, uiNotificationService, activeViewportId]
-  );
-
-  const handleShowAll = useCallback(async () => {
-    if (!viewportGridService || !displaySetService) {
-      setError('Viewport services are unavailable.');
-      return;
-    }
-
-    if (!activeDisplaySet) {
-      setError('Open a study in the viewport to compare similar cases.');
-      return;
-    }
-
-    setIsApplying(true);
-    setError(null);
-
-    try {
-      const matches = await ensureMatches();
-      if (!matches.length) {
-        setError('No similar cases were found for the current study.');
-        return;
-      }
-
-      const totalViewports = Math.min(4, 1 + matches.length);
-      const layout = GRID_LAYOUTS[totalViewports];
-
-      const previousState =
-        viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
-      const previousViewports = getViewportsArray(previousState);
-      const viewportsByPosition = new Map<string, any>();
-      previousViewports.forEach(existing => {
-        if (existing?.positionId) {
-          viewportsByPosition.set(existing.positionId, existing);
-        }
-      });
-
-      const cloneViewport = (source: any) => {
-        if (!source) {
-          return {};
-        }
-
-        return {
-          displaySetInstanceUIDs: source.displaySetInstanceUIDs
-            ? [...source.displaySetInstanceUIDs]
-            : [],
-          displaySetOptions: source.displaySetOptions
-            ? Array.isArray(source.displaySetOptions)
-              ? [...source.displaySetOptions]
-              : { ...source.displaySetOptions }
-            : [],
-          viewportOptions: {
-            ...(source.viewportOptions || {}),
-          },
-        };
-      };
-
-      const findOrCreateViewport = (position: number, positionId: string) => {
-        const byPosition = viewportsByPosition.get(positionId);
-        if (byPosition) {
-          return cloneViewport(byPosition);
-        }
-
-        const byIndex = previousViewports[position];
-        if (byIndex) {
-          return cloneViewport(byIndex);
-        }
-
-        return {};
-      };
-
-      if (layout && viewportGridService.setLayout) {
-        await viewportGridService.setLayout({
           ...layout,
           findOrCreateViewport,
         });
-      }
 
-      const latestState =
-        viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
-      const viewports = getViewportsArray(latestState);
+        const latestState =
+          viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+        const viewports = getViewportsArray(latestState);
 
-      if (!viewports.length) {
-        setError('Unable to determine viewport positions after updating the layout.');
-        return;
-      }
+        if (!viewports.length) {
+          uiNotificationService?.show?.({
+            title: 'Layout error',
+            message: 'Unable to determine viewport positions.',
+            type: 'error',
+            duration: 3000,
+          });
+          return false;
+        }
 
-      const assignments: Array<{ viewportId: string; displaySetInstanceUIDs: string[] }> = [];
-      const primaryViewportId = viewports[0]?.viewportId;
-      const patientUID = (activeDisplaySet as any)?.displaySetInstanceUID;
+        const assignments: Array<{ viewportId: string; displaySetInstanceUIDs: string[] }> = [];
+        const primaryViewportId = viewports[0]?.viewportId;
 
-      if (primaryViewportId && patientUID) {
-        assignments.push({
-          viewportId: primaryViewportId,
-          displaySetInstanceUIDs: [patientUID],
-        });
-      }
-
-      matches.slice(0, totalViewports - 1).forEach((match, index) => {
-        const viewport = viewports[index + 1];
-        const matchUID = match.displaySet?.displaySetInstanceUID;
-        if (viewport?.viewportId && matchUID) {
+        if (primaryViewportId) {
           assignments.push({
-            viewportId: viewport.viewportId,
-            displaySetInstanceUIDs: [matchUID],
+            viewportId: primaryViewportId,
+            displaySetInstanceUIDs: [patientUID],
           });
         }
-      });
 
-      if (!assignments.length) {
-        setError('No viewport assignments could be constructed.');
-        return;
-      }
+        limited.slice(0, totalViewports - 1).forEach((uid, index) => {
+          const viewport = viewports[index + 1];
+          if (viewport?.viewportId) {
+            assignments.push({
+              viewportId: viewport.viewportId,
+              displaySetInstanceUIDs: [uid],
+            });
+          }
+        });
 
-      await viewportGridService.setDisplaySetsForViewports(assignments);
+        if (!assignments.length) {
+          uiNotificationService?.show?.({
+            title: 'Assignment error',
+            message: 'Unable to construct viewport assignments.',
+            type: 'error',
+            duration: 3000,
+          });
+          return false;
+        }
 
-      if (displaySetService) {
-        if (patientUID) {
+        await viewportGridService.setDisplaySetsForViewports(assignments);
+
+        if (displaySetService) {
           setDisplaySetOrigin(displaySetService, patientUID, 'patient');
+          if (limited.length) {
+            setDisplaySetOrigin(displaySetService, limited, 'ai');
+          }
         }
-        const comparisonUIDs = matches
-          .map(match => match.displaySet?.displaySetInstanceUID)
-          .filter(Boolean) as string[];
-        if (comparisonUIDs.length) {
-          setDisplaySetOrigin(displaySetService, comparisonUIDs, 'ai');
-        }
+
+        setAddedMatchUIDs(limited);
+        setAddedDisplaySets(new Set(limited));
+        return true;
+      } catch (err) {
+        console.error('ExampleComponent: failed to arrange layout', err);
+        uiNotificationService?.show?.({
+          title: 'Unable to update layout',
+          message: 'Please try again.',
+          type: 'error',
+          duration: 3000,
+        });
+        return false;
       }
-    } catch (err) {
-      console.error('ExampleComponent: Failed to arrange similar cases', err);
-      setError('Failed to load similar cases into the viewport grid.');
-    } finally {
-      setIsApplying(false);
-    }
-  }, [viewportGridService, displaySetService, activeDisplaySet, ensureMatches]);
+    },
+    [viewportGridService, displaySetService, patientDisplaySet, uiNotificationService]
+  );
 
   const handleResetViewports = useCallback(async () => {
     if (!viewportGridService) {
@@ -700,13 +545,168 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
     } catch (resetError) {
       console.warn('ExampleComponent: Failed to restore original viewport state', resetError);
     }
+
+    setAddedMatchUIDs([]);
+    setAddedDisplaySets(new Set());
   }, [viewportGridService]);
 
+  const removeMatchFromViewport = useCallback(
+    async (matchUID: string) => {
+      if (!matchUID) {
+        return;
+      }
+
+      const remaining = addedMatchUIDs.filter(uid => uid !== matchUID);
+      if (!remaining.length) {
+        await handleResetViewports();
+        return;
+      }
+
+      const success = await layoutPatientWithMatches(remaining);
+      if (!success) {
+        uiNotificationService?.show?.({
+          title: 'Unable to remove case',
+          message: 'Resetting the viewport layout.',
+          type: 'warning',
+          duration: 2500,
+        });
+        await handleResetViewports();
+      }
+    },
+    [addedMatchUIDs, handleResetViewports, layoutPatientWithMatches, uiNotificationService]
+  );
+
+  const addMatchToViewport = useCallback(
+    async (match: RankedDisplaySet) => {
+      const matchUID = match?.displaySet?.displaySetInstanceUID;
+      if (!matchUID) {
+        uiNotificationService?.show?.({
+          title: 'Series unavailable',
+          message: 'This similar case cannot be loaded right now.',
+          type: 'warning',
+          duration: 2500,
+        });
+        return;
+      }
+
+      if (addedDisplaySets.has(matchUID)) {
+        await removeMatchFromViewport(matchUID);
+        return;
+      }
+
+      const success = await layoutPatientWithMatches([...addedMatchUIDs, matchUID]);
+      if (!success) {
+        uiNotificationService?.show?.({
+          title: 'Unable to add case',
+          message: 'Please try again.',
+          type: 'error',
+          duration: 3000,
+        });
+      }
+    },
+    [
+      addedDisplaySets,
+      addedMatchUIDs,
+      layoutPatientWithMatches,
+      removeMatchFromViewport,
+      uiNotificationService,
+    ]
+  );
+
+  const replaceMatchInViewport = useCallback(
+    async (match: RankedDisplaySet) => {
+      const matchUID = match?.displaySet?.displaySetInstanceUID;
+      if (!matchUID) {
+        uiNotificationService?.show?.({
+          title: 'Series unavailable',
+          message: 'This similar case cannot be loaded right now.',
+          type: 'warning',
+          duration: 2500,
+        });
+        return;
+      }
+
+      const success = await layoutPatientWithMatches([matchUID]);
+      if (!success) {
+        uiNotificationService?.show?.({
+          title: 'Unable to replace case',
+          message: 'Please try again.',
+          type: 'error',
+          duration: 3000,
+        });
+      }
+    },
+    [layoutPatientWithMatches, uiNotificationService]
+  );
+
+  const handleShowAll = useCallback(async () => {
+    if (isApplying || loadingSimilar) {
+      return;
+    }
+
+    setIsApplying(true);
+    setError(null);
+
+    try {
+      const matches = await ensureMatches();
+      const matchUIDs = matches
+        .map(item => item?.displaySet?.displaySetInstanceUID)
+        .filter(Boolean) as string[];
+
+      if (!matchUIDs.length) {
+        setError('No similar cases available yet.');
+        return;
+      }
+
+      const success = await layoutPatientWithMatches(matchUIDs);
+      if (!success) {
+        setError('Unable to arrange the similar cases in the viewport.');
+      }
+    } catch (err) {
+      console.error('ExampleComponent: failed to show similar cases', err);
+      setError('Unable to load similar cases right now. Please try again.');
+    } finally {
+      setIsApplying(false);
+    }
+  }, [ensureMatches, isApplying, layoutPatientWithMatches, loadingSimilar]);
+
   const cardsAvailable = similarMatches.length > 0;
-  const currentDescription =
-    patientDisplaySet && promptText
-      ? promptText
-      : 'No description available for the patient CT scan.';
+
+  const similarTokenDiffs = useMemo(() => {
+    if (!similarMatches.length) {
+      return new Map<string, Set<string>>();
+    }
+
+    const entries = similarMatches
+      .map(match => ({
+        uid: match.displaySet.displaySetInstanceUID ?? '',
+        tokens: tokenize(getSeriesDescription(match.displaySet) || ''),
+      }))
+      .filter(entry => entry.uid);
+
+    if (!entries.length) {
+      return new Map<string, Set<string>>();
+    }
+
+    let shared: Set<string> | null = null;
+    entries.forEach(({ tokens }) => {
+      if (shared === null) {
+        shared = new Set(tokens);
+      } else {
+        shared = new Set([...shared].filter(token => tokens.has(token)));
+      }
+    });
+
+    const sharedTokens = shared ?? new Set<string>();
+    const highlightMap = new Map<string, Set<string>>();
+
+    entries.forEach(({ uid, tokens }) => {
+      const diff = new Set([...tokens].filter(token => !sharedTokens.has(token)));
+      highlightMap.set(uid, diff);
+    });
+
+    return highlightMap;
+  }, [similarMatches]);
 
   return (
     <div className="flex h-full flex-col rounded-2xl bg-[#050c24] p-4 text-white shadow-lg shadow-primary-main/10">
@@ -753,19 +753,25 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
       )}
 
       <div className="ohif-scrollbar mt-4 flex-1 space-y-3 overflow-y-auto pr-1">
-        <CaseCard title="Patient CT Scan" body={currentDescription} />
+        {similarMatches.map((match, index) => {
+          const matchUID = match.displaySet.displaySetInstanceUID ?? '';
+          const alreadyAdded = matchUID ? addedDisplaySets.has(matchUID) : false;
 
-        {similarMatches.map((match, index) => (
-          <CaseCard
-            key={match.displaySet.displaySetInstanceUID ?? `match-${index}`}
-            title={`Similar Case #${index + 1}`}
-            body={getSeriesDescription(match.displaySet) || 'Untitled series'}
-            primaryActionLabel="Add to viewport"
-            primaryAction={() => addMatchToViewport(match)}
-            secondaryActionLabel="Replace current"
-            secondaryAction={() => replaceMatchInViewport(match)}
-          />
-        ))}
+          return (
+            <CaseCard
+              key={matchUID || `match-${index}`}
+              title={`Similar Case #${index + 1}`}
+              body={getSeriesDescription(match.displaySet) || 'Untitled series'}
+              primaryActionLabel={alreadyAdded ? 'Remove from viewport' : 'Add to viewport'}
+              primaryAction={() =>
+                alreadyAdded ? removeMatchFromViewport(matchUID) : addMatchToViewport(match)
+              }
+              secondaryActionLabel="Replace current"
+              secondaryAction={() => replaceMatchInViewport(match)}
+              highlightTokens={similarTokenDiffs.get(matchUID)}
+            />
+          );
+        })}
 
         {!loadingSimilar && !similarMatches.length && (
           <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 p-4 text-sm text-white/70">
@@ -784,6 +790,7 @@ type CaseCardProps = {
   primaryAction?: () => void;
   secondaryActionLabel?: string;
   secondaryAction?: () => void;
+  highlightTokens?: Set<string>;
 };
 
 const CaseCard: React.FC<CaseCardProps> = ({
@@ -793,10 +800,13 @@ const CaseCard: React.FC<CaseCardProps> = ({
   primaryAction,
   secondaryActionLabel,
   secondaryAction,
+  highlightTokens,
 }) => (
   <div className="rounded-2xl bg-[#0d1b46] p-4 shadow-inner shadow-black/30">
     <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">{title}</div>
-    <p className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-white/90">{body}</p>
+    <p className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-white/90">
+      {renderWithHighlights(body, highlightTokens)}
+    </p>
     <div className="mt-3 flex flex-wrap gap-2">
       {primaryActionLabel && primaryAction && (
         <button
@@ -819,5 +829,24 @@ const CaseCard: React.FC<CaseCardProps> = ({
     </div>
   </div>
 );
+
+const renderWithHighlights = (text: string, highlightTokens?: Set<string>) => {
+  if (!highlightTokens || !highlightTokens.size) {
+    return text;
+  }
+
+  return text.split(/(\b)/).map((segment, index) => {
+    const normalized = segment.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    const shouldHighlight = normalized && highlightTokens.has(normalized);
+    if (!shouldHighlight) {
+      return <React.Fragment key={index}>{segment}</React.Fragment>;
+    }
+    return (
+      <span key={index} className="text-[#8cb6ff]">
+        {segment}
+      </span>
+    );
+  });
+};
 
 export default ExampleComponent;
