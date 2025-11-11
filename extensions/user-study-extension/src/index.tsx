@@ -1,7 +1,7 @@
 import { id } from './id';
 import StudyQuestionComponent from './StudyQuestionComponent';
 import ExplanationComponent from './ExplanationComponent';
-import RadiopaediaComponent from './RadiopaediaComponent';
+import OverlayComponent from './OverlayComponent';
 
 /**
  * You can remove any of the following modules if you don't need them.
@@ -54,8 +54,8 @@ export default {
         name: 'standard-panel',
         iconName: 'tab-studies',
         iconLabel: 'Standard Panel',
-        label: 'Radiopaedia',
-        component: RadiopaediaComponent.bind(null, {
+        label: 'Important Regions',
+        component: OverlayComponent.bind(null, {
           commandsManager,
           extensionManager,
           servicesManager,
@@ -82,7 +82,7 @@ export default {
     //     iconName: 'tab-studies',
     //     iconLabel: 'AI Chest Assistant',
     //     label: 'AI Chest Assistant',
-    //     component: RadiopaediaComponent.bind(null, {
+    //     component: OverlayComponent.bind(null, {
     //       commandsManager,
     //       extensionManager,
     //       servicesManager,
