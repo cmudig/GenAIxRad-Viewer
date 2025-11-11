@@ -9,7 +9,7 @@ const ORIGINAL_DS_UID_KEY = 'original_display_set_uid';
 const SELECTED_PMAP_UID_KEY = 'selected_pmap_uid';
 const ENTIRE_PROMPT_PATTERN = /\b(CLS|SINGLE)\b/i;
 
-type RadiopaediaComponentProps = {
+type OverlayComponentProps = {
   commandsManager: any;
   servicesManager: any;
   extensionManager: any;
@@ -332,7 +332,7 @@ const restoreViewportState = ({
   viewport.render?.();
 };
 
-const RadiopaediaComponent: React.FC<RadiopaediaComponentProps> = ({ servicesManager }) => {
+const OverlayComponent: React.FC<OverlayComponentProps> = ({ servicesManager }) => {
   const [{ activeViewportId, viewports, isHangingProtocolLayout }, viewportGridService] =
     useViewportGrid();
   const [displaySetVersion, setDisplaySetVersion] = useState(0);
@@ -401,7 +401,7 @@ const RadiopaediaComponent: React.FC<RadiopaediaComponentProps> = ({ servicesMan
           : null;
       }
     } catch (error) {
-      console.warn('RadiopaediaComponent: failed to resolve current viewport display set', error);
+      console.warn('OverlayComponent: failed to resolve current viewport display set', error);
     }
 
     setSelectedPmapUID(prev =>
@@ -459,7 +459,7 @@ const RadiopaediaComponent: React.FC<RadiopaediaComponentProps> = ({ servicesMan
       try {
         return displaySetService.getDisplaySetByUID(uid);
       } catch (error) {
-        console.warn('RadiopaediaComponent: failed to resolve display set', error);
+        console.warn('OverlayComponent: failed to resolve display set', error);
         return null;
       }
     },
@@ -631,7 +631,7 @@ const RadiopaediaComponent: React.FC<RadiopaediaComponentProps> = ({ servicesMan
             isHangingProtocolLayout
           ) ?? [];
       } catch (error) {
-        console.warn('RadiopaediaComponent: hanging protocol update failed', error);
+        console.warn('OverlayComponent: hanging protocol update failed', error);
       }
 
       if (!updates.length) {
@@ -681,7 +681,7 @@ const RadiopaediaComponent: React.FC<RadiopaediaComponentProps> = ({ servicesMan
         return currentDisplaySetUID;
       }
     } catch (error) {
-      console.warn('RadiopaediaComponent: failed to capture original display set', error);
+      console.warn('OverlayComponent: failed to capture original display set', error);
     }
 
     return null;
@@ -746,7 +746,7 @@ const RadiopaediaComponent: React.FC<RadiopaediaComponentProps> = ({ servicesMan
           setSelectedPmapUID(targetDisplaySetUID);
         }
       } catch (error) {
-        console.error('RadiopaediaComponent: failed to toggle PMAP overlay', error);
+        console.error('OverlayComponent: failed to toggle PMAP overlay', error);
         uiNotificationService?.show?.({
           title: 'Error',
           message: 'Unable to update the viewport with the requested overlay.',
@@ -839,7 +839,7 @@ const RadiopaediaComponent: React.FC<RadiopaediaComponentProps> = ({ servicesMan
     return (
       <div className="ohif-scrollbar flex h-full flex-col p-4 text-sm text-white">
         <div className="rounded-md border border-primary-dark bg-black p-3">
-          Radiopaedia overlays require display set services, which are not available.
+          Important region overlays require display set services, which are not available.
         </div>
       </div>
     );
@@ -849,7 +849,7 @@ const RadiopaediaComponent: React.FC<RadiopaediaComponentProps> = ({ servicesMan
     return (
       <div className="ohif-scrollbar flex h-full flex-col p-4 text-sm text-white">
         <div className="rounded-md border border-primary-dark bg-black p-3">
-          Select a viewport to access Radiopaedia overlays.
+          Select a viewport to access important region overlays.
         </div>
       </div>
     );
@@ -859,7 +859,7 @@ const RadiopaediaComponent: React.FC<RadiopaediaComponentProps> = ({ servicesMan
     return (
       <div className="ohif-scrollbar flex h-full flex-col gap-3 p-4 text-sm text-white">
         <div className="rounded-md border border-primary-dark bg-black p-3">
-          No Radiopaedia overlays were detected for the active series.
+          No overlays were detected for the active series.
         </div>
         {selectedPmapUID ? (
           <button
@@ -910,4 +910,4 @@ const RadiopaediaComponent: React.FC<RadiopaediaComponentProps> = ({ servicesMan
   );
 };
 
-export default RadiopaediaComponent;
+export default OverlayComponent;

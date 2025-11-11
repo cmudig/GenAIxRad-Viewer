@@ -348,6 +348,47 @@ const getViewportsArray = (state: any): any[] => {
 
   return [];
 };
+
+const getGridSizeForViewportCount = (
+  viewportCount: number
+): {
+  numCols: number;
+  numRows: number;
+} => {
+  const safeCount = Math.max(Number(viewportCount) || 0, 1);
+
+  let bestCols = safeCount;
+  let bestRows = 1;
+  let bestDiff = bestCols - bestRows;
+
+  const limit = Math.floor(Math.sqrt(safeCount));
+
+  for (let divisor = 1; divisor <= limit; divisor++) {
+    if (safeCount % divisor !== 0) {
+      continue;
+    }
+
+    const paired = safeCount / divisor;
+    const diff = Math.abs(paired - divisor);
+
+    if (diff < bestDiff) {
+      bestCols = paired;
+      bestRows = divisor;
+      bestDiff = diff;
+    }
+  }
+
+  if (bestCols < bestRows) {
+    const temp = bestCols;
+    bestCols = bestRows;
+    bestRows = temp;
+  }
+
+  return {
+    numCols: bestCols,
+    numRows: bestRows,
+  };
+};
   // Trigger model generation and wait until completion
   // --- click handler ---
   const handleGenerateClick = async () => {
@@ -408,11 +449,30 @@ const getViewportsArray = (state: any): any[] => {
         const previousViewportIds = new Set(previousViewports.map(v => v?.viewportId).filter(Boolean));
 
         const layout = state?.layout ?? {};
-        const baseNumCols = Number(layout?.numCols) || Math.max(previousViewports.length, 1);
-        const baseNumRows = Number(layout?.numRows) || 1;
+        const layoutCols = Number(layout?.numCols) || 0;
+        const layoutRows = Number(layout?.numRows) || 0;
+        const layoutViewportCount =
+          layoutCols > 0 && layoutRows > 0 ? layoutCols * layoutRows : 0;
+        const existingViewportCount = Math.max(
+          previousViewports.length,
+          layoutViewportCount,
+          1
+        );
         const isVariationTab = tab === 'variation';
-        const newNumCols = isVariationTab ? 2 : baseNumCols + 1;
-        const newNumRows = isVariationTab ? 1 : baseNumRows || 1;
+
+        let newNumCols: number;
+        let newNumRows: number;
+
+        if (isVariationTab) {
+          const { numCols, numRows } = getGridSizeForViewportCount(existingViewportCount + 1);
+          newNumCols = numCols;
+          newNumRows = numRows;
+        } else {
+          const baseNumCols = layoutCols || Math.max(previousViewports.length, 1);
+          const baseNumRows = layoutRows || 1;
+          newNumCols = baseNumCols + 1;
+          newNumRows = baseNumRows || 1;
+        }
 
         const viewportsByPosition = new Map<string, any>();
         previousViewports.forEach(existing => {

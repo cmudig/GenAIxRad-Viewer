@@ -3,14 +3,14 @@ import React, { useState, useRef } from 'react';
 // import HistoryPanel from './tabs/HistoryPanel';
 // import MimicPanel from './tabs/MimicPanel';
 import VariationPanel from './tabs/VariationPanel';
-import RadiopaediaComponent from './RadiopaediaComponent';
+import OverlayComponent from './OverlayComponent';
 import ExampleComponent from './ExampleComponent';
 import ChatGPTPanel from './tabs/ChatGPTPanel';
 
 const TABS = [
   { id: 'example', label: 'Similar Cases', component: ExampleComponent },
   { id: 'variation', label: 'Variations', component: VariationPanel },
-  { id: 'radiopaedia', label: 'Important Regions', component: RadiopaediaComponent },
+  { id: 'radiopaedia', label: 'Important Regions', component: OverlayComponent },
   { id: 'assistant', label: 'Q&A', component: ChatGPTPanel },
 ];
 
