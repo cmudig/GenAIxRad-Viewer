@@ -671,6 +671,7 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
   }, [ensureMatches, isApplying, layoutPatientWithMatches, loadingSimilar]);
 
   const cardsAvailable = similarMatches.length > 0;
+  const hasMultipleDisplaySets = addedMatchUIDs.length > 0;
 
   const similarTokenDiffs = useMemo(() => {
     if (!similarMatches.length) {
@@ -757,6 +758,8 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
           const matchUID = match.displaySet.displaySetInstanceUID ?? '';
           const alreadyAdded = matchUID ? addedDisplaySets.has(matchUID) : false;
 
+          const canReplace = hasMultipleDisplaySets;
+
           return (
             <CaseCard
               key={matchUID || `match-${index}`}
@@ -766,8 +769,8 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
               primaryAction={() =>
                 alreadyAdded ? removeMatchFromViewport(matchUID) : addMatchToViewport(match)
               }
-              secondaryActionLabel="Replace current"
-              secondaryAction={() => replaceMatchInViewport(match)}
+              secondaryActionLabel={canReplace ? 'Replace current' : undefined}
+              secondaryAction={canReplace ? () => replaceMatchInViewport(match) : undefined}
               highlightTokens={similarTokenDiffs.get(matchUID)}
             />
           );
