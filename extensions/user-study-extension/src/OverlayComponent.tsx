@@ -153,12 +153,18 @@ const derivePmapLabel = (description: string, fallback: string): string => {
     return parentheticalMatch[1];
   }
 
-  const colonParts = sanitized.split(':').map(part => part.trim()).filter(Boolean);
+  const colonParts = sanitized
+    .split(':')
+    .map(part => part.trim())
+    .filter(Boolean);
   if (colonParts.length > 1) {
     return colonParts[colonParts.length - 1];
   }
 
-  const hyphenParts = sanitized.split(/[-\u2013\u2014]/).map(part => part.trim()).filter(Boolean);
+  const hyphenParts = sanitized
+    .split(/[-\u2013\u2014]/)
+    .map(part => part.trim())
+    .filter(Boolean);
   if (hyphenParts.length > 1) {
     return hyphenParts[hyphenParts.length - 1];
   }
@@ -237,7 +243,10 @@ const captureViewportState = (viewport: any): ViewportState | null => {
   return state;
 };
 
-const setInitialImageOverrides = (viewportsToUpdate: any[], viewportState: ViewportState | null) => {
+const setInitialImageOverrides = (
+  viewportsToUpdate: any[],
+  viewportState: ViewportState | null
+) => {
   if (!viewportState || viewportState.imageIndex === undefined) {
     return viewportsToUpdate;
   }
@@ -397,16 +406,14 @@ const OverlayComponent: React.FC<OverlayComponentProps> = ({ servicesManager }) 
         }
       } else {
         detectedSelectedUID = hasSessionStorage
-          ? sessionStorage.getItem(`${SELECTED_PMAP_UID_KEY}_${activeViewportId}`) ?? null
+          ? (sessionStorage.getItem(`${SELECTED_PMAP_UID_KEY}_${activeViewportId}`) ?? null)
           : null;
       }
     } catch (error) {
       console.warn('OverlayComponent: failed to resolve current viewport display set', error);
     }
 
-    setSelectedPmapUID(prev =>
-      prev === detectedSelectedUID ? prev : detectedSelectedUID
-    );
+    setSelectedPmapUID(prev => (prev === detectedSelectedUID ? prev : detectedSelectedUID));
   }, [activeViewportId, displaySetService, displaySetVersion, viewports]);
 
   const waitForViewportVolumes = useCallback(
@@ -476,10 +483,7 @@ const OverlayComponent: React.FC<OverlayComponentProps> = ({ servicesManager }) 
 
     const resolveSeriesUID = (ds: any): string | null =>
       ds
-        ? ds.SeriesInstanceUID ??
-          ds.seriesInstanceUID ??
-          ds.metadata?.SeriesInstanceUID ??
-          null
+        ? (ds.SeriesInstanceUID ?? ds.seriesInstanceUID ?? ds.metadata?.SeriesInstanceUID ?? null)
         : null;
 
     let baseDisplaySet = resolveDisplaySet(candidateUID);
@@ -490,8 +494,9 @@ const OverlayComponent: React.FC<OverlayComponentProps> = ({ servicesManager }) 
 
     if (!baseDisplaySet) {
       const storedUID =
-        (typeof window !== 'undefined' ? sessionStorage.getItem(`${ORIGINAL_DS_UID_KEY}_${activeViewportId}`) : null) ??
-        null;
+        (typeof window !== 'undefined'
+          ? sessionStorage.getItem(`${ORIGINAL_DS_UID_KEY}_${activeViewportId}`)
+          : null) ?? null;
       if (storedUID) {
         const storedSet = resolveDisplaySet(storedUID);
         if (storedSet && !isPmapDisplaySet(storedSet)) {
@@ -510,14 +515,17 @@ const OverlayComponent: React.FC<OverlayComponentProps> = ({ servicesManager }) 
           const displaySetCache = displaySetService?.getDisplaySetCache?.();
           const allDisplaySets: any[] = displaySetCache
             ? Array.from(displaySetCache.values())
-            : displaySetService?.getActiveDisplaySets?.() ?? [];
+            : (displaySetService?.getActiveDisplaySets?.() ?? []);
           baseDisplaySet =
             allDisplaySets.find(ds => {
               if (isPmapDisplaySet(ds)) {
                 return false;
               }
               const uid =
-                ds.SeriesInstanceUID ?? ds.seriesInstanceUID ?? ds.metadata?.SeriesInstanceUID ?? null;
+                ds.SeriesInstanceUID ??
+                ds.seriesInstanceUID ??
+                ds.metadata?.SeriesInstanceUID ??
+                null;
               return uid === targetSeriesInstanceUID;
             }) ?? null;
         }
@@ -567,7 +575,7 @@ const OverlayComponent: React.FC<OverlayComponentProps> = ({ servicesManager }) 
     const displaySetCache = displaySetService.getDisplaySetCache?.();
     const allDisplaySets: any[] = displaySetCache
       ? Array.from(displaySetCache.values())
-      : displaySetService.getActiveDisplaySets?.() ?? [];
+      : (displaySetService.getActiveDisplaySets?.() ?? []);
 
     const entryMap = new Map<string, PmapEntry>();
 
@@ -608,16 +616,14 @@ const OverlayComponent: React.FC<OverlayComponentProps> = ({ servicesManager }) 
     });
 
     return entries;
-  }, [
-    activeViewportId,
-    baseInfo,
-    displaySetService,
-    resolveDisplaySet,
-    selectedPmapUID,
-  ]);
+  }, [activeViewportId, baseInfo, displaySetService, resolveDisplaySet, selectedPmapUID]);
 
   const applyDisplaySetToViewport = useCallback(
-    async (viewportId: string, targetDisplaySetUID: string, viewportState: ViewportState | null) => {
+    async (
+      viewportId: string,
+      targetDisplaySetUID: string,
+      viewportState: ViewportState | null
+    ) => {
       if (!viewportGridService || !hangingProtocolService) {
         return;
       }
@@ -784,9 +790,7 @@ const OverlayComponent: React.FC<OverlayComponentProps> = ({ servicesManager }) 
       baseInfo.basePrompt ||
       entry.seriesDescription ||
       'Prompt used to generate CT scan';
-    const title = entry.isEntirePrompt
-      ? entirePromptText
-      : entry.label;
+    const title = entry.isEntirePrompt ? entirePromptText : entry.label;
     const note = entry.isEntirePrompt
       ? '(Prompt used to generate CT scan)'
       : entry.seriesDescription || '';
@@ -811,7 +815,7 @@ const OverlayComponent: React.FC<OverlayComponentProps> = ({ servicesManager }) 
               </p>
             )}
           </div>
-          <span className="text-white/60 text-lg">{isSelected ? '×' : '›'}</span>
+          <span className="text-lg text-white/60">{isSelected ? '×' : '›'}</span>
         </div>
       </button>
     );
@@ -838,7 +842,7 @@ const OverlayComponent: React.FC<OverlayComponentProps> = ({ servicesManager }) 
   if (!displaySetService || !viewportGridService) {
     return (
       <div className="ohif-scrollbar flex h-full flex-col p-4 text-sm text-white">
-        <div className="rounded-md border border-primary-dark bg-black p-3">
+        <div className="border-primary-dark rounded-md border bg-black p-3">
           Important region overlays require display set services, which are not available.
         </div>
       </div>
@@ -848,7 +852,7 @@ const OverlayComponent: React.FC<OverlayComponentProps> = ({ servicesManager }) 
   if (!activeViewportId) {
     return (
       <div className="ohif-scrollbar flex h-full flex-col p-4 text-sm text-white">
-        <div className="rounded-md border border-primary-dark bg-black p-3">
+        <div className="border-primary-dark rounded-md border bg-black p-3">
           Select a viewport to access important region overlays.
         </div>
       </div>
@@ -858,12 +862,12 @@ const OverlayComponent: React.FC<OverlayComponentProps> = ({ servicesManager }) 
   if (!availablePmaps.length) {
     return (
       <div className="ohif-scrollbar flex h-full flex-col gap-3 p-4 text-sm text-white">
-        <div className="rounded-md border border-primary-dark bg-black p-3">
+        <div className="border-primary-dark rounded-md border bg-black p-3">
           No overlays were detected for the active series.
         </div>
         {selectedPmapUID ? (
           <button
-            className="border-primary-dark bg-black text-white hover:border-primary-light hover:bg-primary-dark rounded-md border px-3 py-2 text-sm"
+            className="border-primary-dark hover:border-primary-light hover:bg-primary-dark rounded-md border bg-black px-3 py-2 text-sm text-white"
             disabled={isBusy}
             onClick={() => handleToggle(selectedPmapUID)}
           >
@@ -888,9 +892,7 @@ const OverlayComponent: React.FC<OverlayComponentProps> = ({ servicesManager }) 
   return (
     <div className="ohif-scrollbar flex h-full flex-col gap-4 p-4 text-white">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-white/60">
-          Important Regions
-        </p>
+        <p className="text-base font-semibold">Important Regions</p>
         <p className="text-sm text-white/70">
           Highlight areas of the image that are most related to parts of the text description.
         </p>
