@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GenerationOptions, GenerateButtons } from '../GenerationOptions';
+import { createPrompt } from '../createPrompt';
 
 const getViewportsArray = (state: any): any[] => {
   if (!state?.viewports) {
@@ -31,7 +32,7 @@ const abnormalOptionsList = [
   { prompt: 'Location', options: ['Left', 'Bilateral', 'Right'], required: true },
   {
     prompt: 'Associated Findings',
-    options: ['Pleural thickening', 'Pleural nodularity', 'Atelectasis'],
+    options: ['None', 'Pleural thickening', 'Pleural nodularity', 'Atelectasis'],
     required: false,
   },
   { prompt: 'Severity', options: ['Mild', 'Moderate', 'Severe'], required: true },
@@ -47,14 +48,11 @@ const VariationPanel = ({
 
   const [answers, setAnswers] = useState<{ [key: string]: any }>({});
 
-  const initialViewportRef = useRef<
-    | null
-    | {
-        displaySetInstanceUIDs: string[];
-        displaySetOptions?: any;
-        viewportOptions?: any;
-      }
-  >(null);
+  const initialViewportRef = useRef<null | {
+    displaySetInstanceUIDs: string[];
+    displaySetOptions?: any;
+    viewportOptions?: any;
+  }>(null);
 
   const viewportGridService =
     servicesManager?.services?.viewportGridService ||
@@ -70,7 +68,8 @@ const VariationPanel = ({
         return;
       }
 
-      const state = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+      const state =
+        viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
       const viewports = getViewportsArray(state);
       if (!viewports.length) {
         return;
@@ -236,14 +235,36 @@ const VariationPanel = ({
     answers.hasOwnProperty('Normal / Abnormal') &&
     ((isNormal && true) || (isAbnormal && abnormalRequiredOk));
 
+  const cardClass =
+    'rounded-xl border border-white/10 bg-[#0b1639] px-3 py-2 text-[13px] text-white/80 shadow-inner shadow-black/40';
+
+  const promptPreview = useMemo(() => {
+    if (!Object.keys(answers).length) {
+      return '';
+    }
+    const { text } = createPrompt('variation', answers);
+    return (text || '').trim();
+  }, [answers]);
+
   return (
-    <div className="border-primary-main flex h-full flex-col rounded-md border p-3">
-      <div className="text-primary-light mb-2 text-xs uppercase tracking-wider">
-        Variation Generator
+    <div className="shadow-primary-main/10 flex h-full flex-col rounded-2xl bg-[#050c24] p-3 text-white shadow-lg">
+      <div className="flex flex-wrap items-start gap-2">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/60">
+            Variations
+          </p>
+          <p className="text-[13px] text-white/80">
+            Generate a new image that is the same as the current one except for characteristics you
+            select.
+          </p>
+        </div>
+        {/* <div className="ml-auto rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-white/60">
+          {isAbnormal ? 'Abnormal flow' : 'Normal flow'}
+        </div> */}
       </div>
 
-      <div className="text-[13px] leading-snug text-white">
-        <div className="space-y-3">
+      <div className="ohif-scrollbar mt-3 flex-1 space-y-3 overflow-y-auto pr-1 text-[13px]">
+        <div className={cardClass}>
           <GenerationOptions
             key={`${gateOption.prompt}-${gateResetKey}`}
             prompt={gateOption.prompt}
@@ -251,23 +272,38 @@ const VariationPanel = ({
             onOptionSelect={opt => handleSelection(gateOption.prompt, opt)}
             resetKey={gateResetKey}
           />
+          <p className="mt-2 text-[11px] text-white/60">
+            Choose whether the generated CT scan should be normal or contain abnormalities.
+          </p>
+        </div>
 
-          {isAbnormal && (
-            <div className="space-y-3">
-              {abnormalOptionsList.map(({ prompt, options }) => (
+        {isAbnormal ? (
+          <div className="space-y-3">
+            {abnormalOptionsList.map(({ prompt, options }) => (
+              <div key={`${prompt}-${abnormalResetKey}`} className={cardClass}>
                 <GenerationOptions
-                  key={`${prompt}-${abnormalResetKey}`}
                   prompt={prompt}
                   options={options}
                   onOptionSelect={option => handleSelection(prompt, option)}
                   resetKey={abnormalResetKey}
                 />
-              ))}
-            </div>
-          )}
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="rounded-xl border border-white/10 bg-[#091132] p-3 text-[12px] text-white/80 shadow-inner shadow-black/30">
+          <div className="flex items-center justify-between text-[11px] uppercase tracking-wide text-white/50">
+            <span>Prompt Preview</span>
+            <span>{promptPreview ? 'Live view' : 'Waiting for selections'}</span>
+          </div>
+          <p className="mt-2 whitespace-pre-line text-white/90">
+            {promptPreview ||
+              'Start filling in the controls above to preview the instructions that will be sent to the AI generator.'}
+          </p>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-2 rounded-2xl border border-white/10 bg-gradient-to-r from-[#0b1d4d] to-[#142661] p-3 shadow-inner shadow-black/40">
           <GenerateButtons
             commandsManager={commandsManager}
             servicesManager={servicesManager}
@@ -276,6 +312,11 @@ const VariationPanel = ({
             handleCancelClick={handleCancelClick}
             disabled={!allRequiredAnswered}
           />
+          <p className="mt-2 text-[11px] text-white/70">
+            {allRequiredAnswered
+              ? 'Ready to generate a tailored variation.'
+              : 'Complete the highlighted selections to enable generation.'}
+          </p>
         </div>
       </div>
     </div>
