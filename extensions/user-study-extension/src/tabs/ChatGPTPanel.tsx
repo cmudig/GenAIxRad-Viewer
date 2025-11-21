@@ -27,6 +27,7 @@ const QUESTION_PRESETS = [
     title: 'Describe the findings in this image.',
     prompt:
       'Analyze this CT slice and describe the visible abnormalities. Focus on pleural effusion and summarize the findings in no more than five sentences.',
+    system_prompt: '',
   },
   {
     id: 'evidence',
@@ -34,12 +35,12 @@ const QUESTION_PRESETS = [
     prompt:
       'Explain the specific imaging clues in this CT slice that support or refute the presence of a pleural effusion.',
   },
-  {
-    id: 'cardiomegaly',
-    title: 'Is there evidence of cardiomegaly in this image?',
-    prompt:
-      'Assess the heart size in this CT slice and describe whether the findings suggest cardiomegaly. Mention any supporting measurements or visible cues.',
-  },
+  // {
+  //   id: 'cardiomegaly',
+  //   title: 'Is there evidence of cardiomegaly in this image?',
+  //   prompt:
+  //     'Assess the heart size in this CT slice and describe whether the findings suggest cardiomegaly. Mention any supporting measurements or visible cues.',
+  // },
 ];
 
 const readConfig = (): AssistantConfig => {
