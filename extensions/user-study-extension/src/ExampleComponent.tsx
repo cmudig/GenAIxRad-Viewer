@@ -711,9 +711,7 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
       <div className="flex flex-wrap items-start gap-3">
         <div>
           <p className="text-base font-semibold">Similar Cases</p>
-          <p className="text-sm text-white/80">
-            Search for examples from the database that have related impressions.
-          </p>
+          <p className="text-sm text-white/80">Generate examples that with similar impressions.</p>
         </div>
         <div className="ml-auto flex gap-2">
           <button
@@ -762,7 +760,7 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
               key={matchUID || `match-${index}`}
               title={`Similar Case #${index + 1}`}
               body={getSeriesDescription(match.displaySet) || 'Untitled series'}
-              primaryActionLabel={alreadyAdded ? 'Remove from viewport' : 'Add to viewport'}
+              primaryActionLabel={alreadyAdded ? 'Remove from viewport' : 'Generate CT scan'}
               primaryAction={() =>
                 alreadyAdded ? removeMatchFromViewport(matchUID) : addMatchToViewport(match)
               }

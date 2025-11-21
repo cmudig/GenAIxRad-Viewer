@@ -8,6 +8,7 @@ import './Onboarding.css';
 import { hasTourBeenShown, markTourAsShown, defaultShowHandler, middleware } from './utilities';
 import { auth, db } from '../../../../app/src/firebase';
 import { collection, setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { isDemoRoute } from '../../../../app/src/utils/demoRoute';
 
 const Onboarding = () => {
   const Shepherd = useShepherd();
@@ -25,6 +26,10 @@ const Onboarding = () => {
    */
   useEffect(() => {
     if (!tours) {
+      return;
+    }
+
+    if (isDemoRoute(location.pathname, location.search)) {
       return;
     }
 
@@ -71,7 +76,7 @@ const Onboarding = () => {
 
     // 2. Call the function
     saveData();
-  }, [Shepherd, tours, location.pathname]);
+  }, [Shepherd, tours, location.pathname, location.search]);
 
   return null;
 };
