@@ -43,7 +43,8 @@ let commandsManager: CommandsManager,
   serviceProvidersManager: ServiceProvidersManager,
   hotkeysManager: HotkeysManager;
 
-const requireAuth = true;
+// Temporarily disable auth gating.
+const requireAuth = false;
 
 function App({
   config = {

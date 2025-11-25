@@ -553,7 +553,7 @@ const SearchHomePage = () => {
           style={styles.cornerIcon}
           src="../../assets/profile-icon.png"
           alt="stack icon"
-          onClick={() => navigate('/login')}
+          onClick={() => navigate('/search')}
         ></img>
       </div>
       <img
