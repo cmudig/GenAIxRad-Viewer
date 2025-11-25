@@ -310,6 +310,82 @@ const buildPromptNarrative = (prompt: string | null) => {
   };
 };
 
+const STUDY_OVERRIDES: Record<
+  string,
+  {
+    demographics?: Partial<RandomVignette>;
+    narrative?: { headline: string; details: string[] };
+  }
+> = {
+  '678543127898756': {
+    demographics: {
+      patientName: 'Sasha Lao',
+      age: '44-year-old',
+      sex: 'Female',
+    },
+    narrative: {
+      headline: '44-year-old woman with a 2-week non-productive cough and pleuritic chest pain.',
+      details: [
+        'Chief Complaint: Persistent dry cough.',
+        'History of Present Illness: Two-week history of acute, non-productive cough with chest pain that worsens with coughing/deep breathing; denies fevers, chills, or recent travel. Symptoms have not improved with over-the-counter suppressants.',
+        'Past Medical History: Stage II breast cancer treated 5 years ago with lumpectomy and chemotherapy (in remission). No history of asthma or COPD.',
+      ],
+    },
+  },
+};
+
+const STUDY_SERIES_PREFERENCE: Record<
+  string,
+  { seriesInstanceUID?: string; descriptionIncludes?: string }
+> = {
+  '678543127898756': {
+    seriesInstanceUID: '00000000000023',
+    descriptionIncludes: 'Moderate pleural effusion with associated atelectasis in the left lung',
+  },
+};
+
+const getStudyInstanceUIDFromDisplaySet = (displaySet: any): string | null => {
+  if (!displaySet) {
+    return null;
+  }
+
+  return (
+    displaySet.StudyInstanceUID ??
+    displaySet.studyInstanceUID ??
+    displaySet.metadata?.StudyInstanceUID ??
+    displaySet.getAttribute?.('StudyInstanceUID') ??
+    null
+  );
+};
+
+const getSeriesInstanceUIDFromDisplaySet = (displaySet: any): string | null => {
+  if (!displaySet) {
+    return null;
+  }
+
+  return (
+    displaySet.SeriesInstanceUID ??
+    displaySet.seriesInstanceUID ??
+    displaySet.metadata?.SeriesInstanceUID ??
+    displaySet.getAttribute?.('SeriesInstanceUID') ??
+    null
+  );
+};
+
+const getSeriesDescription = (displaySet: any): string | null => {
+  if (!displaySet) {
+    return null;
+  }
+
+  return (
+    textOrNull(
+      (displaySet as any)?.SeriesDescription,
+      displaySet?.metadata?.SeriesDescription,
+      displaySet?.getAttribute?.('SeriesDescription')
+    ) ?? null
+  );
+};
+
 const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) => {
   const viewportGridService =
     servicesManager?.services?.viewportGridService ||
@@ -319,6 +395,7 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
 
   const [displaySetUID, setDisplaySetUID] = useState<string | null>(null);
   const [seriesInstanceUID, setSeriesInstanceUID] = useState<string | null>(null);
+  const [studyInstanceUID, setStudyInstanceUID] = useState<string | null>(null);
 
   const [seriesPrompt, setSeriesPrompt] = useState<string | null>(null);
   const [seriesPromptChanged, setSeriesPromptChanged] = useState<boolean>(false);
@@ -405,6 +482,41 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
     };
 
     const candidateUIDs = collectCandidateUIDs();
+
+    const findPreferredPatientDisplaySet = (): string | null => {
+      for (const uid of candidateUIDs) {
+        const ds = resolveDisplaySet(uid);
+        if (!isPatientDisplaySet(ds)) {
+          continue;
+        }
+        const studyUID = getStudyInstanceUIDFromDisplaySet(ds);
+        if (!studyUID) {
+          continue;
+        }
+        const preference = STUDY_SERIES_PREFERENCE[studyUID];
+        if (!preference) {
+          continue;
+        }
+        const seriesUID = getSeriesInstanceUIDFromDisplaySet(ds);
+        const description = getSeriesDescription(ds)?.toLowerCase() ?? '';
+        const matchesSeries =
+          preference.seriesInstanceUID && seriesUID && seriesUID === preference.seriesInstanceUID;
+        const matchesDescription =
+          preference.descriptionIncludes &&
+          description.includes(preference.descriptionIncludes.toLowerCase());
+        if (matchesSeries || matchesDescription) {
+          return uid;
+        }
+      }
+      return null;
+    };
+
+    const preferredUID = findPreferredPatientDisplaySet();
+    if (preferredUID) {
+      setDisplaySetUID(prev => (prev === preferredUID ? prev : preferredUID));
+      return;
+    }
+
     for (const uid of candidateUIDs) {
       const ds = resolveDisplaySet(uid);
       if (isPatientDisplaySet(ds)) {
@@ -503,10 +615,13 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
   useEffect(() => {
     if (!ds) {
       setSeriesInstanceUID(null);
+      setStudyInstanceUID(null);
       return;
     }
 
     const sopClassUID = String((ds as any)?.SOPClassUID ?? '');
+
+    setStudyInstanceUID(getStudyInstanceUIDFromDisplaySet(ds));
 
     if (sopClassUID === PMAP_SOP_CLASS_UID) {
       const referenced = getReferencedSeriesInstanceUID(ds);
@@ -715,6 +830,11 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
   const promptNarrative = useMemo(() => buildPromptNarrative(seriesPrompt), [seriesPrompt]);
   const isLoadingNarrative = loadingMeta && !seriesPrompt;
 
+  const studyOverride = useMemo(
+    () => (studyInstanceUID ? (STUDY_OVERRIDES[studyInstanceUID] ?? null) : null),
+    [studyInstanceUID]
+  );
+
   const effectiveDemographics = useMemo(() => {
     const merged = {
       patientName: demographics.patientName ?? fallbackVignette.patientName,
@@ -731,8 +851,16 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
       merged.sex = remoteDemographics.Sex ?? merged.sex;
     }
 
+    if (studyOverride?.demographics) {
+      merged.patientName = studyOverride.demographics.patientName ?? merged.patientName;
+      merged.patientId = studyOverride.demographics.patientId ?? merged.patientId;
+      merged.age = studyOverride.demographics.age ?? merged.age;
+      merged.sex = studyOverride.demographics.sex ?? merged.sex;
+      merged.bodyPart = studyOverride.demographics.bodyPart ?? merged.bodyPart;
+    }
+
     return merged;
-  }, [demographics, fallbackVignette, remoteDemographics]);
+  }, [demographics, fallbackVignette, remoteDemographics, studyOverride]);
 
   const imagingMetaHighlights = [
     imagingMeta.modality && imagingMeta.seriesDescription
@@ -742,9 +870,11 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
     imagingMeta.seriesNumber ? `Series #${imagingMeta.seriesNumber}` : null,
   ].filter(Boolean);
 
-  const displayNarrative = promptNarrative.headline
-    ? promptNarrative
-    : { headline: fallbackVignette.headline, details: fallbackVignette.details };
+  const displayNarrative = studyOverride?.narrative
+    ? studyOverride.narrative
+    : promptNarrative.headline
+      ? promptNarrative
+      : { headline: fallbackVignette.headline, details: fallbackVignette.details };
 
   const displayImagingHighlights = imagingMetaHighlights.length
     ? imagingMetaHighlights

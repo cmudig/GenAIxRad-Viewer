@@ -154,7 +154,8 @@ function modeFactory({ modeConfiguration }) {
           return true;
         }
 
-        const state = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+        const state =
+          viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
         const viewports = getViewportsArray(state);
         if (!viewports.length) {
           return false;
