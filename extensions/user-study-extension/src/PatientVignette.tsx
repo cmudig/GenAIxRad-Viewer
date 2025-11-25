@@ -28,6 +28,9 @@ type RandomVignette = {
   headline: string;
   details: string[];
   imagingHighlights: string[];
+  chiefComplaint?: string;
+  historyPresentIllness?: string;
+  pastMedicalHistory?: string;
 };
 
 const firstNames = [
@@ -72,6 +75,15 @@ const riskFactors = [
   'long-standing rheumatoid arthritis on immunosuppressants',
   'cirrhosis with recurrent admissions for ascites',
   'recent coronary artery bypass grafting two weeks ago',
+];
+
+const pastMedicalBackgrounds = [
+  'hypertension and hyperlipidemia managed with medication',
+  'breast cancer treated with lumpectomy and chemotherapy, currently in remission',
+  'rheumatoid arthritis on chronic immunosuppressants',
+  'congestive heart failure with reduced ejection fraction',
+  'type 2 diabetes mellitus controlled with oral agents',
+  'cirrhosis with prior paracenteses for ascites',
 ];
 
 const imagingReasons = [
@@ -137,6 +149,7 @@ const generatePleuralEffusionVignette = (): RandomVignette => {
       ? `${severity} bilateral pleural effusions`
       : `${severity} ${side}-sided pleural effusion`;
 
+  const chiefComplaint = randomFrom(symptomTriggers);
   const headline = `A ${randomAge()} ${sexDescriptor} with ${randomFrom(
     symptomTriggers
   )} in the setting of ${randomFrom(riskFactors)}.`;
@@ -155,6 +168,11 @@ const generatePleuralEffusionVignette = (): RandomVignette => {
     `There is ${randomFrom(associatedFindings)}.`,
   ];
 
+  const historyPresentIllness = `Progressive symptoms with ${randomFrom(
+    imagingReasons
+  )}, noted alongside ${randomFrom(examFindings)}.`;
+  const pastMedicalHistory = randomFrom(pastMedicalBackgrounds);
+
   return {
     patientName: `${firstName} ${lastName}`,
     patientId: randomPatientId(),
@@ -165,6 +183,9 @@ const generatePleuralEffusionVignette = (): RandomVignette => {
     headline,
     details,
     imagingHighlights: imaging,
+    chiefComplaint,
+    historyPresentIllness,
+    pastMedicalHistory,
   };
 };
 
@@ -310,11 +331,51 @@ const buildPromptNarrative = (prompt: string | null) => {
   };
 };
 
+const pickField = (source: any, keys: string[]): string | null => {
+  if (!source) {
+    return null;
+  }
+
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return null;
+};
+
+const extractLabeledDetail = (details: string[], labels: string[]): string | null => {
+  if (!Array.isArray(details)) {
+    return null;
+  }
+
+  for (const detail of details) {
+    if (typeof detail !== 'string') {
+      continue;
+    }
+    const lowerDetail = detail.toLowerCase();
+    const matchedLabel = labels.find(label => lowerDetail.startsWith(`${label.toLowerCase()}:`));
+    if (matchedLabel) {
+      const colonIndex = detail.indexOf(':');
+      return colonIndex >= 0 ? detail.slice(colonIndex + 1).trim() : detail.trim();
+    }
+  }
+
+  return null;
+};
+
 const STUDY_OVERRIDES: Record<
   string,
   {
     demographics?: Partial<RandomVignette>;
     narrative?: { headline: string; details: string[] };
+    clinicalContext?: {
+      chiefComplaint?: string;
+      historyPresentIllness?: string;
+      pastMedicalHistory?: string;
+    };
   }
 > = {
   '678543127898756': {
@@ -322,14 +383,22 @@ const STUDY_OVERRIDES: Record<
       patientName: 'Sasha Lao',
       age: '44-year-old',
       sex: 'Female',
+      bodyPart: 'Thorax',
     },
     narrative: {
       headline: '44-year-old woman with a 2-week non-productive cough and pleuritic chest pain.',
       details: [
-        'Chief Complaint: Persistent dry cough.',
-        'History of Present Illness: Two-week history of acute, non-productive cough with chest pain that worsens with coughing/deep breathing; denies fevers, chills, or recent travel. Symptoms have not improved with over-the-counter suppressants.',
-        'Past Medical History: Stage II breast cancer treated 5 years ago with lumpectomy and chemotherapy (in remission). No history of asthma or COPD.',
+        'Persistent dry cough resistant to over-the-counter suppressants.',
+        'Chest pain worsens with coughing and deep breathing; no fevers, chills, or recent travel.',
+        'Past history includes Stage II breast cancer treated 5 years ago (lumpectomy and chemotherapy, in remission); no asthma or COPD.',
       ],
+    },
+    clinicalContext: {
+      chiefComplaint: 'Persistent dry cough.',
+      historyPresentIllness:
+        'Patient presents with a 2-week history of an acute, non-productive cough. She reports associated chest pain (pain worsens with coughing/deep breathing). She denies fevers, chills, or recent travel. Symptoms have been resistant to over-the-counter cough suppressants.',
+      pastMedicalHistory:
+        'Significant for Stage II Breast Cancer (treated 5 years ago with lumpectomy and chemotherapy, currently in remission). No history of asthma or COPD.',
     },
   },
 };
@@ -890,6 +959,60 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
     .filter(Boolean)
     .join(' • ');
 
+  const clinicalSections = useMemo(() => {
+    const narrativeDetails = displayNarrative.details ?? [];
+
+    const chiefComplaint = textOrNull(
+      pickField(studyOverride?.clinicalContext, ['chiefComplaint']),
+      pickField(remoteDemographics, ['Chief Complaint', 'chiefComplaint', 'chief complaint', 'CC']),
+      pickField(fallbackVignette, ['chiefComplaint']),
+      extractLabeledDetail(narrativeDetails, ['chief complaint', 'cc']),
+      displayNarrative.headline
+    );
+
+    const historyPresentIllness = textOrNull(
+      pickField(studyOverride?.clinicalContext, ['historyPresentIllness', 'hpi']),
+      pickField(remoteDemographics, [
+        'History of Present Illness',
+        'history of present illness',
+        'HPI',
+        'hpi',
+      ]),
+      pickField(fallbackVignette, ['historyPresentIllness']),
+      extractLabeledDetail(narrativeDetails, ['history of present illness', 'hpi']),
+      narrativeDetails[0]
+    );
+
+    const pastMedicalHistory = textOrNull(
+      pickField(studyOverride?.clinicalContext, ['pastMedicalHistory', 'pmh']),
+      pickField(remoteDemographics, ['Past Medical History', 'past medical history', 'PMH', 'pmh']),
+      pickField(fallbackVignette, ['pastMedicalHistory']),
+      extractLabeledDetail(narrativeDetails, ['past medical history', 'pmh'])
+    );
+
+    return { chiefComplaint, historyPresentIllness, pastMedicalHistory };
+  }, [displayNarrative, fallbackVignette, remoteDemographics, studyOverride]);
+
+  const remainingNarrativeDetails = useMemo(() => {
+    const labels = [
+      'chief complaint',
+      'history of present illness',
+      'past medical history',
+      'cc',
+      'hpi',
+      'pmh',
+    ];
+    return (displayNarrative.details ?? []).filter(detail => {
+      if (typeof detail !== 'string') {
+        return false;
+      }
+      const lower = detail.toLowerCase();
+      return !labels.some(label => lower.startsWith(`${label}:`));
+    });
+  }, [displayNarrative]);
+
+  const { chiefComplaint, historyPresentIllness, pastMedicalHistory } = clinicalSections;
+
   return (
     <div className="h-full w-full overflow-auto">
       <div className="rounded-3xl border border-white/10 bg-black/40 p-4 text-white shadow-inner shadow-black/40">
@@ -913,58 +1036,41 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
             <p className="mt-2 text-lg font-semibold">
               {effectiveDemographics.patientName ?? 'Generated patient'}
             </p>
-            <p className="text-sm text-white/70">
+            <p className="text-base text-white/70">
               {demographicLine || 'Patient age, sex, or body part not provided.'}
             </p>
             {effectiveDemographics.patientId && (
-              <p className="mt-2 text-xs text-white/40">
+              <p className="mt-2 text-sm text-white/60">
                 Patient ID: {effectiveDemographics.patientId}
               </p>
             )}
             {remoteDemographicsError && (
-              <p className="mt-2 text-xs text-red-300">{remoteDemographicsError}</p>
+              <p className="mt-2 text-sm text-red-300">{remoteDemographicsError}</p>
             )}
           </section>
 
           <section className="rounded-2xl bg-[#0b1433] p-4 shadow-lg shadow-black/40">
-            <p className="text-xs uppercase tracking-wide text-white/60">Patient History</p>
-            {isLoadingNarrative && (
-              <p className="mt-2 text-sm text-white/70">Loading vignette narrative…</p>
-            )}
-            {!isLoadingNarrative && displayNarrative.headline && (
-              <>
-                <p className="mt-2 text-base leading-relaxed">{displayNarrative.headline}</p>
-                {displayNarrative.details.length > 0 && (
-                  <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-white/80">
-                    {displayNarrative.details.map((detail, idx) => (
-                      <li key={idx}>{detail}</li>
-                    ))}
-                  </ul>
-                )}
-              </>
-            )}
-            {!isLoadingNarrative && !displayNarrative.headline && (
-              <p className="mt-2 text-sm text-white/70">
-                No clinical narrative provided for this series.
-              </p>
-            )}
+            <p className="text-xs uppercase tracking-wide text-white/50">Chief Complaint</p>
+            <p className="mt-2 text-base text-white/80">
+              {chiefComplaint ?? 'Chief complaint not provided.'}
+            </p>
           </section>
 
-          {/* <section className="rounded-2xl bg-white/5 p-4">
-            <p className="text-white/60 text-xs uppercase tracking-wide">Imaging Details</p>
-            {displayImagingHighlights.length ? (
-              <ul className="mt-2 space-y-1 text-sm text-white/80">
-                {displayImagingHighlights.map((line, idx) => (
-                  <li key={idx}>{line}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-2 text-sm text-white/70">Series description not available.</p>
-            )}
-            {seriesInstanceUID && (
-              <p className="text-white/40 mt-3 truncate text-xs">Series UID: {seriesInstanceUID}</p>
-            )}
-          </section> */}
+          <section className="rounded-2xl bg-[#0b1433] p-4 shadow-lg shadow-black/40">
+            <p className="text-xs uppercase tracking-wide text-white/50">
+              History of Present Illness
+            </p>
+            <p className="mt-2 text-base text-white/80">
+              {historyPresentIllness ?? 'History of present illness not provided.'}
+            </p>
+          </section>
+
+          <section className="rounded-2xl bg-[#0b1433] p-4 shadow-lg shadow-black/40">
+            <p className="text-xs uppercase tracking-wide text-white/50">Past Medical History</p>
+            <p className="mt-2 text-base text-white/80">
+              {pastMedicalHistory ?? 'Past medical history not provided.'}
+            </p>
+          </section>
         </div>
       </div>
     </div>
