@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import classnames from 'classnames';
 import { getRenderingEngine, metaData, StackViewport, VolumeViewport } from '@cornerstonejs/core';
 import { jumpToSlice } from '@cornerstonejs/core/utilities';
@@ -36,6 +36,8 @@ const ViewportOverlay = ({
     hangingProtocolService,
     cornerstoneViewportService,
   } = servicesManager.services;
+  const [isCopying, setIsCopying] = useState(false);
+  const [showClipboardHelp, setShowClipboardHelp] = useState(false);
 
   const waitForViewportVolumes = viewportId =>
     new Promise<void>(resolve => {
@@ -339,6 +341,165 @@ const ViewportOverlay = ({
     });
   };
 
+  const copyViewportToClipboard = useCallback(async () => {
+    if (!cornerstoneViewportService) {
+      uiNotificationService?.show?.({
+        title: 'Capture failed',
+        message: 'Viewport service is unavailable.',
+        type: 'error',
+        duration: 3000,
+      });
+      return;
+    }
+
+    const viewportId = activeViewportId ?? cornerstoneViewportService.getActiveViewportId?.();
+
+    if (!viewportId) {
+      uiNotificationService?.show?.({
+        title: 'Capture failed',
+        message: 'No active viewport selected.',
+        type: 'error',
+        duration: 3000,
+      });
+      return;
+    }
+
+    const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
+
+    if (!viewport) {
+      uiNotificationService?.show?.({
+        title: 'Capture failed',
+        message: 'Viewport is not ready yet. Try again in a moment.',
+        type: 'error',
+        duration: 3000,
+      });
+      return;
+    }
+
+    viewport.render?.();
+
+    const canvas = viewport.getCanvas?.();
+
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      uiNotificationService?.show?.({
+        title: 'Capture failed',
+        message: 'Unable to access viewport canvas.',
+        type: 'error',
+        duration: 3000,
+      });
+      return;
+    }
+
+    try {
+      setIsCopying(true);
+      const dataUrl = canvas.toDataURL('image/png');
+
+      const ensureBlob = async () =>
+        new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob(
+            result => {
+              if (result) {
+                resolve(result);
+              } else {
+                reject(new Error('Unable to capture viewport image.'));
+              }
+            },
+            'image/png',
+            1
+          );
+        });
+
+      const tryWriteImage = async () => {
+        const permission =
+          navigator.permissions && 'query' in navigator.permissions
+            ? await navigator.permissions.query({ name: 'clipboard-write' as PermissionName })
+            : null;
+
+        if (permission && permission.state === 'denied') {
+          throw new Error('Clipboard permission denied for images.');
+        }
+
+        const blob = await ensureBlob();
+        const clipboardItem = new ClipboardItem({ [blob.type]: blob });
+        await navigator.clipboard.write([clipboardItem]);
+        return 'image';
+      };
+
+      const tryWriteText = async () => {
+        await navigator.clipboard.writeText(dataUrl);
+        return 'data-url';
+      };
+
+      const tryLegacyCopy = async () => {
+        const textarea = document.createElement('textarea');
+        textarea.value = dataUrl;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        if (!ok) {
+          throw new Error('Legacy copy command was blocked.');
+        }
+        return 'data-url';
+      };
+
+      let outcome: 'image' | 'data-url' | null = null;
+      let firstError: any = null;
+
+      if (navigator.clipboard?.write) {
+        try {
+          outcome = await tryWriteImage();
+        } catch (err) {
+          firstError = err;
+        }
+      }
+
+      if (!outcome) {
+        try {
+          outcome = await tryWriteText();
+        } catch (err) {
+          firstError = firstError || err;
+        }
+      }
+
+      if (!outcome) {
+        try {
+          outcome = await tryLegacyCopy();
+        } catch (err) {
+          firstError = firstError || err;
+        }
+      }
+
+      if (!outcome) {
+        throw firstError || new Error('Clipboard request was blocked.');
+      }
+
+      uiNotificationService?.show?.({
+        title: 'Captured',
+        message:
+          outcome === 'image'
+            ? 'Viewport image copied to clipboard.'
+            : 'Viewport copied as Data URL (image copy blocked).',
+        type: outcome === 'image' ? 'success' : 'warning',
+        duration: outcome === 'image' ? 2000 : 3500,
+      });
+    } catch (error: any) {
+      console.warn('ViewportOverlay: failed to copy viewport', error);
+      uiNotificationService?.show?.({
+        title: 'Capture failed',
+        message:
+          error?.message ||
+          'Clipboard request was blocked. Use HTTPS/localhost or tap Clipboard help for setup steps.',
+        type: 'error',
+        duration: 3500,
+      });
+    } finally {
+      setIsCopying(false);
+    }
+  }, [activeViewportId, cornerstoneViewportService, uiNotificationService]);
+
   return (
     <div
       className={classnames(
@@ -359,6 +520,43 @@ const ViewportOverlay = ({
         className={classnames(overlay, 'overlay-top right-viewport-scrollbar')}
       >
         {topRight}
+
+        <button
+          className="pointer-events-auto ml-2 rounded-md bg-black/60 px-3 py-1 text-xs font-semibold text-white transition hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={copyViewportToClipboard}
+          disabled={isCopying}
+        >
+          {isCopying ? 'Capturing…' : 'Capture'}
+        </button>
+
+        <button
+          className="pointer-events-auto ml-2 rounded-md bg-black/30 px-2 py-1 text-[11px] font-semibold text-white transition hover:bg-black/50"
+          onClick={() => setShowClipboardHelp(prev => !prev)}
+          title="How to allow clipboard image capture"
+        >
+          Clipboard help
+        </button>
+
+        {showClipboardHelp && (
+          <div className="pointer-events-auto absolute right-0 top-full z-50 mt-2 w-72 rounded-md bg-black/80 p-3 text-[11px] leading-relaxed text-white shadow-lg">
+            <p className="mb-1 font-semibold">To paste into Slides, allow clipboard images:</p>
+            <ol className="list-decimal space-y-1 pl-4">
+              <li>Use <strong>https://</strong> (or <strong>http://localhost</strong>).</li>
+              <li>Click Capture, then click “Allow” on the clipboard prompt.</li>
+              <li>
+                If on plain http, open <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>,
+                add your site origin (e.g. {typeof window !== 'undefined' ? window.location.origin : 'http://your-host:port'}),
+                relaunch, then Allow clipboard.
+              </li>
+            </ol>
+            <button
+              className="mt-2 inline-flex rounded bg-white/10 px-2 py-1 text-[11px] font-semibold text-white hover:bg-white/20"
+              onClick={() => setShowClipboardHelp(false)}
+            >
+              Got it
+            </button>
+          </div>
+        )}
 
         {/* 🔹 Updated Explain Button */}
         {/* <button

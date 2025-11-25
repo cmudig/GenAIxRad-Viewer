@@ -46,6 +46,49 @@ const { availableLanguages, defaultLanguage, currentLanguage } = i18n;
 
 const seriesInStudiesMap = new Map();
 
+// Prefer a specific series description to appear first for a given study
+const TARGET_STUDY_INSTANCE_UID = '678543127898756';
+const TARGET_SERIES_UID = '0000000000023';
+const TARGET_FIRST_DESCRIPTION =
+  'moderate pleural effusion with associated atelectasis in the left lung. no signs of cardiomegaly. no signs of consolidation. no signs pleural thickening. no signs of ground glass. no signs of any nodules.';
+
+const getSeriesDescriptionText = (series: any) =>
+  (series.SeriesDescription ?? series.seriesDescription ?? series.metadata?.SeriesDescription ?? '')
+    .trim()
+    .toLowerCase();
+
+const matchesTargetDescription = (series: any) => {
+  const desc = getSeriesDescriptionText(series);
+  if (!desc) {
+    return false;
+  }
+
+  if (desc === TARGET_FIRST_DESCRIPTION) {
+    return true;
+  }
+
+  // Fall back to substring match in case of minor formatting differences
+  return desc.includes('moderate pleural effusion with associated atelectasis in the left lung');
+};
+
+const sortSeriesWithPreferredFirst = (studyInstanceUid: string, series: any[]) => {
+  // Work on a copy to avoid mutating the fetched series array
+  const sortedSeries = sortBySeriesDate([...series]);
+
+  if (studyInstanceUid !== TARGET_STUDY_INSTANCE_UID) {
+    return sortedSeries;
+  }
+
+  const targetIndex = sortedSeries.findIndex(matchesTargetDescription);
+
+  if (targetIndex > 0) {
+    const [target] = sortedSeries.splice(targetIndex, 1);
+    sortedSeries.unshift(target);
+  }
+
+  return sortedSeries;
+};
+
 /**
  * TODO:
  * - debounce `setFilterValues` (150ms?)
@@ -60,7 +103,7 @@ function WorkList({
   onRefresh,
   servicesManager,
 }: withAppTypes) {
-  const participantStudyBool = true
+  const participantStudyBool = true;
 
   const { hotkeyDefinitions, hotkeyDefaults } = hotkeysManager;
   const { show, hide } = useModal();
@@ -213,13 +256,29 @@ function WorkList({
 
   // Query for series information
   useEffect(() => {
-    const fetchSeries = async studyInstanceUid => {
+    const fetchSeries = async (studyInstanceUid: string) => {
       try {
         const series = await dataSource.query.series.search(studyInstanceUid);
-        seriesInStudiesMap.set(studyInstanceUid, sortBySeriesDate(series));
-        setStudiesWithSeriesData([...studiesWithSeriesData, studyInstanceUid]);
+
+        // Optionally keep your existing sort
+        let sortedSeries = sortSeriesWithPreferredFirst(studyInstanceUid, series);
+
+        // If this is the target study, move the target series to the front
+        if (studyInstanceUid === TARGET_STUDY_INSTANCE_UID) {
+          const idx = sortedSeries.findIndex(item => item.seriesInstanceUid === TARGET_SERIES_UID);
+
+          if (idx > -1) {
+            const [item] = sortedSeries.splice(idx, 1);
+            sortedSeries = [item, ...sortedSeries]; // new array (immutable)
+          }
+        }
+
+        seriesInStudiesMap.set(studyInstanceUid, sortedSeries);
+
+        setStudiesWithSeriesData(prev => [...prev, studyInstanceUid]);
+
+        console.log('Series data map: ', seriesInStudiesMap);
       } catch (ex) {
-        // TODO: UI Notification Service
         console.warn(ex);
       }
     };
@@ -365,12 +424,18 @@ function WorkList({
                   const isValidA = a.isValidMode({
                     modalities: modalities.replaceAll('/', '\\'),
                     study,
-                    treatmentCondition: getMetadataFromStudy(study.studyInstanceUID, 'treatmentCondition'),
+                    treatmentCondition: getMetadataFromStudy(
+                      study.studyInstanceUID,
+                      'treatmentCondition'
+                    ),
                   }).valid;
                   const isValidB = b.isValidMode({
                     modalities: modalities.replaceAll('/', '\\'),
                     study,
-                    treatmentCondition: getMetadataFromStudy(study.studyInstanceUID, 'treatmentCondition'),
+                    treatmentCondition: getMetadataFromStudy(
+                      study.studyInstanceUID,
+                      'treatmentCondition'
+                    ),
                   }).valid;
 
                   return isValidB - isValidA;
@@ -392,6 +457,14 @@ function WorkList({
               const query = new URLSearchParams();
               if (filterValues.configUrl) {
                 query.append('configUrl', filterValues.configUrl);
+              }
+              const firstSeries =
+                seriesInStudiesMap.get(studyInstanceUid) &&
+                seriesInStudiesMap.get(studyInstanceUid)[0];
+              const firstSeriesUid =
+                firstSeries?.seriesInstanceUid || firstSeries?.SeriesInstanceUID;
+              if (firstSeriesUid) {
+                query.append('initialSeriesInstanceUID', firstSeriesUid);
               }
               query.append('StudyInstanceUIDs', studyInstanceUid);
               return (
@@ -546,7 +619,7 @@ function WorkList({
       />
       <Onboarding />
       <InvestigationalUseDialog dialogConfiguration={appConfig?.investigationalUseDialog} />
-      <div className="flex flex-col h-full overflow-y-auto">
+      <div className="flex h-full flex-col overflow-y-auto">
         <ScrollArea>
           <div className="flex grow flex-col">
             <StudyListFilter
