@@ -6,12 +6,13 @@ import VariationPanel from './tabs/VariationPanel';
 import OverlayComponent from './OverlayComponent';
 import ExampleComponent from './ExampleComponent';
 import ChatGPTPanel from './tabs/ChatGPTPanel';
+import OllamaPanel from './tabs/OllamaPanel';
 
 const TABS = [
   { id: 'example', label: 'Similar Cases', component: ExampleComponent },
   { id: 'variation', label: 'Variations', component: VariationPanel },
   { id: 'radiopaedia', label: 'Important Regions', component: OverlayComponent },
-  { id: 'assistant', label: 'Q&A', component: ChatGPTPanel },
+  { id: 'assistant', label: 'Q&A', component: OllamaPanel },
 ];
 
 function ExplanationComponent({ commandsManager, extensionManager, servicesManager }) {
