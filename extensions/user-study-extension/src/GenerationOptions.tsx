@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { getRenderingEngine } from '@cornerstonejs/core';
+import { jumpToSlice } from '@cornerstonejs/core/utilities';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -380,6 +382,132 @@ const getGridSizeForViewportCount = (
     numRows: bestRows,
   };
 };
+
+type SliceReference = {
+  viewportId: string;
+  index: number;
+  ratio: number | null;
+};
+
+const waitForViewportVolumes = (viewportId: string) =>
+  new Promise<void>(resolve => {
+    const service = servicesManager?.services?.cornerstoneViewportService;
+    if (!service) {
+      resolve();
+      return;
+    }
+
+    let resolved = false;
+    let timeoutId: number;
+    let unsubscribe: (() => void) | undefined;
+
+    const cleanup = () => {
+      if (resolved) {
+        return;
+      }
+      resolved = true;
+      window.clearTimeout(timeoutId);
+      unsubscribe?.();
+      resolve();
+    };
+
+    timeoutId = window.setTimeout(cleanup, 750);
+
+    const subscription = service.subscribe(
+      service.EVENTS.VIEWPORT_VOLUMES_CHANGED,
+      ({ viewportInfo }) => {
+        if (viewportInfo.viewportId === viewportId) {
+          cleanup();
+        }
+      }
+    );
+
+    unsubscribe = subscription?.unsubscribe;
+
+    if (!subscription) {
+      cleanup();
+    }
+  });
+
+const resolveSliceCount = (viewport: any): number | null => {
+  if (!viewport) {
+    return null;
+  }
+
+  const numSlices = viewport.getNumberOfSlices?.();
+  if (typeof numSlices === 'number' && numSlices >= 0) {
+    return numSlices;
+  }
+
+  const imageIds = viewport.getImageIds?.();
+  if (Array.isArray(imageIds)) {
+    return imageIds.length;
+  }
+
+  return null;
+};
+
+const captureReferenceSlice = (state: any): SliceReference | null => {
+  const viewports = getViewportsArray(state);
+  const activeId = state?.activeViewportId ?? viewports[0]?.viewportId ?? null;
+  if (!activeId) {
+    return null;
+  }
+
+  const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
+  const viewport = renderingEngine?.getViewport(activeId);
+  if (!viewport) {
+    return null;
+  }
+
+  const currentIndex = viewport.getCurrentImageIdIndex?.();
+  if (!Number.isFinite(currentIndex)) {
+    return null;
+  }
+
+  const sliceCount = resolveSliceCount(viewport);
+  const maxIndex = sliceCount && sliceCount > 0 ? sliceCount - 1 : null;
+  const clampedIndex =
+    maxIndex !== null ? Math.min(Math.max(0, currentIndex as number), maxIndex) : (currentIndex as number);
+  const ratio = maxIndex && maxIndex > 0 ? clampedIndex / maxIndex : null;
+
+  return {
+    viewportId: activeId,
+    index: clampedIndex,
+    ratio,
+  };
+};
+
+const alignViewportToReferenceSlice = async (
+  viewportId: string,
+  reference: SliceReference | null
+) => {
+  if (!reference) {
+    return;
+  }
+
+  const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
+  const viewport = renderingEngine?.getViewport(viewportId);
+
+  if (!viewport || !viewport.element) {
+    return;
+  }
+
+  const sliceCount = resolveSliceCount(viewport);
+  if (!sliceCount || sliceCount < 2) {
+    return;
+  }
+
+  const maxIndex = sliceCount - 1;
+  const targetIndex =
+    reference.ratio !== null && reference.ratio !== undefined
+      ? Math.round(reference.ratio * maxIndex)
+      : Math.min(reference.index, maxIndex);
+
+  if (Number.isFinite(targetIndex)) {
+    jumpToSlice(viewport.element, { imageIndex: Math.max(0, Math.min(targetIndex, maxIndex)) });
+  }
+};
   // Trigger model generation and wait until completion
   // --- click handler ---
   const handleGenerateClick = async () => {
@@ -436,6 +564,7 @@ const getGridSizeForViewportCount = (
         const { viewportGridService, displaySetService } = servicesManager.services;
 
         const state = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+        const referenceSlice = captureReferenceSlice(state);
         const previousViewports = getViewportsArray(state);
         const previousViewportIds = new Set(previousViewports.map(v => v?.viewportId).filter(Boolean));
 
@@ -522,12 +651,17 @@ const getGridSizeForViewportCount = (
         const targetViewportId = newViewport?.viewportId || fallbackViewport?.viewportId;
 
         if (targetViewportId) {
+          const volumesReadyPromise = waitForViewportVolumes(targetViewportId);
+
           await viewportGridService.setDisplaySetsForViewports([
             {
               viewportId: targetViewportId,
               displaySetInstanceUIDs: [target.displaySetInstanceUID],
             },
           ]);
+
+          await volumesReadyPromise;
+          await alignViewportToReferenceSlice(targetViewportId, referenceSlice);
 
           if (viewportGridService.setActiveViewportId) {
             viewportGridService.setActiveViewportId(targetViewportId);
