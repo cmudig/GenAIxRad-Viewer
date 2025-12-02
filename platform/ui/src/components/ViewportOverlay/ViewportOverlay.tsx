@@ -37,7 +37,6 @@ const ViewportOverlay = ({
     cornerstoneViewportService,
   } = servicesManager.services;
   const [isCopying, setIsCopying] = useState(false);
-  const [showClipboardHelp, setShowClipboardHelp] = useState(false);
 
   const waitForViewportVolumes = viewportId =>
     new Promise<void>(resolve => {
@@ -430,6 +429,36 @@ const ViewportOverlay = ({
         return 'data-url';
       };
 
+      // Fallback that uses execCommand to copy an <img> node.
+      // This works on some insecure origins where the async clipboard API is blocked.
+      const tryLegacyImageCopy = async () => {
+        const wrapper = document.createElement('div');
+        wrapper.contentEditable = 'true';
+        wrapper.style.position = 'fixed';
+        wrapper.style.opacity = '0';
+        const img = document.createElement('img');
+        img.src = dataUrl;
+        wrapper.appendChild(img);
+        document.body.appendChild(wrapper);
+
+        const range = document.createRange();
+        range.selectNodeContents(wrapper);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+
+        const ok = document.execCommand('copy');
+
+        selection?.removeAllRanges();
+        document.body.removeChild(wrapper);
+
+        if (!ok) {
+          throw new Error('Legacy image copy was blocked.');
+        }
+
+        return 'image';
+      };
+
       const tryLegacyCopy = async () => {
         const textarea = document.createElement('textarea');
         textarea.value = dataUrl;
@@ -453,6 +482,14 @@ const ViewportOverlay = ({
           outcome = await tryWriteImage();
         } catch (err) {
           firstError = err;
+        }
+      }
+
+      if (!outcome) {
+        try {
+          outcome = await tryLegacyImageCopy();
+        } catch (err) {
+          firstError = firstError || err;
         }
       }
 
@@ -528,35 +565,6 @@ const ViewportOverlay = ({
         >
           {isCopying ? 'Capturing…' : 'Capture'}
         </button>
-
-        <button
-          className="pointer-events-auto ml-2 rounded-md bg-black/30 px-2 py-1 text-[11px] font-semibold text-white transition hover:bg-black/50"
-          onClick={() => setShowClipboardHelp(prev => !prev)}
-          title="How to allow clipboard image capture"
-        >
-          Clipboard help
-        </button>
-
-        {showClipboardHelp && (
-          <div className="pointer-events-auto absolute right-0 top-full z-50 mt-2 w-72 rounded-md bg-black/80 p-3 text-[11px] leading-relaxed text-white shadow-lg">
-            <p className="mb-1 font-semibold">To paste into Slides, allow clipboard images:</p>
-            <ol className="list-decimal space-y-1 pl-4">
-              <li>Use <strong>https://</strong> (or <strong>http://localhost</strong>).</li>
-              <li>Click Capture, then click “Allow” on the clipboard prompt.</li>
-              <li>
-                If on plain http, open <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>,
-                add your site origin (e.g. {typeof window !== 'undefined' ? window.location.origin : 'http://your-host:port'}),
-                relaunch, then Allow clipboard.
-              </li>
-            </ol>
-            <button
-              className="mt-2 inline-flex rounded bg-white/10 px-2 py-1 text-[11px] font-semibold text-white hover:bg-white/20"
-              onClick={() => setShowClipboardHelp(false)}
-            >
-              Got it
-            </button>
-          </div>
-        )}
 
         {/* 🔹 Updated Explain Button */}
         {/* <button
