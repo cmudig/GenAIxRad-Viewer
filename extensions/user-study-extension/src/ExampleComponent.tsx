@@ -71,6 +71,7 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
   const uiNotificationService =
     servicesManager?.services?.uiNotificationService ||
     servicesManager?.services?.UINotificationService;
+  const cornerstoneViewportService = servicesManager?.services?.cornerstoneViewportService;
 
   const [activeViewportId, setActiveViewportId] = useState<string | null>(null);
   const [viewportVersion, setViewportVersion] = useState(0);
@@ -89,6 +90,49 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
   const [error, setError] = useState<string | null>(null);
   const [addedMatchUIDs, setAddedMatchUIDs] = useState<string[]>([]);
   const [addedDisplaySets, setAddedDisplaySets] = useState<Set<string>>(() => new Set());
+
+  const waitForViewportVolumes = useCallback(
+    (viewportId: string) =>
+      new Promise<void>(resolve => {
+        const service = cornerstoneViewportService;
+        if (!service) {
+          resolve();
+          return;
+        }
+
+        let resolved = false;
+        let timeoutId: number;
+        let unsubscribe: (() => void) | undefined;
+
+        const cleanup = () => {
+          if (resolved) {
+            return;
+          }
+          resolved = true;
+          window.clearTimeout(timeoutId);
+          unsubscribe?.();
+          resolve();
+        };
+
+        timeoutId = window.setTimeout(cleanup, 750);
+
+        const subscription = service.subscribe(
+          service.EVENTS.VIEWPORT_VOLUMES_CHANGED,
+          ({ viewportInfo }) => {
+            if (viewportInfo.viewportId === viewportId) {
+              cleanup();
+            }
+          }
+        );
+
+        unsubscribe = subscription?.unsubscribe;
+
+        if (!subscription) {
+          cleanup();
+        }
+      }),
+    [cornerstoneViewportService]
+  );
 
   useEffect(() => {
     if (!viewportGridService) {
@@ -496,6 +540,12 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
     }
 
     try {
+      const previousState =
+        viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+      const patientReference = capturePatientSliceReference(
+        previousState,
+        initialViewport.displaySetInstanceUIDs[0]
+      );
       const { displaySetInstanceUIDs, displaySetOptions, viewportOptions } = initialViewport;
 
       const cloneOptions = (options: any) => {
@@ -530,12 +580,16 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
       const targetViewportId = primaryViewport?.viewportId;
 
       if (targetViewportId) {
+        const volumesReadyPromise = waitForViewportVolumes(targetViewportId);
         await viewportGridService.setDisplaySetsForViewports([
           {
             viewportId: targetViewportId,
             displaySetInstanceUIDs: [...displaySetInstanceUIDs],
           },
         ]);
+
+        await volumesReadyPromise;
+        await alignViewportToReferenceSlice(targetViewportId, patientReference);
 
         viewportGridService.setActiveViewportId?.(targetViewportId);
       }
@@ -545,7 +599,7 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
 
     setAddedMatchUIDs([]);
     setAddedDisplaySets(new Set());
-  }, [viewportGridService]);
+  }, [viewportGridService, waitForViewportVolumes]);
 
   const removeMatchFromViewport = useCallback(
     async (matchUID: string) => {
