@@ -5,9 +5,9 @@ import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyCjuzeD-Z565tL7vNlBOuxOZpUYW2Az3ec',
-  authDomain: 'genai-rad-user-study.web.app',
+  authDomain: 'genai-rad-model-compare.web.app',
   projectId: 'genai-radiology',
-  storageBucket: 'genai-rad-user-study.appspot.com',
+  storageBucket: 'genai-rad-model-compare.appspot.com',
   messagingSenderId: '287363541296',
   appId: '1:287363541296:web:91f56424ab4294aeb480f5',
   measurementId: 'G-M17DDMC85V',

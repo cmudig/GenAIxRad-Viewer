@@ -28,6 +28,13 @@ window.config = {
     model: 'gpt-5',
     temperature: 1,
     // apiKey: 'sk-...'
+    gemini: {
+      // apiKey: '...',
+      endpoint:
+        'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent',
+      model: 'gemini-2.5-flash',
+      temperature: 1,
+    },
   },
   // filterQueryParam: false,
   defaultDataSourceName: 'orthanc',
@@ -550,7 +557,7 @@ window.config = {
         },
         {
           id: 'rightPanel',
-          title: 'AI Tools',
+          title: 'Model Comparison',
           text: 'This panel contains tools you might find useful in answering the study questions. Use the tab bar at the top of this panel to explore each assistant.',
           attachTo: {
             element: '[data-cy="explanation-component"]',

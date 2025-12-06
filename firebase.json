@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "genai-rad-user-study",
+    "site": "genai-rad-model-compare",
     "public": "platform/app/dist",
     "headers": [
       {

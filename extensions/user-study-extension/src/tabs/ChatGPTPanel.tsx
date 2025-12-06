@@ -9,6 +9,8 @@ type ChatGPTPanelProps = {
   extensionManager: any;
 };
 
+type ProviderId = 'openai' | 'gemini';
+
 type AssistantConfig = {
   apiKey?: string;
   endpoint?: string;
@@ -16,34 +18,34 @@ type AssistantConfig = {
   temperature?: number;
 };
 
-const LOCAL_STORAGE_KEY = 'chatgpt-panel-openai-key';
+type ProviderConfig = Partial<Record<ProviderId, AssistantConfig>>;
 
-const DEFAULT_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
-const DEFAULT_MODEL = 'gpt-5';
+const PROVIDER_DEFAULTS: Record<ProviderId, Required<Omit<AssistantConfig, 'apiKey'>>> = {
+  openai: {
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    model: 'gpt-5',
+    temperature: 1,
+  },
+  gemini: {
+    endpoint:
+      'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent',
+    model: 'gemini-2.5-flash',
+    temperature: 1,
+  },
+};
 
-const QUESTION_PRESETS = [
-  {
-    id: 'describe',
-    title: 'Describe the findings in this image.',
-    prompt:
-      'Analyze this CT slice and describe the visible abnormalities. Focus on pleural effusion and summarize the findings in no more than five sentences.',
-    system_prompt: '',
-  },
-  {
-    id: 'evidence',
-    title: 'How do you know this scan contains a pleural effusion?',
-    prompt:
-      'Explain the specific imaging clues in this CT slice that support or refute the presence of a pleural effusion.',
-  },
-  // {
-  //   id: 'cardiomegaly',
-  //   title: 'Is there evidence of cardiomegaly in this image?',
-  //   prompt:
-  //     'Assess the heart size in this CT slice and describe whether the findings suggest cardiomegaly. Mention any supporting measurements or visible cues.',
-  // },
+const PROVIDERS: { id: ProviderId; label: string }[] = [
+  { id: 'openai', label: 'OpenAI' },
+  { id: 'gemini', label: 'Gemini' },
 ];
 
-const readConfig = (): AssistantConfig => {
+const LOCAL_STORAGE_KEY = 'chatgpt-panel-openai-key';
+const DEFAULT_SYSTEM_PROMPT =
+  'You are an expert radiology assistant, with expertise in identifying pleural effusion. Remember that the right and left sides are flipped. Describe only the imaging abnormalities you can see in the format of an impression. If the slice is normal, explicitly state that no abnormalities are visible. Do not provide more than 5 sentences of information.';
+const DEFAULT_PROMPT =
+  'Analyze this CT slice and describe the visible abnormalities. Focus on pleural effusion and summarize the findings in no more than five sentences.';
+
+const readConfig = (): ProviderConfig => {
   if (typeof window === 'undefined') {
     return {};
   }
@@ -54,14 +56,34 @@ const readConfig = (): AssistantConfig => {
     return {};
   }
 
-  const { apiKey, endpoint, model, temperature } = rawConfig;
+  const config: ProviderConfig = {};
 
-  return {
-    apiKey: typeof apiKey === 'string' ? apiKey : undefined,
-    endpoint: typeof endpoint === 'string' ? endpoint : undefined,
-    model: typeof model === 'string' ? model : undefined,
-    temperature: typeof temperature === 'number' ? temperature : undefined,
-  };
+  PROVIDERS.forEach(({ id }) => {
+    const entry = (rawConfig as any)[id];
+    if (entry && typeof entry === 'object') {
+      const { apiKey, endpoint, model, temperature } = entry;
+      config[id] = {
+        apiKey: typeof apiKey === 'string' ? apiKey : undefined,
+        endpoint: typeof endpoint === 'string' ? endpoint : undefined,
+        model: typeof model === 'string' ? model : undefined,
+        temperature: typeof temperature === 'number' ? temperature : undefined,
+      };
+    }
+  });
+
+  // Backwards compatibility with the original flat config (assumed OpenAI)
+  const { apiKey, endpoint, model, temperature } = rawConfig;
+  if (apiKey || endpoint || model || typeof temperature === 'number') {
+    config.openai = {
+      ...(config.openai ?? {}),
+      apiKey: typeof apiKey === 'string' ? apiKey : config.openai?.apiKey,
+      endpoint: typeof endpoint === 'string' ? endpoint : config.openai?.endpoint,
+      model: typeof model === 'string' ? model : config.openai?.model,
+      temperature: typeof temperature === 'number' ? temperature : config.openai?.temperature,
+    };
+  }
+
+  return config;
 };
 
 const loadStoredKey = (): string => {
@@ -98,18 +120,27 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
   const config = useMemo(() => readConfig(), []);
 
   const [storedKey, setStoredKey] = useState(() => loadStoredKey());
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [questionErrors, setQuestionErrors] = useState<Record<string, string>>({});
-  const [busyQuestionId, setBusyQuestionId] = useState<string | null>(null);
+  const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
+  const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
+  const [answers, setAnswers] = useState<Record<ProviderId, string>>({
+    openai: '',
+    gemini: '',
+  });
+  const [errors, setErrors] = useState<Record<ProviderId, string>>({
+    openai: '',
+    gemini: '',
+  });
+  const [busyProviders, setBusyProviders] = useState<Record<ProviderId, boolean>>({
+    openai: false,
+    gemini: false,
+  });
   const controllerRef = useRef<AbortController | null>(null);
-  const activeQuestionRef = useRef<string | null>(null);
+  const activeRunRef = useRef<number | null>(null);
   const [isFetchingRemoteKey, setIsFetchingRemoteKey] = useState(false);
   const [remoteKeyError, setRemoteKeyError] = useState('');
-
-  const apiKey = config.apiKey ?? storedKey;
-  const endpoint = config.endpoint ?? DEFAULT_ENDPOINT;
-  const model = config.model ?? DEFAULT_MODEL;
-  const temperature = config.temperature ?? 1;
+  const [geminiKey, setGeminiKey] = useState('');
+  const [isFetchingGeminiKey, setIsFetchingGeminiKey] = useState(false);
+  const [geminiKeyError, setGeminiKeyError] = useState('');
 
   const cornerstoneViewportService = servicesManager?.services?.cornerstoneViewportService ?? null;
 
@@ -156,7 +187,7 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
   }, []);
 
   useEffect(() => {
-    if (config.apiKey || storedKey) {
+    if (config.openai?.apiKey || storedKey) {
       return;
     }
 
@@ -194,51 +225,164 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
     return () => {
       isMounted = false;
     };
-  }, [config.apiKey, storedKey]);
+  }, [config.openai?.apiKey, storedKey]);
 
-  const analyzeSlice = useCallback(
-    async (questionId: string) => {
-      const question = QUESTION_PRESETS.find(item => item.id === questionId) ?? QUESTION_PRESETS[0];
+  useEffect(() => {
+    if (config.gemini?.apiKey || geminiKey) {
+      return;
+    }
 
-      abortInFlight();
-      setQuestionErrors(prev => ({ ...prev, [question.id]: '' }));
-      setAnswers(prev => ({ ...prev, [question.id]: '' }));
-      setBusyQuestionId(question.id);
-      activeQuestionRef.current = question.id;
+    let isMounted = true;
+    setIsFetchingGeminiKey(true);
+    setGeminiKeyError('');
 
+    const fetchGeminiKey = async () => {
       try {
-        if (!apiKey) {
-          throw new Error('Add an OpenAI API key to run the analysis.');
+        const keyDoc = await getDoc(doc(db, 'api_keys', 'gemini'));
+        if (!keyDoc.exists()) {
+          throw new Error('Gemini key is not configured in Firestore.');
         }
+        const keyValue = keyDoc.get('key');
+        if (typeof keyValue !== 'string' || !keyValue.trim()) {
+          throw new Error('Firestore Gemini key entry is empty.');
+        }
+        if (isMounted) {
+          setGeminiKey(keyValue.trim());
+        }
+      } catch (error: any) {
+        if (isMounted) {
+          setGeminiKeyError(error?.message || 'Failed to load Gemini key.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsFetchingGeminiKey(false);
+        }
+      }
+    };
 
-        const dataUrl = await captureActiveViewport();
+    fetchGeminiKey();
 
-        const controller = new AbortController();
-        controllerRef.current = controller;
+    return () => {
+      isMounted = false;
+    };
+  }, [config.gemini?.apiKey, geminiKey]);
 
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          signal: controller.signal,
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            temperature,
-            messages: [
+  const normalizeSettings = useCallback(
+    (providerId: ProviderId): Required<AssistantConfig> & { apiKey?: string } => {
+      const providerConfig = config[providerId] ?? {};
+      return {
+        apiKey: providerConfig.apiKey,
+        endpoint: providerConfig.endpoint ?? PROVIDER_DEFAULTS[providerId].endpoint,
+        model: providerConfig.model ?? PROVIDER_DEFAULTS[providerId].model,
+        temperature: providerConfig.temperature ?? PROVIDER_DEFAULTS[providerId].temperature,
+      };
+    },
+    [config]
+  );
+
+  const dataUrlToBase64 = (dataUrl: string): string => {
+    const commaIndex = dataUrl.indexOf(',');
+    return commaIndex === -1 ? '' : dataUrl.slice(commaIndex + 1);
+  };
+
+  const parseProviderResponse = (providerId: ProviderId, payload: any): string => {
+    if (providerId === 'gemini') {
+      const parts = payload?.candidates?.[0]?.content?.parts;
+      if (Array.isArray(parts)) {
+        return parts
+          .map(part => part?.text)
+          .filter(Boolean)
+          .join('\n')
+          .trim();
+      }
+      return '';
+    }
+
+    return payload?.choices?.[0]?.message?.content ?? payload?.data?.[0]?.content ?? '';
+  };
+
+  const runPromptAcrossModels = useCallback(async () => {
+    const userPrompt = prompt.trim();
+    const activeSystemPrompt = systemPrompt.trim() || DEFAULT_SYSTEM_PROMPT;
+
+    if (!userPrompt) {
+      setErrors(prev => ({
+        ...prev,
+        openai: 'Enter a prompt to send to the models.',
+        gemini: 'Enter a prompt to send to the models.',
+      }));
+      return;
+    }
+
+    abortInFlight();
+    setErrors({ openai: '', gemini: '' });
+    setAnswers({ openai: '', gemini: '' });
+    setBusyProviders({ openai: true, gemini: true });
+
+    const runId = Date.now();
+    activeRunRef.current = runId;
+
+    let dataUrl = '';
+    let imageBase64 = '';
+
+    try {
+      dataUrl = await captureActiveViewport();
+      imageBase64 = dataUrlToBase64(dataUrl);
+    } catch (err: any) {
+      const message = err?.message || 'Failed to capture the slice.';
+      setErrors({
+        openai: message,
+        gemini: message,
+      });
+      setBusyProviders({ openai: false, gemini: false });
+      activeRunRef.current = null;
+      return;
+    }
+
+    const controller = new AbortController();
+    controllerRef.current = controller;
+
+    await Promise.all(
+      PROVIDERS.map(async provider => {
+        try {
+          const settings = normalizeSettings(provider.id);
+          const apiKey =
+            provider.id === 'openai'
+              ? (settings.apiKey ?? storedKey)
+              : (settings.apiKey ?? geminiKey);
+
+          if (!apiKey) {
+            throw new Error(`${provider.label} API key is missing.`);
+          }
+
+          let url = settings.endpoint;
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          const body: any = {};
+
+          if (provider.id === 'gemini') {
+            // Gemini expects the API key as a query parameter, not a bearer token
+            const separator = url.includes('?') ? '&' : '?';
+            url = `${url}${separator}key=${encodeURIComponent(apiKey)}`;
+            body.contents = [
               {
-                role: 'system',
-                content:
-                  'You are an expert radiology assistant, with expertise in identifying pleural effusion. Remember that the right and left sides are flipped. Describe only the imaging abnormalities you can see in the format of an impression. If the slice is normal, explicitly state that no abnormalities are visible. Do not provide more than 5 sentences of information.',
+                role: 'user',
+                parts: [
+                  { text: `${activeSystemPrompt}\n\n${userPrompt}` },
+                  { inlineData: { mimeType: 'image/png', data: imageBase64 } },
+                ],
               },
+            ];
+            body.generationConfig = { temperature: settings.temperature };
+          } else {
+            headers.Authorization = `Bearer ${apiKey}`;
+            body.model = settings.model;
+            body.temperature = settings.temperature;
+            body.messages = [
+              { role: 'system', content: activeSystemPrompt },
               {
                 role: 'user',
                 content: [
-                  {
-                    type: 'text',
-                    text: question.prompt,
-                  },
+                  { type: 'text', text: userPrompt },
                   {
                     type: 'image_url',
                     image_url: {
@@ -247,110 +391,164 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
                   },
                 ],
               },
-            ],
-          }),
-        });
-
-        if (!response.ok) {
-          let message = `OpenAI request failed (status ${response.status})`;
-
-          try {
-            const payload = await response.json();
-            if (payload?.error?.message) {
-              message = payload.error.message;
-            }
-          } catch (err) {
-            // Swallow parsing errors and report the status only
+            ];
           }
 
-          throw new Error(message);
-        }
+          const response = await fetch(url, {
+            method: 'POST',
+            signal: controller.signal,
+            headers,
+            body: JSON.stringify(body),
+          });
 
-        const payload = await response.json();
-        const content =
-          payload?.choices?.[0]?.message?.content ?? payload?.data?.[0]?.content ?? '';
+          if (!response.ok) {
+            let message = `${provider.label} request failed (status ${response.status})`;
+            try {
+              const payload = await response.json();
+              if (payload?.error?.message) {
+                message = payload.error.message;
+              }
+            } catch {
+              // ignore JSON parse errors
+            }
+            throw new Error(message);
+          }
 
-        if (!content) {
-          throw new Error('OpenAI did not return a description.');
-        }
+          const payload = await response.json();
+          const content = parseProviderResponse(provider.id, payload);
 
-        setAnswers(prev => ({ ...prev, [question.id]: content }));
-      } catch (err: any) {
-        if (err?.name === 'AbortError') {
-          return;
+          if (!content) {
+            throw new Error(`${provider.label} did not return a description.`);
+          }
+
+          if (activeRunRef.current === runId) {
+            setAnswers(prev => ({ ...prev, [provider.id]: content }));
+          }
+        } catch (err: any) {
+          if (err?.name === 'AbortError') {
+            return;
+          }
+          if (activeRunRef.current === runId) {
+            setErrors(prev => ({
+              ...prev,
+              [provider.id]: err?.message || `Unexpected error while contacting ${provider.label}.`,
+            }));
+          }
+        } finally {
+          if (activeRunRef.current === runId) {
+            setBusyProviders(prev => ({ ...prev, [provider.id]: false }));
+          }
         }
-        const message = err?.message || 'Unexpected error while contacting OpenAI.';
-        setQuestionErrors(prev => ({ ...prev, [question.id]: message }));
-      } finally {
-        controllerRef.current = null;
-        if (activeQuestionRef.current === question.id) {
-          activeQuestionRef.current = null;
-          setBusyQuestionId(null);
-        }
-      }
-    },
-    [abortInFlight, apiKey, captureActiveViewport, endpoint, model, temperature]
-  );
+      })
+    );
+
+    if (activeRunRef.current === runId) {
+      activeRunRef.current = null;
+    }
+    controllerRef.current = null;
+  }, [abortInFlight, captureActiveViewport, normalizeSettings, prompt, storedKey]);
 
   return (
     <div className="flex h-full flex-col text-white">
       <div className="space-y-6">
-        {/* {!config.apiKey && (
-          <div className="rounded-2xl bg-white/5 p-4 text-sm text-white shadow-inner shadow-black/40">
-            {isFetchingRemoteKey && <p>Loading OpenAI credentials…</p>}
-            {!isFetchingRemoteKey && remoteKeyError && (
-              <p className="text-red-300">{remoteKeyError}</p>
-            )}
-            {!isFetchingRemoteKey && !remoteKeyError && storedKey && (
-              <p className="text-white/70">OpenAI key loaded from secure storage.</p>
-            )}
-          </div>
-        )} */}
-
         <div>
-          <h2 className="text-base font-semibold">Q&amp;A</h2>
-          <p className="text-sm text-white/70">Ask AI about the currently-viewed slice.</p>
+          <h2 className="text-base font-semibold">Model comparison</h2>
+          <p className="text-sm text-white/70">
+            Send the same prompt to OpenAI and Gemini using the active slice.
+          </p>
         </div>
 
-        <div className="flex flex-col gap-4">
-          {QUESTION_PRESETS.map(question => {
-            const answer = answers[question.id];
-            const error = questionErrors[question.id];
-            const isBusy = busyQuestionId === question.id;
-            const hasResponse = Boolean(answer);
-            const buttonLabel = isBusy ? 'Asking…' : hasResponse ? 'Ask Again' : 'Ask';
+        <div className="rounded-3xl bg-[#0b1433] p-4 shadow-lg shadow-black/40">
+          <label className="flex items-center justify-between text-sm font-medium text-white">
+            System prompt
+            <span className="text-xs text-white/60">Guides model behavior</span>
+          </label>
+          <textarea
+            className="ring-primary-main/30 mt-2 h-24 w-full resize-none rounded-2xl border border-white/10 bg-[#0e1c4a] p-3 text-sm text-white outline-none focus:ring-2"
+            value={systemPrompt}
+            onChange={e => setSystemPrompt(e.target.value)}
+            placeholder="Set context or constraints for the models..."
+          />
+        </div>
+
+        <div className="rounded-3xl bg-[#0b1433] p-4 shadow-lg shadow-black/40">
+          <label className="flex items-center justify-between text-sm font-medium text-white">
+            Prompt
+            <span className="text-xs text-white/60">Used for all three models</span>
+          </label>
+          <textarea
+            className="ring-primary-main/30 mt-2 h-28 w-full resize-none rounded-2xl border border-white/10 bg-[#0e1c4a] p-3 text-sm text-white outline-none focus:ring-2"
+            value={prompt}
+            onChange={e => setPrompt(e.target.value)}
+            placeholder="Ask anything about the current slice..."
+          />
+          <div className="mt-3 flex justify-end gap-2">
+            <button
+              className="bg-primary-main hover:bg-primary-light disabled:bg-primary-main/40 rounded-full px-4 py-2 text-sm font-semibold text-black transition disabled:cursor-not-allowed"
+              onClick={runPromptAcrossModels}
+              disabled={Object.values(busyProviders).some(Boolean)}
+            >
+              {Object.values(busyProviders).some(Boolean) ? 'Running…' : 'Ask all models'}
+            </button>
+          </div>
+          {!config.openai?.apiKey && !storedKey && (
+            <p className="mt-2 text-xs text-white/60">
+              OpenAI key will be loaded from secure storage automatically when available.
+            </p>
+          )}
+          {isFetchingRemoteKey && <p className="mt-2 text-xs text-white/70">Loading OpenAI key…</p>}
+          {remoteKeyError && (
+            <p className="mt-2 text-xs text-red-300">
+              {remoteKeyError || 'Failed to load OpenAI key'}
+            </p>
+          )}
+          {isFetchingGeminiKey && <p className="mt-2 text-xs text-white/70">Loading Gemini key…</p>}
+          {geminiKeyError && (
+            <p className="mt-2 text-xs text-red-300">
+              {geminiKeyError || 'Failed to load Gemini key'}
+            </p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-3">
+          {PROVIDERS.map(provider => {
+            const answer = answers[provider.id];
+            const error = errors[provider.id];
+            const isBusy = busyProviders[provider.id];
+            const hasKey =
+              provider.id === 'openai'
+                ? Boolean(config.openai?.apiKey ?? storedKey)
+                : Boolean(config.gemini?.apiKey ?? geminiKey);
 
             return (
               <div
-                key={question.id}
+                key={provider.id}
                 className="rounded-3xl bg-[#0b1433] p-4 shadow-lg shadow-black/40"
               >
-                <p className="font-mono text-sm text-white">{question.title}</p>
+                <div className="flex items-center justify-between">
+                  <p className="font-mono text-sm text-white">{provider.label}</p>
+                  {!hasKey && <span className="text-xs text-red-300">Missing API key</span>}
+                </div>
+
                 {answer && (
                   <p className="text-primary-light mt-3 rounded-2xl bg-[#0e1c4a] p-3 text-sm leading-relaxed text-white">
                     {answer}
                   </p>
                 )}
+
                 {!answer && !error && !isBusy && (
                   <p className="mt-3 text-sm text-white/60">
-                    No response yet. Send this question to the model to see its answer.
+                    No response yet. Run the prompt to see {provider.label}&apos;s answer.
                   </p>
                 )}
+
                 {isBusy && !error && (
-                  <p className="mt-3 text-sm text-white/70">Loading response from OpenAI…</p>
+                  <p className="mt-3 text-sm text-white/70">Waiting for {provider.label}…</p>
                 )}
+
                 {error && (
                   <p className="mt-3 rounded-2xl bg-red-500/10 p-3 text-sm text-red-300">{error}</p>
                 )}
-                <div className="mt-4 flex justify-end">
-                  <button
-                    className="bg-primary-main hover:bg-primary-light disabled:bg-primary-main/40 rounded-full px-4 py-2 text-sm font-semibold text-black transition disabled:cursor-not-allowed"
-                    onClick={() => analyzeSlice(question.id)}
-                    disabled={isBusy || !apiKey}
-                  >
-                    {buttonLabel}
-                  </button>
-                </div>
               </div>
             );
           })}

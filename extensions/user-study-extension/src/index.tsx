@@ -1,5 +1,4 @@
 import { id } from './id';
-import StudyQuestionComponent from './StudyQuestionComponent';
 import ExplanationComponent from './ExplanationComponent';
 import OverlayComponent from './OverlayComponent';
 
@@ -29,21 +28,10 @@ export default {
   getPanelModule: ({ servicesManager, commandsManager, extensionManager }) => {
     const panels = [
       {
-        name: 'study-question-panel',
-        iconName: 'tab-studies',
-        iconLabel: 'Patient Vignette',
-        label: 'Patient Vignette',
-        component: StudyQuestionComponent.bind(null, {
-          commandsManager,
-          extensionManager,
-          servicesManager,
-        }),
-      },
-      {
         name: 'explanation-panel',
         iconName: 'tab-studies',
-        iconLabel: 'AI Tools',
-        label: 'AI Tools',
+        iconLabel: 'Model Comparison',
+        label: 'Model Comparison',
         component: ExplanationComponent.bind(null, {
           commandsManager,
           extensionManager,

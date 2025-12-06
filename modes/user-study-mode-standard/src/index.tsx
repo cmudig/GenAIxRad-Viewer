@@ -127,7 +127,7 @@ function modeFactory({ modeConfiguration }) {
           return {
             id: ohif.layout,
             props: {
-              leftPanels: [['user-study-extension.panelModule.study-question-panel']],
+              leftPanels: [],
               rightPanels,
               viewports: [
                 {
