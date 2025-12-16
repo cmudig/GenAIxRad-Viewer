@@ -536,7 +536,7 @@ window.config = {
         },
         {
           id: 'leftPanel',
-          title: 'Participant Study Questions',
+          title: 'Patient Vignette',
           text: 'Study questions will appear here. Use the next and previous buttons to navigate between questions. All questions are required to be answered in order to submit.',
           attachTo: {
             element: '[data-cy="study-question-component"]',
