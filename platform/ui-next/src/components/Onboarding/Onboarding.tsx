@@ -5,38 +5,54 @@ import { useLocation } from 'react-router';
 import 'shepherd.js/dist/css/shepherd.css';
 import './Onboarding.css';
 
-import { hasTourBeenShown, markTourAsShown, defaultShowHandler, middleware } from './utilities';
-import { auth, db } from '../../../../app/src/firebase';
-import { collection, setDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { defaultShowHandler, middleware } from './utilities';
+import { fallbackTours } from './fallbackTours';
 import { isDemoRoute } from '../../../../app/src/utils/demoRoute';
 
 const Onboarding = () => {
   const Shepherd = useShepherd();
   const location = useLocation();
-  const tours = window.config.tours as Array<{
+  const tours = (window.config?.tours || fallbackTours) as Array<{
     id: string;
     route: string;
     tourOptions: TourOptions;
     steps: StepOptions[];
   }>;
 
-  /**
-   * Show the tour if it hasn't been shown yet based on the current route.
-   * Constructs a tour instance and adds steps to it based on the matching tour.
-   */
   useEffect(() => {
     if (!tours) {
+      console.warn('Onboarding: no tours found in window.config');
       return;
     }
 
     if (isDemoRoute(location.pathname, location.search)) {
+      console.info('Onboarding: skipping tour for demo route');
       return;
     }
 
-    const matchingTour = tours.find(tour => tour.route === location.pathname);
-    if (!matchingTour || hasTourBeenShown(matchingTour.id)) {
+    const searchParams = new URLSearchParams(location.search);
+    const forcedTourId = searchParams.get('runTour');
+    const forceTour = searchParams.get('forceTour') === '1';
+
+    const forcedTour = forcedTourId ? tours.find(tour => tour.id === forcedTourId) : undefined;
+
+    const routeMatchedTour = tours
+      .filter(tour => tour.route && location.pathname.startsWith(tour.route))
+      .sort((a, b) => b.route.length - a.route.length)[0];
+
+    const wildcardTour = tours.find(tour => !tour.route || tour.route === '*');
+
+    const matchingTour = forcedTour || routeMatchedTour || wildcardTour || tours[0];
+
+    if (!matchingTour) {
+      console.warn('Onboarding: no matching tour for path', location.pathname);
       return;
     }
+
+    console.info('Onboarding: starting tour', matchingTour.id, 'for path', location.pathname, {
+      forcedTourId,
+      forceTour,
+    });
 
     const tourInstance = new Shepherd.Tour({
       ...matchingTour.tourOptions,
@@ -55,27 +71,6 @@ const Onboarding = () => {
     });
     matchingTour.steps.forEach(step => tourInstance.addStep(step));
     tourInstance.start();
-    markTourAsShown(matchingTour.id);
-    // ADD THE FIREBASE STUFF HERE
-    // 1. Define an async function inside the effect
-    const saveData = async () => {
-      try {
-        await setDoc(
-          doc(db, 'radiology-user-study', auth.currentUser.uid),
-          {
-            timestamp: serverTimestamp(),
-            tourComplete: true,
-          },
-          { merge: true }
-        );
-        console.log('Document saved!');
-      } catch (error) {
-        console.error('Error saving document: ', error);
-      }
-    };
-
-    // 2. Call the function
-    saveData();
   }, [Shepherd, tours, location.pathname, location.search]);
 
   return null;
