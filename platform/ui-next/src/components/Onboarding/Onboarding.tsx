@@ -42,10 +42,10 @@ const Onboarding = () => {
 
     const wildcardTour = tours.find(tour => !tour.route || tour.route === '*');
 
-    const matchingTour = forcedTour || routeMatchedTour || wildcardTour || tours[0];
+    const matchingTour = forcedTour || routeMatchedTour || wildcardTour;
 
     if (!matchingTour) {
-      console.warn('Onboarding: no matching tour for path', location.pathname);
+      console.info('Onboarding: no matching tour for path', location.pathname);
       return;
     }
 
