@@ -536,8 +536,8 @@ window.config = {
         },
         {
           id: 'leftPanel',
-          title: 'Patient Vignette',
-          text: 'Study questions will appear here. Use the next and previous buttons to navigate between questions. All questions are required to be answered in order to submit.',
+          title: 'Patient Vignette & Questions',
+          text: 'Review the patient vignette (top) and the required study questions (bottom). Use next/previous to navigate the questions.',
           attachTo: {
             element: '[data-cy="study-question-component"]',
             on: 'right',
@@ -546,7 +546,7 @@ window.config = {
             selector: 'body',
             event: 'click',
           },
-          beforeShowPromise: () => waitForElement('.viewport-element'),
+          beforeShowPromise: () => waitForElement('[data-cy="study-question-component"]'),
         },
         {
           id: 'rightPanel',
@@ -557,82 +557,74 @@ window.config = {
             on: 'left',
           },
           beforeShowPromise: () => waitForElement('[data-cy="explanation-component"]'),
-          buttons: [
-            {
-              text: 'Next',
-              action() {
-                const nextTab = document.querySelector('[data-cy="nav-button-variation"]');
-                if (nextTab) {
-                  nextTab.click();
-                  setTimeout(() => this.next(), 100); // Small delay to ensure state updates
-                }
-              },
-            },
-          ],
+        },
+        {
+          id: 'exampleTab',
+          title: 'Similar Cases',
+          text: 'Review similar cases and compare the active series with prior outputs.',
+          attachTo: {
+            element: '[data-cy="explanation-component"]',
+            on: 'left',
+          },
+          beforeShowPromise: () => {
+            return waitForElement('[data-cy="nav-button-example"]').then(() => {
+              const tab = document.querySelector('[data-cy="nav-button-example"]');
+              if (tab && typeof tab.click === 'function') {
+                tab.click();
+              }
+            });
+          },
         },
         {
           id: 'variationTab',
-          title: 'Variation Tab',
+          title: 'Variations',
           text: 'Explore variations of the case by changing findings or severity, and access your prior variation outputs.',
           attachTo: {
             element: '[data-cy="explanation-component"]',
             on: 'left',
           },
-          advanceOn: {
-            selector: '[data-cy="nav-button-example"]',
-            event: 'click',
+          beforeShowPromise: () => {
+            return waitForElement('[data-cy="nav-button-variation"]').then(() => {
+              const tab = document.querySelector('[data-cy="nav-button-variation"]');
+              if (tab && typeof tab.click === 'function') {
+                tab.click();
+              }
+            });
           },
-          beforeShowPromise: () => waitForElement('[data-cy="explanation-component"]'),
-          buttons: [],
-        },
-        {
-          id: 'exampleTab',
-          title: 'Example Tab',
-          text: 'Compare the active series with similar or dissimilar studies. Adjust how many examples appear and review their scores.',
-          attachTo: {
-            element: '[data-cy="explanation-component"]',
-            on: 'left',
-          },
-          advanceOn: {
-            selector: '[data-cy="nav-button-radiopaedia"]',
-            event: 'click',
-          },
-          beforeShowPromise: () => waitForElement('[data-cy="explanation-component"]'),
-          buttons: [],
         },
         {
           id: 'radiopaediaTab',
-          title: 'Radiopaedia Tab',
-          text: 'Search curated Radiopaedia cases that match your prompt for additional clinical context.',
+          title: 'Important Regions',
+          text: 'View important regions and context for the study to guide your review.',
           attachTo: {
             element: '[data-cy="explanation-component"]',
             on: 'left',
           },
-          advanceOn: {
-            selector: '[data-cy="nav-button-assistant"]',
-            event: 'click',
+          beforeShowPromise: () => {
+            return waitForElement('[data-cy="nav-button-radiopaedia"]').then(() => {
+              const tab = document.querySelector('[data-cy="nav-button-radiopaedia"]');
+              if (tab && typeof tab.click === 'function') {
+                tab.click();
+              }
+            });
           },
-          beforeShowPromise: () => waitForElement('[data-cy="explanation-component"]'),
-          buttons: [],
         },
         {
           id: 'openaiTab',
-          title: 'OpenAI Tab',
-          text: 'Capture the active viewport slice and send it to GPT for an abnormality summary.',
+          title: 'Q&A',
+          text: 'Use Q&A to capture the active viewport slice and send it to GPT for an abnormality summary or follow-up questions.',
           attachTo: {
             element: '[data-cy="explanation-component"]',
             on: 'left',
           },
-          beforeShowPromise: () => waitForElement('[data-cy="explanation-component"]'),
-          buttons: [
-            {
-              text: 'Finish',
-              action() {
-                this.complete();
-              },
-              secondary: true,
-            },
-          ],
+          beforeShowPromise: () => {
+            return waitForElement('[data-cy="nav-button-assistant"]').then(() => {
+              const tab = document.querySelector('[data-cy="nav-button-assistant"]');
+              if (tab && typeof tab.click === 'function') {
+                tab.click();
+              }
+            });
+          },
         },
       ],
       tourOptions: {
