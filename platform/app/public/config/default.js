@@ -23,11 +23,11 @@ window.config = {
     // above, the number of requests can be go a lot higher.
     prefetch: 25,
   },
-  chatgptAssistant: {
-    endpoint: 'https://api.openai.com/v1/chat/completions',
-    model: 'gpt-5',
+  gemini: {
+    endpoint:
+      'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent',
+    model: 'gemini-2.5-flash',
     temperature: 1,
-    // apiKey: 'sk-...'
   },
   // filterQueryParam: false,
   defaultDataSourceName: 'orthanc',
