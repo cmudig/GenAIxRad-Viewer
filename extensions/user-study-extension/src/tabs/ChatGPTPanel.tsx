@@ -16,10 +16,11 @@ type AssistantConfig = {
   temperature?: number;
 };
 
-const LOCAL_STORAGE_KEY = 'chatgpt-panel-openai-key';
+const LOCAL_STORAGE_KEY = 'chatgpt-panel-gemini-key';
 
-const DEFAULT_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
-const DEFAULT_MODEL = 'gpt-5';
+const DEFAULT_ENDPOINT =
+  'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent';
+const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 const QUESTION_PRESETS = [
   {
@@ -48,7 +49,7 @@ const readConfig = (): AssistantConfig => {
     return {};
   }
 
-  const rawConfig = (window as any)?.config?.chatgptAssistant;
+  const rawConfig = (window as any)?.config?.gemini || (window as any)?.config?.chatgptAssistant;
 
   if (!rawConfig || typeof rawConfig !== 'object') {
     return {};
@@ -166,9 +167,9 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
 
     const fetchKey = async () => {
       try {
-        const keyDoc = await getDoc(doc(db, 'api_keys', 'openAI'));
+        const keyDoc = await getDoc(doc(db, 'api_keys', 'gemini'));
         if (!keyDoc.exists()) {
-          throw new Error('OpenAI key is not configured in Firestore.');
+          throw new Error('Gemini key is not configured in Firestore.');
         }
         const keyValue = keyDoc.get('key');
         if (typeof keyValue !== 'string' || !keyValue.trim()) {
@@ -180,7 +181,7 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
         }
       } catch (error: any) {
         if (isMounted) {
-          setRemoteKeyError(error?.message || 'Failed to load OpenAI key.');
+          setRemoteKeyError(error?.message || 'Failed to load Gemini key.');
         }
       } finally {
         if (isMounted) {
@@ -208,7 +209,7 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
 
       try {
         if (!apiKey) {
-          throw new Error('Add an OpenAI API key to run the analysis.');
+          throw new Error('Add a Gemini API key to run the analysis.');
         }
 
         const dataUrl = await captureActiveViewport();
@@ -216,43 +217,46 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
         const controller = new AbortController();
         controllerRef.current = controller;
 
-        const response = await fetch(endpoint, {
+        const base64Data = dataUrl.split(',')[1] || '';
+
+        const url = endpoint.includes('?')
+          ? `${endpoint}&key=${apiKey}`
+          : `${endpoint}?key=${apiKey}`;
+
+        const response = await fetch(url, {
           method: 'POST',
           signal: controller.signal,
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            model,
-            temperature,
-            messages: [
+            contents: [
               {
-                role: 'system',
-                content:
-                  'You are an expert radiology assistant, with expertise in identifying pleural effusion. Remember that the right and left sides are flipped. Describe only the imaging abnormalities you can see in the format of an impression. If the slice is normal, explicitly state that no abnormalities are visible. Do not provide more than 5 sentences of information.',
-              },
-              {
-                role: 'user',
-                content: [
+                parts: [
                   {
-                    type: 'text',
+                    text: 'You are an expert radiology assistant, with expertise in identifying pleural effusion. Remember that the right and left sides are flipped. Describe only the imaging abnormalities you can see in the format of an impression. If the slice is normal, explicitly state that no abnormalities are visible. Do not provide more than 5 sentences of information.',
+                  },
+                  {
                     text: question.prompt,
                   },
                   {
-                    type: 'image_url',
-                    image_url: {
-                      url: dataUrl,
+                    inline_data: {
+                      mime_type: 'image/png',
+                      data: base64Data,
                     },
                   },
                 ],
               },
             ],
+            generationConfig: {
+              temperature,
+              candidateCount: 1,
+            },
           }),
         });
 
         if (!response.ok) {
-          let message = `OpenAI request failed (status ${response.status})`;
+          let message = `Gemini request failed (status ${response.status})`;
 
           try {
             const payload = await response.json();
@@ -267,11 +271,22 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
         }
 
         const payload = await response.json();
-        const content =
-          payload?.choices?.[0]?.message?.content ?? payload?.data?.[0]?.content ?? '';
+
+        const extractContent = () => {
+          const parts = payload?.candidates?.[0]?.content?.parts;
+          if (Array.isArray(parts)) {
+            return parts
+              .map((part: any) => (typeof part?.text === 'string' ? part.text.trim() : ''))
+              .filter(Boolean)
+              .join('\n\n');
+          }
+          return payload?.choices?.[0]?.message?.content ?? payload?.data?.[0]?.content ?? '';
+        };
+
+        const content = extractContent();
 
         if (!content) {
-          throw new Error('OpenAI did not return a description.');
+          throw new Error('Gemini did not return a description.');
         }
 
         setAnswers(prev => ({ ...prev, [question.id]: content }));
@@ -279,7 +294,7 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
         if (err?.name === 'AbortError') {
           return;
         }
-        const message = err?.message || 'Unexpected error while contacting OpenAI.';
+        const message = err?.message || 'Unexpected error while contacting Gemini.';
         setQuestionErrors(prev => ({ ...prev, [question.id]: message }));
       } finally {
         controllerRef.current = null;
@@ -295,18 +310,6 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
   return (
     <div className="flex h-full flex-col text-white">
       <div className="space-y-6">
-        {/* {!config.apiKey && (
-          <div className="rounded-2xl bg-white/5 p-4 text-sm text-white shadow-inner shadow-black/40">
-            {isFetchingRemoteKey && <p>Loading OpenAI credentials…</p>}
-            {!isFetchingRemoteKey && remoteKeyError && (
-              <p className="text-red-300">{remoteKeyError}</p>
-            )}
-            {!isFetchingRemoteKey && !remoteKeyError && storedKey && (
-              <p className="text-white/70">OpenAI key loaded from secure storage.</p>
-            )}
-          </div>
-        )} */}
-
         <div>
           <h2 className="text-base font-semibold">Q&amp;A</h2>
           <p className="text-sm text-white/70">Ask AI about the currently-viewed slice.</p>
@@ -337,7 +340,7 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
                   </p>
                 )}
                 {isBusy && !error && (
-                  <p className="mt-3 text-sm text-white/70">Loading response from OpenAI…</p>
+                  <p className="mt-3 text-sm text-white/70">Loading response from Gemini…</p>
                 )}
                 {error && (
                   <p className="mt-3 rounded-2xl bg-red-500/10 p-3 text-sm text-red-300">{error}</p>
