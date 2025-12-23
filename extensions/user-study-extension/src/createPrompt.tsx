@@ -27,7 +27,7 @@ const createPrompt = (tab, answerList) => {
     const severityText = severity ? `${severity} pleural effusion` : 'pleural effusion';
     const locationText = location
       ? location.toLowerCase() === 'bilateral'
-        ? 'left and right lungs'
+        ? 'both lungs (bilateral)'
         : `the ${location.toLowerCase()} lung${location.toLowerCase() === 'left' || location.toLowerCase() === 'right' ? '' : 's'}`
       : '';
 
