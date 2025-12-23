@@ -35,7 +35,7 @@ const SYNONYMS: Record<string, string[]> = {
   'pleural effusion': ['effusion', 'pleural fluid'],
   left: ['lt', 'left-sided', 'lhs'],
   right: ['rt', 'right-sided', 'rhs'],
-  bilateral: ['both sides', 'left and right', 'right and left'],
+  bilateral: ['both sides', 'left and right', 'right and left', 'left', 'right'],
   severe: ['marked', 'high', 'grade 3', '3', 'significant'],
   moderate: ['intermediate', 'grade 2', '2'],
   mild: ['low', 'slight', 'grade 1', '1', 'small', 'mild', 'minimal'],
