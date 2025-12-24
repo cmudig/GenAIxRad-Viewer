@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getRenderingEngine } from '@cornerstonejs/core';
+import { jumpToSlice } from '@cornerstonejs/core/utilities';
 import { GenerationOptions, GenerateButtons } from '../GenerationOptions';
 import { createPrompt } from '../createPrompt';
 
@@ -23,6 +25,131 @@ const getViewportsArray = (state: any): any[] => {
 
   return [];
 };
+
+type SliceReference = {
+  viewportId: string;
+  index: number;
+  ratio: number | null;
+};
+
+const resolveSliceCount = (viewport: any): number | null => {
+  if (!viewport) {
+    return null;
+  }
+
+  const numSlices = viewport.getNumberOfSlices?.();
+  if (typeof numSlices === 'number' && numSlices >= 0) {
+    return numSlices;
+  }
+
+  const imageIds = viewport.getImageIds?.();
+  if (Array.isArray(imageIds)) {
+    return imageIds.length;
+  }
+
+  return null;
+};
+
+const captureReferenceSlice = (state: any): SliceReference | null => {
+  const viewports = getViewportsArray(state);
+  const activeId = state?.activeViewportId ?? viewports[0]?.viewportId ?? null;
+  if (!activeId) {
+    return null;
+  }
+
+  const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
+  const viewport = renderingEngine?.getViewport(activeId);
+  if (!viewport) {
+    return null;
+  }
+
+  const currentIndex = viewport.getCurrentImageIdIndex?.();
+  if (!Number.isFinite(currentIndex)) {
+    return null;
+  }
+
+  const sliceCount = resolveSliceCount(viewport);
+  const maxIndex = sliceCount && sliceCount > 0 ? sliceCount - 1 : null;
+  const clampedIndex =
+    maxIndex !== null ? Math.min(Math.max(0, currentIndex as number), maxIndex) : (currentIndex as number);
+  const ratio = maxIndex && maxIndex > 0 ? clampedIndex / maxIndex : null;
+
+  return {
+    viewportId: activeId,
+    index: clampedIndex,
+    ratio,
+  };
+};
+
+const alignViewportToReferenceSlice = async (
+  viewportId: string,
+  reference: SliceReference | null
+) => {
+  if (!reference) {
+    return;
+  }
+
+  const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
+  const viewport = renderingEngine?.getViewport(viewportId);
+
+  if (!viewport || !viewport.element) {
+    return;
+  }
+
+  const sliceCount = resolveSliceCount(viewport);
+  if (!sliceCount || sliceCount < 2) {
+    return;
+  }
+
+  const maxIndex = sliceCount - 1;
+  const targetIndex =
+    reference.ratio !== null && reference.ratio !== undefined
+      ? Math.round(reference.ratio * maxIndex)
+      : Math.min(reference.index, maxIndex);
+
+  if (Number.isFinite(targetIndex)) {
+    jumpToSlice(viewport.element, { imageIndex: Math.max(0, Math.min(targetIndex, maxIndex)) });
+  }
+};
+
+const waitForViewportVolumes = (cornerstoneViewportService: any, viewportId: string) =>
+  new Promise<void>(resolve => {
+    if (!cornerstoneViewportService) {
+      resolve();
+      return;
+    }
+
+    let resolved = false;
+    let timeoutId: number;
+    let unsubscribe: (() => void) | undefined;
+
+    const cleanup = () => {
+      if (resolved) {
+        return;
+      }
+      resolved = true;
+      window.clearTimeout(timeoutId);
+      unsubscribe?.();
+      resolve();
+    };
+
+    timeoutId = window.setTimeout(cleanup, 750);
+
+    const subscription = cornerstoneViewportService.subscribe(
+      cornerstoneViewportService.EVENTS?.VIEWPORT_VOLUMES_CHANGED,
+      ({ viewportInfo }: any) => {
+        if (viewportInfo?.viewportId === viewportId) {
+          cleanup();
+        }
+      }
+    );
+
+    unsubscribe = subscription?.unsubscribe;
+
+    if (!subscription) {
+      cleanup();
+    }
+  });
 
 // First gate option comes first
 const gateOption = { prompt: 'Normal / Abnormal', options: ['Normal', 'Abnormal'], required: true };
@@ -57,6 +184,7 @@ const VariationPanel = ({
   const viewportGridService =
     servicesManager?.services?.viewportGridService ||
     servicesManager?.services?.ViewportGridService;
+  const cornerstoneViewportService = servicesManager?.services?.cornerstoneViewportService ?? null;
 
   useEffect(() => {
     if (!viewportGridService) {
@@ -116,7 +244,8 @@ const VariationPanel = ({
     return () => sub?.unsubscribe?.();
   }, [viewportGridService]);
 
-  const restoreInitialViewport = useCallback(async () => {
+  const restoreInitialViewport = useCallback(
+    async (referenceSlice: SliceReference | null = null) => {
     if (!viewportGridService) {
       return;
     }
@@ -168,6 +297,9 @@ const VariationPanel = ({
           },
         ]);
 
+        await waitForViewportVolumes(cornerstoneViewportService, targetViewportId);
+        await alignViewportToReferenceSlice(targetViewportId, referenceSlice);
+
         if (viewportGridService.setActiveViewportId) {
           viewportGridService.setActiveViewportId(targetViewportId);
         }
@@ -175,7 +307,9 @@ const VariationPanel = ({
     } catch (error) {
       console.warn('VariationPanel: Failed to restore initial viewport state', error);
     }
-  }, [viewportGridService]);
+  },
+    [cornerstoneViewportService, viewportGridService]
+  );
 
   const isAbnormal = answers['Normal / Abnormal'] === 'Abnormal';
   const isNormal = answers['Normal / Abnormal'] === 'Normal';
@@ -202,18 +336,22 @@ const VariationPanel = ({
   };
 
   const handleCancelClick = useCallback(() => {
+    const state =
+      viewportGridService?.getState?.() || viewportGridService?.getViewportGridState?.();
+    const referenceSlice = captureReferenceSlice(state);
+
     setAnswers({});
     // ⬇️ fully reset both sides on Cancel
     setGateResetKey(k => k + 1);
     setAbnormalResetKey(k => k + 1);
 
-    restoreInitialViewport();
-  }, [restoreInitialViewport]);
+    restoreInitialViewport(referenceSlice);
+  }, [restoreInitialViewport, viewportGridService]);
 
   useEffect(() => {
     const handleTabChange = (event: Event) => {
       const detail = (event as CustomEvent<{ tab?: string }>).detail;
-      if (detail?.tab === 'example' || detail?.tab === 'assistant') {
+      if (detail?.tab === 'example') {
         handleCancelClick();
       }
     };
