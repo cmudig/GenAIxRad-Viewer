@@ -91,10 +91,6 @@ function ExplanationComponent({ commandsManager, extensionManager, servicesManag
     const combos = new Set([
       'variation->example',
       'example->variation',
-      'variation->assistant',
-      'example->assistant',
-      'assistant->variation',
-      'assistant->example',
     ]);
     return combos.has(`${from}->${to}`);
   };
