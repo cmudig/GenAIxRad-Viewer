@@ -16,32 +16,44 @@ type AssistantConfig = {
   temperature?: number;
 };
 
+type ChatMessage = {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  text: string;
+  questionId?: string;
+  status?: 'pending' | 'done' | 'error';
+};
+
 const LOCAL_STORAGE_KEY = 'chatgpt-panel-gemini-key';
+const CHAT_STATE_KEY = 'chatgpt-panel-chat-state';
 
 const DEFAULT_ENDPOINT =
   'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent';
-const DEFAULT_MODEL = 'gemini-2.5-flash';
+const BASE_SYSTEM_PROMPT =
+  'You are an expert radiology assistant, with expertise in identifying abnormalities in the chest. Remember that the right and left sides are flipped. If the slice is normal, explicitly state that no abnormalities are visible. Do not provide more than 5 sentences of information.';
 
 const QUESTION_PRESETS = [
   {
     id: 'describe',
     title: 'Describe the findings in this image.',
     prompt:
-      'Analyze this CT slice and describe the visible abnormalities. Focus on pleural effusion and summarize the findings in no more than five sentences.',
-    system_prompt: '',
+      'Analyze this CT slice and report your impression of the visible abnormalities. Report your response as IMPRESSION:',
+    system_prompt: BASE_SYSTEM_PROMPT,
   },
   {
-    id: 'evidence',
-    title: 'How do you know this scan contains a pleural effusion?',
+    id: 'counterfactual',
+    title: 'Describe what needs to change for the slice to appear normal.',
     prompt:
-      'Explain the specific imaging clues in this CT slice that support or refute the presence of a pleural effusion.',
+      'Analyze this CT slice and provide a description of what visually would need to change for the slice to appear normal.',
+    system_prompt: BASE_SYSTEM_PROMPT,
   },
-  // {
-  //   id: 'cardiomegaly',
-  //   title: 'Is there evidence of cardiomegaly in this image?',
-  //   prompt:
-  //     'Assess the heart size in this CT slice and describe whether the findings suggest cardiomegaly. Mention any supporting measurements or visible cues.',
-  // },
+  {
+    id: 'mimic',
+    title: 'Describe potential mimics of the abnormalities in this slice.',
+    prompt:
+      'Analyze this CT slice and describe what abnormalities may be mistaken for the true impression.',
+    system_prompt: BASE_SYSTEM_PROMPT,
+  },
 ];
 
 const readConfig = (): AssistantConfig => {
@@ -94,22 +106,56 @@ const persistKey = (value: string) => {
   }
 };
 
+const loadChatState = (): { messages: ChatMessage[]; unlockedPresetCount: number } | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  try {
+    const raw = window.localStorage.getItem(CHAT_STATE_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
+    return {
+      messages: Array.isArray(parsed.messages) ? parsed.messages : [],
+      unlockedPresetCount: QUESTION_PRESETS.length,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const persistChatState = (state: { messages: ChatMessage[]; unlockedPresetCount: number }) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  try {
+    window.localStorage.setItem(CHAT_STATE_KEY, JSON.stringify(state));
+  } catch (err) {
+    console.warn('ChatGPTPanel: unable to persist chat state', err);
+  }
+};
+
 const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
   const [{ activeViewportId }] = useViewportGrid();
   const config = useMemo(() => readConfig(), []);
 
   const [storedKey, setStoredKey] = useState(() => loadStoredKey());
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [questionErrors, setQuestionErrors] = useState<Record<string, string>>({});
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [busyQuestionId, setBusyQuestionId] = useState<string | null>(null);
+  const [unlockedPresetCount, setUnlockedPresetCount] = useState(QUESTION_PRESETS.length);
   const controllerRef = useRef<AbortController | null>(null);
   const activeQuestionRef = useRef<string | null>(null);
   const [isFetchingRemoteKey, setIsFetchingRemoteKey] = useState(false);
   const [remoteKeyError, setRemoteKeyError] = useState('');
+  const messageCounterRef = useRef(0);
+  const didHydrateRef = useRef(false);
 
   const apiKey = config.apiKey ?? storedKey;
   const endpoint = config.endpoint ?? DEFAULT_ENDPOINT;
-  const model = config.model ?? DEFAULT_MODEL;
   const temperature = config.temperature ?? 1;
 
   const cornerstoneViewportService = servicesManager?.services?.cornerstoneViewportService ?? null;
@@ -156,6 +202,28 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
     }
   }, []);
 
+  // Hydrate chat state on first mount
+  useEffect(() => {
+    if (didHydrateRef.current) {
+      return;
+    }
+    const stored = loadChatState();
+    if (stored) {
+      setMessages(stored.messages);
+      setUnlockedPresetCount(QUESTION_PRESETS.length);
+      messageCounterRef.current = stored.messages.length;
+    }
+    didHydrateRef.current = true;
+  }, []);
+
+  // Persist chat state when it changes (after initial hydration)
+  useEffect(() => {
+    if (!didHydrateRef.current) {
+      return;
+    }
+    persistChatState({ messages, unlockedPresetCount });
+  }, [messages, unlockedPresetCount]);
+
   useEffect(() => {
     if (config.apiKey || storedKey) {
       return;
@@ -197,15 +265,48 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
     };
   }, [config.apiKey, storedKey]);
 
-  const analyzeSlice = useCallback(
+  const nextMessageId = useCallback(() => {
+    const next = messageCounterRef.current + 1;
+    messageCounterRef.current = next;
+    return `msg-${Date.now()}-${next}`;
+  }, []);
+
+  const addMessage = useCallback(
+    (message: Omit<ChatMessage, 'id'> & { id?: string }) => {
+      const id = message.id ?? nextMessageId();
+      const payload: ChatMessage = { ...message, id };
+      setMessages(prev => [...prev, payload]);
+      return id;
+    },
+    [nextMessageId]
+  );
+
+  const updateMessage = useCallback((id: string, updates: Partial<ChatMessage>) => {
+    setMessages(prev => prev.map(msg => (msg.id === id ? { ...msg, ...updates } : msg)));
+  }, []);
+
+  const askQuestion = useCallback(
     async (questionId: string) => {
       const question = QUESTION_PRESETS.find(item => item.id === questionId) ?? QUESTION_PRESETS[0];
+      const questionIndex = QUESTION_PRESETS.findIndex(item => item.id === question.id);
 
       abortInFlight();
-      setQuestionErrors(prev => ({ ...prev, [question.id]: '' }));
-      setAnswers(prev => ({ ...prev, [question.id]: '' }));
       setBusyQuestionId(question.id);
       activeQuestionRef.current = question.id;
+
+      addMessage({
+        role: 'user',
+        text: question.title,
+        questionId: question.id,
+        status: 'done',
+      });
+
+      const pendingAssistantId = addMessage({
+        role: 'assistant',
+        text: 'Analyzing slice…',
+        questionId: question.id,
+        status: 'pending',
+      });
 
       try {
         if (!apiKey) {
@@ -223,6 +324,8 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
           ? `${endpoint}&key=${apiKey}`
           : `${endpoint}?key=${apiKey}`;
 
+        const systemPrompt = question.system_prompt || BASE_SYSTEM_PROMPT;
+
         const response = await fetch(url, {
           method: 'POST',
           signal: controller.signal,
@@ -234,7 +337,7 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
               {
                 parts: [
                   {
-                    text: 'You are an expert radiology assistant, with expertise in identifying pleural effusion. Remember that the right and left sides are flipped. Describe only the imaging abnormalities you can see in the format of an impression. If the slice is normal, explicitly state that no abnormalities are visible. Do not provide more than 5 sentences of information.',
+                    text: systemPrompt,
                   },
                   {
                     text: question.prompt,
@@ -264,7 +367,7 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
               message = payload.error.message;
             }
           } catch (err) {
-            // Swallow parsing errors and report the status only
+            /* ignore parse errors */
           }
 
           throw new Error(message);
@@ -289,13 +392,14 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
           throw new Error('Gemini did not return a description.');
         }
 
-        setAnswers(prev => ({ ...prev, [question.id]: content }));
+        updateMessage(pendingAssistantId, { text: content, status: 'done' });
       } catch (err: any) {
         if (err?.name === 'AbortError') {
+          updateMessage(pendingAssistantId, { text: 'Request canceled.', status: 'error' });
           return;
         }
         const message = err?.message || 'Unexpected error while contacting Gemini.';
-        setQuestionErrors(prev => ({ ...prev, [question.id]: message }));
+        updateMessage(pendingAssistantId, { text: message, status: 'error' });
       } finally {
         controllerRef.current = null;
         if (activeQuestionRef.current === question.id) {
@@ -304,60 +408,82 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
         }
       }
     },
-    [abortInFlight, apiKey, captureActiveViewport, endpoint, model, temperature]
+    [abortInFlight, addMessage, apiKey, captureActiveViewport, endpoint, temperature, updateMessage]
   );
 
   return (
     <div className="flex h-full flex-col text-white">
-      <div className="space-y-6">
+      <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold">Q&amp;A</h2>
-          <p className="text-sm text-white/70">Ask AI about the currently-viewed slice.</p>
+          <p className="text-sm text-white/70">Ask AI about the current slice via quick prompts.</p>
         </div>
+        {!apiKey && (
+          <p className="text-xs text-red-200">
+            Add a Gemini API key to enable chat.
+            {isFetchingRemoteKey ? ' Loading key…' : remoteKeyError ? ` ${remoteKeyError}` : ''}
+          </p>
+        )}
+      </div>
 
-        <div className="flex flex-col gap-4">
-          {QUESTION_PRESETS.map(question => {
-            const answer = answers[question.id];
-            const error = questionErrors[question.id];
-            const isBusy = busyQuestionId === question.id;
-            const hasResponse = Boolean(answer);
-            const buttonLabel = isBusy ? 'Asking…' : hasResponse ? 'Ask Again' : 'Ask';
+      <div className="mt-3 flex flex-wrap gap-2">
+        {QUESTION_PRESETS.map(question => {
+          const isBusy = busyQuestionId === question.id;
+          return (
+            <button
+              key={question.id}
+              className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                isBusy
+                  ? 'cursor-wait border-[#8fb5ff] bg-[#1f3f8f] text-white'
+                  : 'border-[#8fb5ff] bg-[#1f3f8f] text-white hover:bg-[#234ca8]'
+              } ${!apiKey ? 'cursor-not-allowed opacity-60' : ''}`}
+              onClick={() => askQuestion(question.id)}
+              disabled={isBusy || !apiKey}
+            >
+              {isBusy ? 'Asking…' : question.title}
+            </button>
+          );
+        })}
+      </div>
 
+      {unlockedPresetCount > 1 && (
+        <div className="mt-2 flex items-center gap-2 text-[11px] text-white/60">
+          <span className="flex-1 border-t border-white/20" />
+          <span>referring to a new CT scan</span>
+          <span className="flex-1 border-t border-white/20" />
+        </div>
+      )}
+
+      <div className="ohif-scrollbar mt-4 flex-1 space-y-3 overflow-y-auto rounded-2xl bg-[#0b1433] p-4 shadow-inner shadow-black/40">
+        {messages.length === 0 ? (
+          <div className="border-white/15 rounded-xl border bg-[#0f1c3c] p-3 text-sm text-white/80">
+            Select a preset question above to start the conversation.
+          </div>
+        ) : (
+          messages.map(msg => {
+            const isUser = msg.role === 'user';
+            const bubbleClasses = isUser
+              ? 'ml-auto bg-[#1f3f8f] text-white'
+              : msg.status === 'error'
+                ? 'bg-red-600/20 text-red-100'
+                : 'bg-[#131f3d] text-white';
+            const borderClasses = isUser ? 'border-[#8fb5ff]' : 'border-white/15';
             return (
               <div
-                key={question.id}
-                className="rounded-3xl bg-[#0b1433] p-4 shadow-lg shadow-black/40"
+                key={msg.id}
+                className={`max-w-[80%] rounded-2xl border ${borderClasses} p-3 ${bubbleClasses} shadow-sm shadow-black/40`}
               >
-                <p className="font-mono text-sm text-white">{question.title}</p>
-                {answer && (
-                  <p className="text-primary-light mt-3 rounded-2xl bg-[#0e1c4a] p-3 text-sm leading-relaxed text-white">
-                    {answer}
-                  </p>
+                <p className="text-[11px] uppercase tracking-wide text-white/70">
+                  {isUser ? 'You' : 'Assistant'}
+                </p>
+                <p className="mt-1 whitespace-pre-line text-sm leading-relaxed">{msg.text}</p>
+                {msg.status === 'pending' && (
+                  <p className="mt-1 text-[11px] text-white/70">Generating…</p>
                 )}
-                {!answer && !error && !isBusy && (
-                  <p className="mt-3 text-sm text-white/60">
-                    No response yet. Send this question to the model to see its answer.
-                  </p>
-                )}
-                {isBusy && !error && (
-                  <p className="mt-3 text-sm text-white/70">Loading response from Gemini…</p>
-                )}
-                {error && (
-                  <p className="mt-3 rounded-2xl bg-red-500/10 p-3 text-sm text-red-300">{error}</p>
-                )}
-                <div className="mt-4 flex justify-end">
-                  <button
-                    className="bg-primary-main hover:bg-primary-light disabled:bg-primary-main/40 rounded-full px-4 py-2 text-sm font-semibold text-black transition disabled:cursor-not-allowed"
-                    onClick={() => analyzeSlice(question.id)}
-                    disabled={isBusy || !apiKey}
-                  >
-                    {buttonLabel}
-                  </button>
-                </div>
               </div>
             );
-          })}
-        </div>
+          })
+        )}
       </div>
     </div>
   );

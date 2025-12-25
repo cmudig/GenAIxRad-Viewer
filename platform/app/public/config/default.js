@@ -523,7 +523,7 @@ window.config = {
         {
           id: 'welcome',
           title: 'Introduction',
-          text: 'The viewer is divided into three panels. Click to explore.',
+          text: 'The interface is divided into three panels. Click next to learn about each.',
           attachTo: {
             element: '.viewport-element',
             on: 'top',
@@ -536,8 +536,8 @@ window.config = {
         },
         {
           id: 'leftPanel',
-          title: 'Patient Vignette & Questions',
-          text: 'Review the patient vignette (top) and the required study questions (bottom). Use next/previous to navigate the questions.',
+          title: 'Patient Vignette',
+          text: "This panel contains information about the patient. The patient vignette is for the current patient's chest CT scan in the viewer.",
           attachTo: {
             element: '[data-cy="study-question-component"]',
             on: 'right',
@@ -551,7 +551,7 @@ window.config = {
         {
           id: 'rightPanel',
           title: 'AI Tools',
-          text: 'This panel contains tools you might find useful in answering the study questions. Use the tab bar at the top of this panel to explore each assistant.',
+          text: 'This panel contains a selection of different AI tools that you will use throughout the study. Click next to view what each AI tool does.',
           attachTo: {
             element: '[data-cy="explanation-component"]',
             on: 'left',
@@ -561,7 +561,7 @@ window.config = {
         {
           id: 'exampleTab',
           title: 'Similar Cases',
-          text: 'Review similar cases and compare the active series with prior outputs.',
+          text: 'Use AI to find other patients’ chest CT scans with similar abnormalities to those of your current patient’s chest CT scan.',
           attachTo: {
             element: '[data-cy="explanation-component"]',
             on: 'left',
@@ -578,7 +578,7 @@ window.config = {
         {
           id: 'variationTab',
           title: 'Variations',
-          text: 'Explore variations of the case by changing findings or severity, and access your prior variation outputs.',
+          text: 'Use AI to see how your patient’s chest CT scan would look by adding, removing, or changing abnormalities.',
           attachTo: {
             element: '[data-cy="explanation-component"]',
             on: 'left',
@@ -595,7 +595,7 @@ window.config = {
         {
           id: 'radiopaediaTab',
           title: 'Important Regions',
-          text: 'View important regions and context for the study to guide your review.',
+          text: 'Use AI to highlight important regions related to the abnormalities in the chest CT scan.',
           attachTo: {
             element: '[data-cy="explanation-component"]',
             on: 'left',
@@ -612,7 +612,7 @@ window.config = {
         {
           id: 'openaiTab',
           title: 'Q&A',
-          text: 'Use Q&A to capture the active viewport slice and send it to GPT for an abnormality summary or follow-up questions.',
+          text: 'Use AI to generate a text description of the impression for the currently viewed slice.',
           attachTo: {
             element: '[data-cy="explanation-component"]',
             on: 'left',
