@@ -71,7 +71,9 @@ const captureReferenceSlice = (state: any): SliceReference | null => {
   const sliceCount = resolveSliceCount(viewport);
   const maxIndex = sliceCount && sliceCount > 0 ? sliceCount - 1 : null;
   const clampedIndex =
-    maxIndex !== null ? Math.min(Math.max(0, currentIndex as number), maxIndex) : (currentIndex as number);
+    maxIndex !== null
+      ? Math.min(Math.max(0, currentIndex as number), maxIndex)
+      : (currentIndex as number);
   const ratio = maxIndex && maxIndex > 0 ? clampedIndex / maxIndex : null;
 
   return {
@@ -162,7 +164,7 @@ const abnormalOptionsList = [
     options: ['None', 'Pleural thickening', 'Pleural nodularity', 'Atelectasis'],
     required: false,
   },
-  { prompt: 'Severity', options: ['Mild', 'Moderate', 'Severe'], required: true },
+  { prompt: 'Severity', options: ['Small', 'Moderate', 'Severe'], required: true },
 ];
 
 const VariationPanel = ({
@@ -246,68 +248,68 @@ const VariationPanel = ({
 
   const restoreInitialViewport = useCallback(
     async (referenceSlice: SliceReference | null = null) => {
-    if (!viewportGridService) {
-      return;
-    }
-
-    const initialViewport = initialViewportRef.current;
-    if (!initialViewport || !initialViewport.displaySetInstanceUIDs.length) {
-      return;
-    }
-
-    try {
-      const { displaySetInstanceUIDs, displaySetOptions, viewportOptions } = initialViewport;
-
-      const cloneDisplaySetOptions = (options: any) => {
-        if (!options) {
-          return undefined;
-        }
-        if (Array.isArray(options)) {
-          return options.map(option => ({ ...(option || {}) }));
-        }
-        if (typeof options === 'object') {
-          return { ...options };
-        }
-        return options;
-      };
-
-      const findOrCreateViewport = () => ({
-        displaySetInstanceUIDs: [...displaySetInstanceUIDs],
-        displaySetOptions: cloneDisplaySetOptions(displaySetOptions),
-        viewportOptions: { ...(viewportOptions || {}) },
-      });
-
-      await viewportGridService.setLayout({
-        numCols: 1,
-        numRows: 1,
-        findOrCreateViewport,
-      });
-
-      const updatedState =
-        viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
-      const viewports = getViewportsArray(updatedState);
-      const primaryViewport = viewports[0];
-      const targetViewportId = primaryViewport?.viewportId;
-
-      if (targetViewportId) {
-        await viewportGridService.setDisplaySetsForViewports([
-          {
-            viewportId: targetViewportId,
-            displaySetInstanceUIDs: [...displaySetInstanceUIDs],
-          },
-        ]);
-
-        await waitForViewportVolumes(cornerstoneViewportService, targetViewportId);
-        await alignViewportToReferenceSlice(targetViewportId, referenceSlice);
-
-        if (viewportGridService.setActiveViewportId) {
-          viewportGridService.setActiveViewportId(targetViewportId);
-        }
+      if (!viewportGridService) {
+        return;
       }
-    } catch (error) {
-      console.warn('VariationPanel: Failed to restore initial viewport state', error);
-    }
-  },
+
+      const initialViewport = initialViewportRef.current;
+      if (!initialViewport || !initialViewport.displaySetInstanceUIDs.length) {
+        return;
+      }
+
+      try {
+        const { displaySetInstanceUIDs, displaySetOptions, viewportOptions } = initialViewport;
+
+        const cloneDisplaySetOptions = (options: any) => {
+          if (!options) {
+            return undefined;
+          }
+          if (Array.isArray(options)) {
+            return options.map(option => ({ ...(option || {}) }));
+          }
+          if (typeof options === 'object') {
+            return { ...options };
+          }
+          return options;
+        };
+
+        const findOrCreateViewport = () => ({
+          displaySetInstanceUIDs: [...displaySetInstanceUIDs],
+          displaySetOptions: cloneDisplaySetOptions(displaySetOptions),
+          viewportOptions: { ...(viewportOptions || {}) },
+        });
+
+        await viewportGridService.setLayout({
+          numCols: 1,
+          numRows: 1,
+          findOrCreateViewport,
+        });
+
+        const updatedState =
+          viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+        const viewports = getViewportsArray(updatedState);
+        const primaryViewport = viewports[0];
+        const targetViewportId = primaryViewport?.viewportId;
+
+        if (targetViewportId) {
+          await viewportGridService.setDisplaySetsForViewports([
+            {
+              viewportId: targetViewportId,
+              displaySetInstanceUIDs: [...displaySetInstanceUIDs],
+            },
+          ]);
+
+          await waitForViewportVolumes(cornerstoneViewportService, targetViewportId);
+          await alignViewportToReferenceSlice(targetViewportId, referenceSlice);
+
+          if (viewportGridService.setActiveViewportId) {
+            viewportGridService.setActiveViewportId(targetViewportId);
+          }
+        }
+      } catch (error) {
+        console.warn('VariationPanel: Failed to restore initial viewport state', error);
+      }
+    },
     [cornerstoneViewportService, viewportGridService]
   );
 

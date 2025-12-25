@@ -1,0 +1,1918 @@
+{
+  "SeriesID": "01718180-bd3b882b-4efd3334-4abf83fe-a4002850",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.13066713335552673952086958352003086869",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "01b94431-0b767906-d590d503-fe526fee-e440d256",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.93938788299019998882408143768681762077",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "03369f84-8429d2b6-64d0d99a-460d1f97-65007f7b",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.56453869850318956959887361835625795059",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "RIGHT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "06ab434c-e1ec7479-c15922d3-15f4a01b-e099c1ca",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.89886282739808098985679403004865432339",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SMALL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "06b25529-525e5c7e-c2cb5d54-9fa04526-4e7f8753",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.90270419525215799273404727407160732089",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "RIGHT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "06e3ca52-2fa13add-e9f77438-278e2011-618b7442",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11215910273709476886839422829338677709",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LUNG Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "0813dd11-b92884e8-905f41aa-3c6c110e-dedba8e0",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.49398267852710006862744175491474983442",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LUNG Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "0821ec99-44b87617-f823dd22-065dd80f-1361deec",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.96786261230811733015142935947475473839",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "084e12b0-59273f48-30653f7f-de41de49-5b4c6cf7",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.12016239776390735902068385120641790474",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "08cfa2c9-284e4b2d-4f90f79b-7c37cefb-e9bdbbc6",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.68509288031022997188736246971865091360",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ANY Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "091476d4-7d3e24b3-17030364-8a0387a3-aca88ba4",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.92992065154323605776393830559415081565",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LUNG Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "0af59ac3-b7678f62-6b4342ab-f463302d-1723d6ff",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.12604506479495593694886195988782251407",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "THICKENING Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "0bfcc9c8-4f5f52d9-35d59871-6071a4b7-a0c6b1cd",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.98958066751728627543515957953497051589",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "BILATERAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "0fef8979-dce8d7a9-8dda4de7-72f92468-8e2bd1bd",
+  "SeriesInstanceUID": "0000000000016",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Moderate pleural effusion in the right lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs pleural thickening. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "103278d4-4329c300-506c99cd-6ad0af58-4a7e98fb",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.13402231534394536638362937238295928075",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "BILATERAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "10f1689b-0abd3299-095897c2-2892da2c-46a04b11",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.12483273868851312187631341654909188085",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "146dd2a1-76e3e548-fd0cca90-bab65e96-59e9a0b5",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.97396066289729673280864547981662575308",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "16a240ee-f14b2bfd-eeb62283-a2564a66-fdaa15c6",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.79253154893297098910428010906250314064",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "THICKENING Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "17c021b6-dc965dc9-e16cbd84-911cf806-4bed8376",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.98265966343133039507973366270011232645",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "18e50390-0de08b2c-ab5e4075-01cb37cd-f138498b",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.37858023205552650602781500192564608352",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ABNORMALITIES Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "1b9b3bf6-8089207c-f6371019-83d991d9-5f5f12bc",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11720810716294096197028284849302445961",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "1baeeaea-7b35bf69-90fff7de-e3d42c8d-f6173b08",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.13068108291475201009491736665329512975",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "1c1faec4-5fedc0e8-587ee427-84251c07-82dfa388",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10797397899812627620368422459205463335",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "RIGHT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "1d0b1f71-4b52f01c-1f556ff9-44735fae-e5d08f93",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.58763431919875222880675978324479574485",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "1d5e62ff-4c8a50bc-993bd144-2b3de5cb-ec90509d",
+  "SeriesInstanceUID": "000000000003",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Small bilateral pleural effusion with associated pleural nodularity. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs pleural thickening. No signs of ground glass.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "1e9fce9c-4a4e7723-f32598b0-4f7c56bb-7ae47ae1",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.15155424885309608632134742178338224123",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ATELECTASIS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "21ae9724-903001a5-d5786fe1-4e871fae-d72fa68b",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.23034712294743839436002601515087790613",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "21cd875b-abe74b78-90c35cc1-3c8bfdb8-a4b3ab45",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.98648486024212379398260998779539899796",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SEVERE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "2224b97a-74057530-d4837422-549f1448-95fdb3a9",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.89222537364736173554490888409782021897",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "22c2b35d-d2c77273-598e655b-8609c1cf-dd248af0",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.52979839728681570852331467015937775414",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "22dde017-45cdb1f8-7b75dba4-e25b2120-90b8402f",
+  "SeriesInstanceUID": "000000000008",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Severe bilateral pleural effusion. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs pleural thickening. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "2380c0d4-dd72abe6-4abc941c-c8031645-3e6c2940",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.94552750380201860961358747440689080265",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SEVERE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "23a16181-20a67c93-02621434-da4f6258-e7e8dd49",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.13311151563463455280751723378242575324",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "23bdbe21-8b2253b8-e7be8ae6-f1d7a47a-7b3f8fd9",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11887750816253145096984968865851013330",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SEVERE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "23dc001b-75b25336-84f348e4-b3282403-b2cbcca8",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.50268356318224541935732552989365233961",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "23fa56f2-7937a2bd-635a5d97-2a755aaa-53d40648",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.64037782115499294404802912721826054112",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "24b045b0-3f720c9c-7a847c3b-8de23712-6dceac2b",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.12908570660561520398591826565421524312",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "24b66cd1-264505a5-4302edde-32b63822-57fc45ac",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10032872929117512905969824853219926855",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LUNG Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "25559a02-5e4abddb-c75c24cd-1ff87299-c6092561",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.33067845159995169734333555531605923135",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "25cf2a72-404c7167-3d9541de-fb68f5b2-202d86c0",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.35294704019743025283991178648705111119",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "2621223e-675d51d7-3b4ba67a-bb159aa0-4adfa6e8",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.29383717802377151853315916519818656656",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "MODERATE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "27a04735-ed4ea017-3bb93aa9-f60d1685-41145e14",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.67578390512148592430263034817638755986",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "BILATERAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "28230dac-62ed5d55-2b9555af-78529f3f-3fa8d360",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.25481054172879562182998413016456500868",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "29aae9f4-5054d676-2840e1ec-2f21c309-09e81472",
+  "SeriesInstanceUID": "0000000000030",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Small pleural effusion with associated pleural nodularity in the right lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs pleural thickening. No signs of ground glass.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "29d60020-6ecfb52e-e433c2f2-1220b265-6aa42bab",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11639065117299949921561356619497318535",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "2a8d6d63-0ac8c1b6-afa75108-2197c7c0-12626adc",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.36744287358028575766267818146603976717",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "2affb90e-de68180c-a49ba8c7-4b480de8-2714f06a",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.58780849687332887975203988983682063609",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LEFT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "2efd772d-01ae7abd-708607bb-96f6e3fd-d4e85179",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.81128017548536799472831609768720973831",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SEVERE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "2f930952-1103c0f8-55a89ee5-70951aa5-8bc0ec6c",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.78921767528081893943560588911164426331",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "30efdfb6-6fe342b5-7f9326c8-a6c6fdc4-99a56c4d",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.72219636686327386983686245854487742012",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "3140b661-057aabf9-724ea680-12b495b2-213ad09c",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.40751835757659451806944205280571942486",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "32387e8c-2eb34cdd-cc22052f-32248302-c88ef824",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.13562289668270583515437479233516135933",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ATELECTASIS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "324c0921-59c0d920-db751050-08e7bb32-9eacb4d2",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.95939846881831243122130989314641408589",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "32bfb62d-d310d739-f170aceb-cda68244-217c3470",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.22436592717551808885359632469365003458",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "THICKENING Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "3370d8f9-d19a9f61-b96717e4-71b678f6-6ff70b6a",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.13310813520012241258818290556333543037",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SEVERE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "3371e029-cda7e24c-caa85b3b-9a642ef7-d1d9084f",
+  "SeriesInstanceUID": "0000000000037",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Moderate pleural effusion with associated atelectasis in the left lung. No signs of cardiomegaly. No signs of consolidation. No signs pleural thickening. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "3374b127-9b1049af-5a3c7ed3-0535bbae-cf15d3fe",
+  "SeriesInstanceUID": "0000000000028",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Small pleural effusion with associated pleural thickening in the right lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "33ea48b2-f8af40e9-99c7886e-4237f673-d3e4a969",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.86407462371652299278430332596600295396",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "354c2758-f09ef720-12b53902-bdf8cbdb-9e423882",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.86907802956838492896713320352209797206",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "RIGHT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "37696e93-e85c7a3f-b04aa7f9-d6dda659-1ce4edb3",
+  "SeriesInstanceUID": "0000000000031",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Moderate pleural effusion with associated pleural thickening in the right lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "379f4f75-a61d1504-354ee9c8-7a03b459-c9d3d241",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11951921733877350851477731207229988708",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LUNG Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "38b1dc02-735678ba-fd8c6f81-f522192e-6a910a68",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.55568681935052449753790348913849366101",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "BILATERAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "392d7e8e-8b7a2eba-e808e308-c7e06871-25f0858c",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.27484078755519846637249762439743867991",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "398c7934-81707f78-2be634de-df260a37-2094407e",
+  "SeriesInstanceUID": "0000000000011",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Severe bilateral pleural effusion with associated pleural nodularity. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs pleural thickening. No signs of ground glass.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "3b8ac786-776a1493-d9e8f37d-dad05012-687c6705",
+  "SeriesInstanceUID": "000000000006",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Moderate bilateral pleural effusion with associated atelectasis. No signs of cardiomegaly. No signs of consolidation. No signs pleural thickening. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "3c979c25-84e6ef42-dade75a6-8defd155-cee08352",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.16107636879484604670525397763739071694",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "3cdf4706-cf5ce33b-53980632-4593744a-4087b376",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.28329589828076465288089187507936826922",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ATELECTASIS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "3d887faa-0b88b698-40c8559c-8c1b6163-35e74b47",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.46121061326170652607817594242001065812",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "MODERATE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "3d9d4abc-4198f513-7477dc7e-e2e7c2fa-3484b6d2",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10788252081543428118635552806512279468",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LUNG Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "3f0ff2bb-9cb84d80-b9c12518-c878828f-b1c7d081",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.50031663162067310078988389055223167344",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "BILATERAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "409e397c-4a2b64d7-64b41afe-f4abfb9c-4c6b28ce",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.45667820229448895133548065851897046049",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "40c05923-3c170f94-0acbb3ee-28c74f5b-bc5d54d2",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.13311384993247495836526135425197370422",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "MODERATE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "41391bf0-3ee0e489-0993ccad-8e1a0573-de876578",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.58224235096156498048076611703724375741",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "4202b4cf-3b1b1341-ee840719-60109a2e-72c80a99",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.12117922460452580071593201189663631356",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "43b0ebc7-69acc3c7-791b8796-e2b28759-02016793",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.53292071953925555066110738088888995465",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LUNG Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "4424cee3-417dfa94-059efd32-eadc76dd-dbcde084",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.14454335400152097122788181497096609455",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "4435db02-bfaa7e88-debd26d8-16398273-a288b57d",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.80333898957145874025244130664162332656",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "MODERATE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "44c0b97c-a9cd4654-6d6c60d5-83549212-cce517cb",
+  "SeriesInstanceUID": "0000000000014",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Severe pleural effusion in the left lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs pleural thickening. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "489464da-352e1cc7-c312d8aa-f6b7ef5e-2d4c7bc3",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.69587255353627960230313202350510427136",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "4996f245-01a67394-0ca05d28-b0abcf8d-f9b2e82a",
+  "SeriesInstanceUID": "000000000000",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Small bilateral pleural effusion. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs pleural thickening. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "4a1a94f1-bc25f72f-5a223bd5-77474b32-e019c3a2",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11707322800859436581069661471473004743",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SMALL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "4c289392-2d531fb7-24fa76af-5399a004-66a7c01d",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.15234656525075642997659237948349869996",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "4c93d746-b5e4d36d-b1dd32bc-c575558d-3eb79661",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.39132565807212400454719610952546828369",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "BILATERAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "4e1783ad-300dffca-a109f739-48859c57-3657f9f7",
+  "SeriesInstanceUID": "0000000000010",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Severe bilateral pleural effusion with associated atelectasis. No signs of cardiomegaly. No signs of consolidation. No signs pleural thickening. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "5059b2f0-fd8d24e2-3745d4da-b996189a-31c5b3fc",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.12937716524803676308103181410259404431",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "5066e1e7-7cccef44-d4d6ca43-c8a9dd17-b7d56c94",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.87633364130984926715615895839732931665",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LUNG Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "50dc4c4e-739b03bd-64d22a53-233a81d6-f357798a",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.88680575860888677552972518473924754883",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "5353dd6c-cc19e08d-c8c44824-57b60950-a1721fbd",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11050793987703835702772250713902239997",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SMALL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "54121802-1f6da4d0-de1ef07f-293a6315-334ec89b",
+  "SeriesInstanceUID": "0000000000035",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Severe pleural effusion with associated atelectasis in the right lung. No signs of cardiomegaly. No signs of consolidation. No signs pleural thickening. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "54ee1e00-50ff7174-a0342107-9b15a8f3-eb3cdb00",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.60387063788459660255140890455483929770",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "MODERATE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "556de439-4cfb983d-2468ed6e-b53b4158-ec8ac75c",
+  "SeriesInstanceUID": "0000000000036",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Severe pleural effusion with associated pleural nodularity in the right lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs pleural thickening. No signs of ground glass.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "57f248d1-a1e6e400-819a52c3-76b2dcfd-4763606a",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.13012870593390609048105121426600815574",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "RIGHT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "589249b0-0bceb9cb-e03a6048-78f5a74e-0c69e14d",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10538914307596592803301070543734442957",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "58e94f4e-7ed8f608-d6c9b8ce-cfcfa48e-0914595d",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.88935590053005966616491471795602698896",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "5cdf3f42-f3e02162-6496e763-a7052354-c12bccfe",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.84997158427940815123309113096485547383",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LEFT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "5d6516bb-1202c8eb-a7d541bf-3f4d80bc-b5b59357",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.85370543443152388365398437854120679767",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "5d6ad814-5e7d1991-28c166bd-26584a18-31d44d55",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10122663942903869930840657777267726161",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LUNG Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "5e74024f-98a5a8f7-42ad9fac-6755a9e1-ebe6fd20",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.12684691677369015666125803359103822227",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "5edba555-0f34ed1f-50a6f41a-5f8de081-fa27e1b2",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.13265881090022911082165121238105263164",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "5f5687c0-62f4d8c9-6802de3d-d03117e1-0d7a1636",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10392791958991884180783795910783941438",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "MODERATE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "5ffdaa8e-74624b98-b207503f-d019e2e1-470b8592",
+  "SeriesInstanceUID": "0000000000039",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Moderate pleural effusion with associated atelectasis in the left lung. No signs of cardiomegaly. No signs of consolidation. No signs pleural thickening. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "60714875-f473df44-fa33c728-899dce16-288beed2",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.12181866785666799159959044265994276558",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "60ed4834-0ca3a6ec-6b1773a6-f30f19ad-4fef9b92",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.17792479138123873806861740201358903308",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "61610cdd-234eee85-a4ec9356-7d686557-8f1efa64",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.81268024987171255742759106502178356479",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "622983a0-dd2ab665-89d3bf37-5272eddb-b2cdb6f2",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.45871731432019735306831863032647744712",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "64cf300e-aede4c8d-18536c11-fef3c1f8-74ecb7f6",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10887147639345013779325344066284223337",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "658aa91f-77434e9a-ddeac0eb-44b14925-6dcb9244",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.64410439683600454008861831155377242549",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "NODULAR Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "65c21b04-7761ebca-44892817-c3b4fa3d-27b49814",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.65613725729668404049421881862244765788",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "RIGHT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "6687f0c8-dc399b6d-2b43041e-db92b11f-fca018db",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.35051637216272159124893792229220057903",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "68161315-a338465e-063f73c8-21c5e68f-2e5bb8dc",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.12054363087464762355291864758554310356",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "6a7f283d-fc6ac7e3-c790f51a-28a2a761-abb7bd15",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10337591193667906423138259175208135732",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "NODULAR Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "6bb22ff8-3648edd2-218bd7e5-77780eb5-b33dcbc8",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.13921730069606226193624814943618245211",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SEVERE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "6e0ddb69-7b424393-a0eaaecf-7eb772f7-f463eb93",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.28019796716082907329922071378515306739",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "7090da96-d642a5ac-3186df57-bc347557-270daea5",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.36832075954123671184116814040628945785",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "710c10a6-58eee724-7a0006d4-120c4f77-aec79676",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11234231284366256260311639140410498194",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "71ad8345-31eadfea-0c469483-01d99646-b118cdc9",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11438464109343738150965321797599890325",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "BILATERAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "72762cb1-12742f5f-7d1eb9cf-1f18ec4e-e453ab31",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.67038930445131580041686278432375289914",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "72c80672-7a138d44-3c095db4-4b8b1503-aefb0387",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.79152479483047116349889992526690975064",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SMALL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "72f5fa4f-e80d9e37-5ae3e5e8-2e83dce8-6279e853",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10661212861788629225568729540594805114",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "766331a8-a89fc2ce-1ec50e4e-7e3f93e3-0d9aa2fc",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.55721641710424425641012395771568150674",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "MODERATE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "766e344b-770d7de8-c53dbffc-cde6d9ee-d5ea78dc",
+  "SeriesInstanceUID": "0000000000032",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Moderate pleural effusion with associated atelectasis in the right lung. No signs of cardiomegaly. No signs of consolidation. No signs pleural thickening. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "76d9f2c5-3facdc3f-5e11030c-e73e7fc2-f17cc9b7",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.21881952030567796436457481160510559653",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "77c085bb-b5c57275-4b7b98dc-214f7a0c-f7bff09f",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11903964623495283872796263879169362542",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SEVERE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "78acbeaa-d22b5617-2583cb75-af22fd2d-51752f8e",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.12581591315490568726092388691555165677",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "7978fd73-018c21dc-0a5592a1-20f031b0-b6ac00d8",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.50700744110233406519476257996179814872",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "THICKENING Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "79f7a95e-142e4910-8871e5c1-267aef39-ffe0e1df",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.72569389342557994894018461034178668763",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "MODERATE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "7a36cc58-9e3f6236-90070fdc-3ca05b81-a5133534",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10457823124664561791118900014092470539",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SMALL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "7a689a2d-8c7f83f0-df8b0f6c-2881fc7e-cf867338",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.12655795736215955019234894725811075949",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "7acbb7da-f00a351d-ff835a21-58389d0b-01531a5b",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.78483925786380555274385874602168481299",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "NODULAR Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "7c148544-6d3598dd-f5158cc6-15248fac-0213577a",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.23935283073797591579906054971324945915",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LUNG Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "7de44ad1-7254423f-121841c8-ef17af15-c315da4e",
+  "SeriesInstanceUID": "0000000000034",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Severe pleural effusion with associated pleural thickening in the right lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "7e09a284-fdaa62ae-e0059714-48a4c492-a70aad84",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.97536751077825582528478528869762991582",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "7e8e3068-8e913934-7815f3fa-27ef3d4e-905cb0ef",
+  "SeriesInstanceUID": "0000000000013",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Moderate pleural effusion in the left lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs pleural thickening. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "7e91fd76-af93641b-c3f0166a-bbc66c6d-67221d30",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.32112327605240821706272451650766750778",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SMALL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "7ef576f3-ff50296b-351977c9-dd74553a-f4c5ea4b",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.25303123792088442307384325603644956474",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LEFT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "7f6b5ebc-3f806721-ee7d75c7-e1bb3d79-8aeb0433",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.22229747423436843860497784102749667668",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "BILATERAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "80001f88-bdda068e-ad56d1eb-8b9c515a-ee2afd83",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.42768026179260157764314516133557772597",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "8050743d-c6ae9c9e-a011c25e-48944913-d026de28",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.53723091523472561444564677063835143444",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "RIGHT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "8326f31f-eea41b5b-2c912d7a-8fea13ed-eea834e5",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.43114216729570458334085907511393521004",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "MODERATE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "83eb8345-599819c1-c9d32a3c-a0454a82-b1f5929e",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.79597729047488853646373495572473656234",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "8416648d-a324fff0-56cb55a0-4cda1dc2-ea58765b",
+  "SeriesInstanceUID": "0000000000029",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Small pleural effusion with associated atelectasis in the right lung. No signs of cardiomegaly. No signs of consolidation. No signs pleural thickening. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "8444d460-ace26470-753efbd0-e4a8b6b9-6a9f9e69",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.40547605517062769203988843379687551922",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "84bf0782-f0ff6c42-274e3aed-0f7c4b23-1bfb53ea",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.44598534680396111485277321500518649209",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "855c69e5-f3381b44-5fb127f5-838030da-2b17aa54",
+  "SeriesInstanceUID": "0000000000021",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Small pleural effusion with associated pleural nodularity in the left lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs pleural thickening. No signs of ground glass.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "85eb2df0-380b6742-4c8f177c-fab27b2c-ed8a77f8",
+  "SeriesInstanceUID": "0000000000033",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Moderate pleural effusion with associated pleural nodularity in the right lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs pleural thickening. No signs of ground glass.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "86dc8668-8e120a4a-a610693e-cc5448ae-1176c1cf",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.29662764906974848570358938056857883296",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "87caeee6-403b5eb1-5cf69ec4-b67b3d77-e29ea81f",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.58069482188346046016780023007559689284",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "87f67471-3a988eb3-96b19104-72ea8893-fc3f77da",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.49418168697565009694145308171205763707",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LEFT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "8bd689ae-71f80679-7e4afdf2-52934971-a0f204da",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.80128559583255245721659396552990757103",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SEVERE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "8ce564a1-919129df-0d39f074-16bb3972-0463942e",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.66288234541629283350950546102905343693",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "THICKENING Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "8d8bc351-7d1ec688-bfb106c5-5274a7d5-a525e3de",
+  "SeriesInstanceUID": "0000000000020",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Small pleural effusion with associated atelectasis in the left lung. No signs of cardiomegaly. No signs of consolidation. No signs pleural thickening. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "8ee7cd9a-c57bf9b8-7930dd94-c71019a0-05b252bf",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.73378768852026316144010893161541190729",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "915489ee-b26c5003-83345d6e-521662b4-68b02dbb",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.28226153556825657577172337680648379246",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "916db0c9-6677f654-df8c33f8-222152f9-b0b09b19",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.27710142237625714250431906479680950087",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "RIGHT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "936dbdb9-a23aab89-c31b0a21-11c146e2-4b22ff1a",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.25996685546268536235812106446215623880",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "MODERATE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "94d5b28a-b629ab1b-106989c7-0d29fe66-fc33115d",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10664058249464960128634932274534702694",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LUNG Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "95b76257-6c16ecfc-539a2f0f-1890c574-9df5862c",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.58833270244282962313635764013590170704",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "9917ef99-a0c2a9eb-1372cc6b-89f39250-08004790",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10488075012462952831175294200048982753",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "99ef1320-dfd88112-25ccb5f8-8430109b-39ae79d6",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.47468552265722697347019299179730680583",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "9dcd2e82-c147bfbf-8500fb67-2e822be3-f485dd5e",
+  "SeriesInstanceUID": "000000000005",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Moderate bilateral pleural effusion with associated pleural thickening. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "9e378047-f7604530-1eafe4b0-cd174961-74b38b09",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.23232346625051127832671476813002154885",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "MODERATE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "9f6ac58a-853aa624-330a6034-09bff1ab-8520b41c",
+  "SeriesInstanceUID": "0000000000027",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Severe pleural effusion with associated pleural nodularity in the left lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs pleural thickening. No signs of ground glass.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "a26192bd-94c7891d-c31a8c64-30ddf62a-8789316c",
+  "SeriesInstanceUID": "0000000000026",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Severe pleural effusion with associated atelectasis in the left lung. No signs of cardiomegaly. No signs of consolidation. No signs pleural thickening. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "a284e81d-b69f3367-1e8b4fe7-66cf7f94-c2b72e91",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.64737479596675133515634769182879921822",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "a4262cde-68b39194-63628346-547dc170-a02fdc22",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.18648481318157814244273393064399930950",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "a75ef2a5-756b85d5-3287e96b-a0813d45-9891f1b3",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.81796187721600158545681940473720271279",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ATELECTASIS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "a7c8cde2-49049384-728a5435-53e633d3-8e8e9f58",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11353807182799075895608376335419186270",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "a89b7791-29efdd4c-d281435f-3e224016-48ad3103",
+  "SeriesInstanceUID": "0000000000017",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Severe pleural effusion in the right lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs pleural thickening. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "aa28ccbb-86ecce9f-20206ab5-39f1d845-c67cc267",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.84107829628548496106528981596484215196",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "aa55458a-f97bb6d8-18536626-8737faf4-137f910c",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.12099889644757798980269627112026837703",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "ab4c7af3-35e175e2-439e5412-776231fa-e3e59560",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.56988374657304766806118022231084642904",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "ae06d63d-bc80819d-d82f92ce-49aeb188-474644aa",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.64171497839322808783967042366339634501",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "BILATERAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "ae8c2a18-d461c2b5-ee63e093-39f21e54-f8bc3349",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10554784018175195274327355437982229184",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "af15713d-7a0fc63e-9152c9c9-40e0c54a-9db61876",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.12447485483898822945042821392859557629",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "b01d23fe-e2158d9c-19114302-7fc2445d-80e4be76",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.36100829404020635471317052789574587384",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SIGNS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "b07c0dbb-9f5f7ef9-8a14a1c0-c29719d8-fb84b03f",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.68310534054423934551620898988721167327",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "b14913ce-5225c886-a0dfff09-67c90c6c-f17c6ca1",
+  "SeriesInstanceUID": "0000000000024",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Moderate pleural effusion with associated pleural nodularity in the left lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs pleural thickening. No signs of ground glass.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "b26b468e-981581b8-91dd0c6f-9ebfcffb-5c0b0963",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.43278003629137967504823698438707953446",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ATELECTASIS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "bad1bf21-cbd7cdab-80ace157-bc9cfe80-d3e1179d",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.69947432491074044207384006247725079171",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "bc10bb98-29b692ad-81ce136f-0f68aede-77c6316b",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.36548552481787339605446189433583929210",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "bc130d48-da5981df-e2e218c1-4e6c8007-d9adb24a",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.69380163972842841624431147981135851579",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "bd6e11c8-caf1b7dc-911e4d0b-d78df0d2-3a43c4f8",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10462645787997563231221640758480901966",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LUNG Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "bded9ec4-88d12e18-e57f289a-38056bfa-6c1d3c0e",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.16000719649820743459414876036755172811",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "bed1579e-9409cd57-5e35087d-8efbb343-3af5ed38",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.26367610105145649873625695523444913980",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "bf5c0553-286b5d4f-f73058ff-33ad094f-05a5fcf6",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10900810379279987138274155726060531667",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "c050415a-4b916741-7e548c0d-ba865ce7-5618edaa",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.29033872098583088653598581531621407069",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "c08861bc-78b2f864-21cfc19a-18a26180-25ab5ab5",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.71167989349200229289657088650270063684",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LUNG Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "c0f09b0f-9a28bd42-51ac1c5b-6c887274-0403634f",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.22010744624506273129676488334834130539",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ATELECTASIS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "c3e11ab6-17ca4cb9-eb6a6123-f1d53732-aa608a38",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.13406848299645679078182361664670786808",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "c49a5075-ff05a85d-bf577d2a-90ed1858-0f4ae0eb",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.83746786724676346589094436283799023259",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "c4f532da-27f8f423-7bb77a01-00565df1-78648bd6",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.13075364795075881641723674125633248057",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "c57b1fcc-7002038a-b20d4d3b-7e2428c3-ec2fe727",
+  "SeriesInstanceUID": "0000000000022",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Moderate pleural effusion with associated pleural thickening in the left lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "c5f3ef26-3d07af91-1ebefc27-df4ef9ac-42e00d5d",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.27568826125560557152198207640752744172",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "NODULAR Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "c67a84f2-8c7a54c2-aeb44cba-ea820c13-e31e7695",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11589160835263649411635745549779378812",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "c6cbcdc1-3f13acd6-45f6b33b-5b741c6c-9220ff52",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10188698875963678265550674954686249379",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "NODULAR Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "c8e92cac-4bee2279-65d57535-37384614-cfe471ba",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11520248883163578508763621996553851198",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "RIGHT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "ca85133c-4ac497ed-476ed497-d4256c5f-092211b0",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.99445660965762225918385759776971588292",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "cb832740-a5fc5871-5e349447-3a1ae4ab-9141ac4b",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.63549404911532098998701765680300134079",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "cbf5aa8c-53077280-c7074f98-52710c38-32251ca9",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.34646026527785734360023111065058726942",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "cc8c23ec-13c827ba-cd2e5ce1-30b685fe-a0296b2b",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.12615703531998650722235204330907203477",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "RIGHT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "cf3e661f-4476fe45-1efd6469-f61f05ee-7df46882",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11249141529963269601913832062395289225",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "cf463c43-df664c40-34fe9276-6f89edec-a84c6200",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.57584414579246787151274577083936141734",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "THICKENING Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "cface323-0d3c2338-17573fc0-f4ac0129-efd055ab",
+  "SeriesInstanceUID": "0000000000012",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Small pleural effusion in the left lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs pleural thickening. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "d0920835-33074ff6-359ac130-0fb6f88a-71f70f97",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.79424650131166716812658758950557015617",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LEFT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "d0aa0b07-ebcab272-5f06a995-32f8f0a0-d5a6881e",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10783992896770901096231351862152916968",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "d1c84dea-c9be1e83-caf54642-92615573-c4ff081a",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.20645909162957075092177578623434435021",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "d1d47ead-dfa072a0-4a61e426-19070e08-986388bd",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11907574602897465730959330279944792944",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "d2e3a1a0-29b4476d-1cf5ec44-bcefc87a-1d1b5d79",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.13147124432825081909002169258700900394",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "d31445db-90565ca5-1b910c79-e1e6b53f-ae5f2ed0",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.76140030110625808691435383373261398655",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "d351c279-272cf0c4-5f5feb8d-b261e4e1-0f643c4f",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.37538474412923133719061857881202493936",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "d5de8e9b-dac21f0a-57488e7b-33fd64fa-9009b9d1",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.96347466574818037769901790552698698952",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "MODERATE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "d5f79260-816759f1-98a8dac6-7c7b25c6-5919d9bf",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.12025523258325492618374973982714940419",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SMALL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "d6040a45-9c321232-fcde0103-b5c50240-6e415c37",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.76446398701987753034220292392339982576",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "RIGHT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "d6c67566-12072a9e-939573be-1ec20642-6015f1b3",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.72278359669165231549690628510766114674",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "d78abb41-d942b067-3399ad23-6199dcf7-db261737",
+  "SeriesInstanceUID": "000000000001",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Small bilateral pleural effusion with associated pleural thickening. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "d8d18d7b-52e1e6a0-df011c71-12a23f47-7433f3b2",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11517895814485201899717526279223431381",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "d93559be-8774f565-65d66e00-14b9cdba-77703d50",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11483344021840787423451676687302423996",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "d9aa0f5e-fd66c7e8-8d525abf-995530c7-242d809c",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10949395677207401674262526022168948479",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "db7287a0-c3890447-da7f6a58-1d38103b-156d6a41",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.22781561947223693627745493446583723142",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "dd146334-ba13254f-269e0dcf-c821381d-a06220d2",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.86794457432529218955737924359029251593",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "dda6cd9d-ec7a2f0c-d608aec6-145ab202-27cf8bab",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.69104760212450088191982937895862561154",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "df535d54-f837d40c-a0493424-a83202e2-37792311",
+  "SeriesInstanceUID": "000000000002",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Small bilateral pleural effusion with associated atelectasis. No signs of cardiomegaly. No signs of consolidation. No signs pleural thickening. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "e0250aa0-170bdf6a-bfe607e0-a286eb0c-074d20f4",
+  "SeriesInstanceUID": "000000000007",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Moderate bilateral pleural effusion with associated pleural nodularity. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs pleural thickening. No signs of ground glass.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "e0311027-51c8f1b1-66dd34c6-7613488d-257b313c",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.25544203596854239471913193835490342061",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "e067dc92-5118f39e-38301f51-fcbfac2d-347efc6b",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.62384043466508771273214890421472218733",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "e1421250-82af1c84-49aa6212-79f592d6-ae2e4ec0",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10535688596463676196181902563850162961",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "e1a04bc1-5f72a7dc-0060a27f-f27a5696-db63d682",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.20629890267601294328727356439778613475",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "e1e8efd9-7854d2db-617d11f2-a521d47e-7abed9a2",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11375145191691007090019673125990200831",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "e1ef905a-08a3b189-45f7e6e5-f9b92572-df3a9fb8",
+  "SeriesInstanceUID": "000000000004",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Moderate bilateral pleural effusion. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs pleural thickening. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "e26edee6-e140fe49-b2dc99f1-0fd7171a-950ab898",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.51416200104423163716579097284262680779",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "e303578f-58feafc2-a6e4194b-f8ac81e2-d575c95c",
+  "SeriesInstanceUID": "000000000009",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Severe bilateral pleural effusion with associated pleural thickening. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "e3621e9a-4052cc18-ca3605ef-fd3698e3-56c3f2a1",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.40454525743191931550416240898958418366",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LEFT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "e3b760e7-07ec47cd-44d013ee-9bdf8f34-53f5b97e",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.47591260981219468837721407636103281152",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "e3e1f3c7-00dc550d-7314877a-a90a674b-d07020cd",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.82754562606061748055130702493922570145",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SMALL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "e46c21f6-4de0647a-fd738f2e-e0aefa86-7a3172e3",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.21715981742712444038374411635201993508",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "e4989f6f-16ca8c82-c6374971-095965be-be60ff7a",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.12216635893065303659650920388717631228",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LUNG Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "e62b2568-40aea62c-981e8958-4f359ecc-1507f732",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.57651205220609195640625392737498143046",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "e76e6f26-d204c5ac-d6a8c3a6-46567767-89f4eb5a",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.72248724963737651649122927745553748894",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LUNG Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "e8c2fbf1-51e930cb-871017f5-5b957c75-0a9b8762",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.61422779339024359097631477862588161464",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "e965ed80-abf8a4e9-cfa3f62f-039ca0f4-695eb990",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.88477682960322399583139410628469768924",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "ea01c632-98bc9da9-39ee7f52-90ba90ee-6141cef2",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.20090952966199200409329175219501818234",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SEVERE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "ea162aea-0fef4618-7ca72cb1-da632f2b-49fd67c2",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.61768838834029098307006014334764072011",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "eaabdb39-9bbdfc93-6b075dcd-8d6a488c-8dca84c5",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10936752566095829779941095098845174313",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ATELECTASIS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "ed3bc958-c4977102-ec1863af-79d1a324-5606132d",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10803651229075712669941800346620780140",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "ed934bb7-c655192b-1b0a2126-43f20d52-47fee79b",
+  "SeriesInstanceUID": "0000000000018",
+  "SeriesNumber": "1",
+  "SeriesDescription": "No signs of any abnormalities. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs pleural thickening. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "eda2888d-80bd3517-f417ff9e-ae839eb2-1437d544",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.72753748716126229427238602493044452718",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "eda9d0d9-5dc01bc2-251dbfaa-c7783eb3-a302f2b4",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.32470278187965250186029683009103961523",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "ee91c727-1aa9a320-a804d2ea-2a1b622b-73621550",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.79622382903066988482182483526883721217",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "BILATERAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "f015d444-7cfbec21-e633c29c-9cd962dd-de7db659",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.67260351743110246803190536780578560947",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "f0c0977c-1d1a456e-0c8c68b3-94c37d3b-9b8740ff",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.89857278737775628977978527002226898800",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "MODERATE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "f448cd24-34c2fca7-779e228c-c9a4845a-2f517205",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.77695304928102948532390453223611419038",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SMALL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "f46fbc33-4a65084f-0d82d88d-954fe2a5-7a577303",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.47284039176613222435546608230977806910",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ATELECTASIS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "f5cc8eaf-3021d167-c60c8b49-605c82c1-c3af7556",
+  "SeriesInstanceUID": "0000000000023",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Moderate pleural effusion with associated atelectasis in the left lung. No signs of cardiomegaly. No signs of consolidation. No signs pleural thickening. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "f6a12c07-e93cbecc-eeec5428-1c4a50ef-a6811fbf",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.87693907156071109339980660755219871877",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "BILATERAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "f6b968fe-1f1a4913-03c417b7-10667ca8-c2456169",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.15952286676323175610537887686688113935",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "SEVERE Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "f7b40163-56a2d4f8-208eda64-b467ee59-f72abd95",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.16247384813182307101671770480074795018",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "BILATERAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "f8103414-c5fc74bc-ef4afef8-b74b9360-08a06763",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.84288519519835512291407790398342906597",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "EFFUSION Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "f850ce01-f082ecf1-8982009a-badfe2ae-cf6c1d56",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.11411219313045061602196098947695558682",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "CLS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "f8c4bb03-875d9c96-1ec3871d-f018df04-2fab82fb",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.10418334444105750351540596770961076440",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "f8da5f46-c4b74773-ef6894ee-0784613c-241fb254",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.28827410469401748041233438699618823187",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LUNG Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "f9116305-744279e0-a1bf36f6-7fc8e1d7-cd3c8673",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.94922246197748082331641820306204515281",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "NODULAR Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "fa5acfd5-c521c065-067278c3-1661b611-dbd0ff03",
+  "SeriesInstanceUID": "0000000000038",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Moderate pleural effusion with associated atelectasis in the left lung. No signs of cardiomegaly. No signs of consolidation. No signs pleural thickening. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "fada0695-48b7c8ef-62baf2d2-0641da97-ec29875f",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.83473695880348145698708853867238169132",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "NO Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "fae26599-7e7627e6-2674191b-43cda2e3-330bcd91",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.35955661162732957042147413941392118723",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "fafb9854-e84c1d78-a53b84ea-d9fbd876-0a8c0cb7",
+  "SeriesInstanceUID": "0000000000019",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Small pleural effusion with associated pleural thickening in the left lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "fb7bc066-5fbed291-7f26bc3e-65c28ab2-66d211db",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.92052164642591868309479620349421131810",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LEFT Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "fbe37b0d-3e8ea28f-a20ba9c9-0244ee3f-2046ec8d",
+  "SeriesInstanceUID": "0000000000025",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Severe pleural effusion with associated pleural thickening in the left lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "fc643647-cc6ae306-3cc7dcd7-1d33f896-c9cb5480",
+  "SeriesInstanceUID": "0000000000015",
+  "SeriesNumber": "1",
+  "SeriesDescription": "Small pleural effusion in the right lung. No signs of cardiomegaly. No signs of consolidation. No signs of atelectasis. No signs of ground glass. No signs pleural thickening. No signs of any nodules.",
+  "Modality": "AI"
+}
+{
+  "SeriesID": "fce80a49-4cba8a16-ad65bf64-9f2aa6b1-17287f22",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.68972805322790207039923604826854006651",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ATELECTASIS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "fe10eacc-312062ed-fafee73d-56abfc2c-ab42ad86",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.60684628880955082420973513818133686722",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ASSOCIATED Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "fe2928b1-8b025f44-b78f02b8-dd2e0d9c-9abc5a81",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.13223876466872645840671559633991349297",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "PLEURAL Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "fed7deb8-6880a948-881339fd-5b3359ec-9cc2cd19",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.30539186354259584868352718060444545879",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "ATELECTASIS Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "ff05af34-e9926d50-0d50e583-b3e6abde-8eec2826",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.67936226499851066802529731143307116095",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "LUNG Probability Map",
+  "Modality": "CT"
+}
+{
+  "SeriesID": "ff60124f-d2bb1f74-aff5bf06-4955978f-826317fc",
+  "SeriesInstanceUID": "1.2.826.0.1.3680043.8.498.90103286484978158742776883795148644661",
+  "SeriesNumber": "3005",
+  "SeriesDescription": "NODULAR Probability Map",
+  "Modality": "CT"
+}

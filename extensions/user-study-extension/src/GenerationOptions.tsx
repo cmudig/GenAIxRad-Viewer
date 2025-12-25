@@ -303,18 +303,42 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
   }
 
   async function getDisplaySets(servicesManager) {
-    const { displaySetService, studyBrowserService } = servicesManager.services ?? {};
-    // Prefer a direct source of currently loadable display sets:
-    if (displaySetService?.getActiveDisplaySets) {
-      return displaySetService.getActiveDisplaySets();
+    const { displaySetService, viewportGridService } = servicesManager.services ?? {};
+    if (!displaySetService) {
+      return [];
     }
-    // Fallback: whatever you use in logAllSeriesForActiveStudy()
-    const displaySets = await logAllSeriesForActiveStudy({
-      servicesManager,
-      getMetadataFromSeries,
-      // ensure this returns a list of display sets or make your own collector
-    });
-    return displaySets ?? [];
+
+    // Try to scope to the active study so we don't pull unrelated series.
+    const state = viewportGridService?.getState?.() || viewportGridService?.getViewportGridState?.();
+    const activeViewportId = state?.activeViewportId;
+    const activeDsUid =
+      activeViewportId &&
+      viewportGridService?.getState?.()?.viewports?.get?.(activeViewportId)?.displaySetInstanceUIDs?.[0];
+    const activeDs = activeDsUid
+      ? displaySetService.getDisplaySetByUID?.(activeDsUid)
+      : undefined;
+    const activeStudyUID = activeDs?.StudyInstanceUID;
+
+    const fromActive = displaySetService.getActiveDisplaySets?.() ?? [];
+    const fromCache = Array.from(displaySetService.getDisplaySetCache?.().values?.() || []);
+
+    const merged = [...fromActive, ...fromCache].filter(Boolean);
+    const scoped = activeStudyUID
+      ? merged.filter(ds => ds?.StudyInstanceUID === activeStudyUID)
+      : merged;
+
+    // De-dupe by displaySetInstanceUID
+    const unique = Array.from(
+      scoped.reduce((map, ds) => {
+        const uid = ds?.displaySetInstanceUID;
+        if (uid && !map.has(uid)) {
+          map.set(uid, ds);
+        }
+        return map;
+      }, new Map())
+    ).map(([, ds]) => ds);
+
+    return unique;
   }
 
 let _lastPromptKey = '';
