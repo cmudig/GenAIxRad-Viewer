@@ -38,7 +38,7 @@ const SYNONYMS: Record<string, string[]> = {
   bilateral: ['both sides', 'left and right', 'right and left', 'left', 'right'],
   severe: ['marked', 'high', 'grade 3', '3', 'significant'],
   moderate: ['intermediate', 'grade 2', '2'],
-  mild: ['low', 'slight', 'grade 1', '1', 'small', 'mild', 'minimal'],
+  small: ['low', 'slight', 'grade 1', '1', 'small', 'mild', 'minimal'],
   ct: ['computed tomography'],
   mr: ['mri', 'magnetic resonance'],
   xray: ['radiograph', 'xr'],
@@ -125,9 +125,18 @@ function tokenSetDice(a: Set<string>, b: Set<string>): number {
 }
 
 function buildSeriesKey(ds: SeriesLike): string {
+  // Only use the first sentence of SeriesDescription to avoid matching on negated findings that follow.
+  const firstSentence = (text?: string) => {
+    if (!text) {
+      return text;
+    }
+    const match = String(text).match(/[^.?!]+/);
+    return match ? match[0] : text;
+  };
+
   // Pull common DICOM-ish fields; add any custom metadata you store (e.g., SeriesPrompt)
   const parts: Array<string | number | undefined> = [
-    ds.SeriesDescription,
+    firstSentence(ds.SeriesDescription),
     ds.ProtocolName,
     ds.BodyPartExamined,
     ds.Modality,
@@ -177,7 +186,20 @@ function scoreCandidate(
   // Prefer more specific series (longer key) slightly to break ties
   const specificity = Math.min(buildSeriesKey(ds).length / 80, 0.08);
 
-  return Math.max(0, Math.min(1, base + numBonus + hint + specificity));
+  // Encourage matches on key associated-finding tokens and lightly penalize mismatches
+  const assocTerms = ['thickening', 'nodularity', 'atelectasis'];
+  let assocAdjust = 0;
+  assocTerms.forEach(term => {
+    const promptHas = pTokens.has(term);
+    const seriesHas = sTokens.has(term);
+    if (promptHas && seriesHas) {
+      assocAdjust += 0.08; // small bonus when the requested associated finding is present
+    } else if (promptHas && !seriesHas) {
+      assocAdjust -= 0.12; // penalty when the requested associated finding is absent
+    }
+  });
+
+  return Math.max(0, Math.min(1, base + numBonus + hint + specificity + assocAdjust));
 }
 
 export type RankedDisplaySet = {

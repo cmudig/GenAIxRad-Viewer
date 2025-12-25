@@ -37,7 +37,7 @@ const createPrompt = (tab, answerList) => {
     }
 
     if (hasAssoc) {
-      text = `${text} with signs of ${assoc}`.trim();
+      text = `${text} with associated ${assoc}`.trim();
     }
 
     const key = normalize(text);

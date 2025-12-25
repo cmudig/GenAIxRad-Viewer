@@ -894,7 +894,8 @@ const OverlayComponent: React.FC<OverlayComponentProps> = ({ servicesManager }) 
       <div>
         <p className="text-base font-semibold">Important Regions</p>
         <p className="text-sm text-white/70">
-          Highlight areas of the image that are most related to parts of the text description.
+          Highlight image regions most influenced by the prompt to see how the AI generated the CT
+          scan.
         </p>
       </div>
 
