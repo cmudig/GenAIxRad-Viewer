@@ -17,6 +17,12 @@ export function WindowLevel({
 }: WindowLevelProps): ReactElement {
   const { t } = useTranslation('WindowLevelActionMenu');
 
+  const slugify = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'preset';
+
   const onSetWindowLevel = useCallback(
     props => {
       commandsManager.run({
@@ -45,6 +51,7 @@ export function WindowLevel({
                   key={`${modality}-${index}`}
                   label={preset.description}
                   secondaryLabel={`${preset.window} / ${preset.level}`}
+                  dataCy={`window-preset-${slugify(preset.description)}`}
                   onClick={() => onSetWindowLevel(preset)}
                 />
               ))}

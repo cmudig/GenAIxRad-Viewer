@@ -54,6 +54,73 @@ export const fallbackTours: Array<{
         beforeShowPromise: () => waitForElement('[data-cy="study-question-component"]'),
       },
       {
+        id: 'patientCtBadge',
+        title: 'Patient CT Scan',
+        text: 'This badge indicates you are viewing the original patient CT scan (not an AI-generated case).',
+        attachTo: {
+          element: '[data-cy="origin-label-patient"]',
+          on: 'left',
+        },
+        beforeShowPromise: () => waitForElement('[data-cy="origin-label-patient"]'),
+      },
+      {
+        id: 'displayOptions',
+        title: 'Display Options',
+        text: 'Use window/level presets (Soft tissue, Lung, Bone, etc.) from the display options menu to quickly apply common viewing settings.',
+        attachTo: {
+          element: '[data-cy="window-level-menu-trigger"]',
+          on: 'left',
+        },
+        beforeShowPromise: () =>
+          waitForElement('[data-cy="window-level-menu-trigger"]').then(() => {
+            const trigger = document.querySelector('[data-cy="window-level-menu-trigger"]');
+            if (trigger && trigger instanceof HTMLElement) {
+              trigger.click();
+            }
+          }),
+      },
+      {
+        id: 'windowPresetsMenu',
+        title: 'Window Presets Menu',
+        text: 'Open the Window Presets menu to see the available window/level options.',
+        attachTo: {
+          element: '[data-cy="submenu-window-presets"]',
+          on: 'left',
+        },
+        beforeShowPromise: () =>
+          waitForElement('[data-cy="window-level-menu-trigger"]').then(() => {
+            const trigger = document.querySelector('[data-cy="window-level-menu-trigger"]');
+            if (trigger && trigger instanceof HTMLElement) {
+              trigger.click();
+            }
+            return waitForElement('[data-cy="submenu-window-presets"]');
+          }),
+      },
+      {
+        id: 'windowPresetLung',
+        title: 'Window Presets',
+        text: 'Select the Lung preset (1500 / -600) to optimize the view for lung parenchyma.',
+        attachTo: {
+          element: '[data-cy="window-preset-lung"]',
+          on: 'left',
+        },
+        beforeShowPromise: () =>
+          waitForElement('[data-cy="window-level-menu-trigger"]').then(() => {
+            const trigger = document.querySelector('[data-cy="window-level-menu-trigger"]');
+            if (trigger && trigger instanceof HTMLElement) {
+              trigger.click();
+            }
+            return waitForElement('[data-cy="submenu-window-presets"]')
+              .then(() => {
+                const submenu = document.querySelector('[data-cy="submenu-window-presets"]');
+                if (submenu && submenu instanceof HTMLElement) {
+                  submenu.click();
+                }
+              })
+              .then(() => waitForElement('[data-cy="window-preset-lung"]'));
+          }),
+      },
+      {
         id: 'rightPanel',
         title: 'AI Tools',
         text: 'This panel contains a selection of different AI tools that you will use throughout the study. Click next to view what each AI tool does.',
@@ -79,6 +146,55 @@ export const fallbackTours: Array<{
             }
           });
         },
+      },
+      {
+        id: 'generateCtFromSimilar',
+        title: 'Generate CT scan',
+        text: 'Use a similar case to generate an AI scan for comparison.',
+        attachTo: {
+          element: '[data-cy="similar-generate-ct"]',
+          on: 'left',
+        },
+        beforeShowPromise: () => waitForElement('[data-cy="similar-generate-ct"]'),
+        when: {
+          show: () => {
+            const btn = document.querySelector('[data-cy="similar-generate-ct"]');
+            if (btn && btn instanceof HTMLElement) {
+              btn.click();
+            }
+          },
+        },
+      },
+      {
+        id: 'aiGeneratedBadge',
+        title: 'AI-generated scan',
+        text: 'This badge indicates the viewport is showing an AI-generated scan.',
+        attachTo: {
+          element: '[data-cy="origin-label-ai"]',
+          on: 'left',
+        },
+        beforeShowPromise: () =>
+          waitForElement('[data-cy="origin-label-ai"]').then(() => {
+            const badges = Array.from(
+              document.querySelectorAll('[data-cy="origin-badge-ai"]')
+            ) as HTMLElement[];
+            const target = badges.length > 1 ? badges[badges.length - 1] : badges[0];
+            if (target) {
+              const vid =
+                target.getAttribute('data-viewport-id') ||
+                target.closest('[data-viewport-id]')?.getAttribute('data-viewport-id') ||
+                '';
+              const vp =
+                (vid && (document.querySelector(`[data-viewport-id="${vid}"]`) as HTMLElement)) ||
+                target.closest('[data-viewport-id]') ||
+                target.closest('.viewport-element') ||
+                null;
+              (vp as HTMLElement | null)?.click?.();
+            }
+            return new Promise<void>(resolve => {
+              window.requestAnimationFrame(() => window.setTimeout(resolve, 50));
+            });
+          }),
       },
       {
         id: 'variationTab',

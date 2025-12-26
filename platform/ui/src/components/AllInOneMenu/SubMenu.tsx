@@ -6,6 +6,7 @@ export interface SubMenuProps extends MenuProps {
   itemLabel: string;
   onClick?: () => void;
   itemIcon?: string;
+  dataCy?: string;
 }
 
 const SubMenu = (props: SubMenuProps) => {
@@ -19,6 +20,7 @@ const SubMenu = (props: SubMenuProps) => {
   return (
     <div
       className="all-in-one-menu-item all-in-one-menu-item-effects flex items-center"
+      data-cy={props.dataCy}
       onClick={onClickHandler}
     >
       {props.itemIcon && (

@@ -9,6 +9,7 @@ type ItemProps = {
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   rightIcon?: ReactNode;
+  dataCy?: string;
 };
 
 const Item = ({
@@ -19,6 +20,7 @@ const Item = ({
   onClick,
   onMouseEnter,
   onMouseLeave,
+  dataCy,
 }: ItemProps) => {
   const { hideMenu } = useContext(MenuContext);
 
@@ -30,6 +32,7 @@ const Item = ({
   return (
     <div
       className="all-in-one-menu-item all-in-one-menu-item-effects"
+      data-cy={dataCy}
       onClick={onClickHandler}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

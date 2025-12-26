@@ -894,6 +894,7 @@ const CaseCard: React.FC<CaseCardProps> = ({
           type="button"
           onClick={primaryAction}
           className="bg-primary-light rounded-full px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-white"
+          data-cy="similar-generate-ct"
         >
           {primaryActionLabel}
         </button>
