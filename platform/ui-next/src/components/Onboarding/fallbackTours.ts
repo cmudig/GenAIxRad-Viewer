@@ -189,11 +189,32 @@ export const fallbackTours: Array<{
                 target.closest('[data-viewport-id]') ||
                 target.closest('.viewport-element') ||
                 null;
-              (vp as HTMLElement | null)?.click?.();
+              const canvas =
+                (vp && (vp.querySelector('canvas.cornerstone-canvas') as HTMLElement)) ||
+                (vp && (vp.querySelector('.cornerstone-viewport-element') as HTMLElement)) ||
+                vp;
+              canvas?.click?.();
             }
             return new Promise<void>(resolve => {
               window.requestAnimationFrame(() => window.setTimeout(resolve, 50));
             });
+          }),
+      },
+      {
+        id: 'imageSliceSync',
+        title: 'Image Slice Sync',
+        text: 'Use Image Slice Sync to keep slice positions aligned across viewports.',
+        attachTo: {
+          element: '[data-cy="ImageSliceSync"]',
+          on: 'left',
+        },
+        beforeShowPromise: () =>
+          waitForElement('[data-cy="MoreTools-split-button-secondary"]').then(() => {
+            const dropdownToggle = document.querySelector(
+              '[data-cy="MoreTools-split-button-secondary"]'
+            ) as HTMLElement | null;
+            dropdownToggle?.click?.();
+            return waitForElement('[data-cy="ImageSliceSync"]');
           }),
       },
       {
