@@ -113,6 +113,7 @@ export function WindowLevelActionMenu({
   return (
     <AllInOneMenu.IconMenu
       icon="viewport-window-level"
+      dataCy="window-level-menu-trigger"
       verticalDirection={verticalDirection}
       horizontalDirection={horizontalDirection}
       iconClassName={classNames(
@@ -143,6 +144,7 @@ export function WindowLevelActionMenu({
             key="colorLUTPresets"
             itemLabel="Color LUT"
             itemIcon="icon-color-lut"
+            dataCy="submenu-color-lut"
           >
             <Colormap
               colormaps={colormaps}
@@ -159,6 +161,7 @@ export function WindowLevelActionMenu({
             key="windowLevelPresets"
             itemLabel={t('Modality Window Presets')}
             itemIcon="viewport-window-level"
+            dataCy="submenu-window-presets"
           >
             <WindowLevel
               viewportId={viewportId}

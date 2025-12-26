@@ -7,6 +7,7 @@ import { AllInOneMenu } from '..';
 export interface IconMenuProps extends MenuProps {
   icon: string;
   iconClassName?: string;
+  dataCy?: string;
   horizontalDirection?: AllInOneMenu.HorizontalDirection;
   verticalDirection?: AllInOneMenu.VerticalDirection;
   menuKey?: number | string;
@@ -28,6 +29,7 @@ export interface IconMenuProps extends MenuProps {
 export default function IconMenu({
   icon,
   iconClassName,
+  dataCy,
   horizontalDirection,
   verticalDirection,
   children,
@@ -49,6 +51,7 @@ export default function IconMenu({
       <div className="relative">
         <div
           className={iconClassName}
+          data-cy={dataCy}
           onClick={toggleMenuVisibility}
         >
           {getIcon(icon)}

@@ -555,6 +555,7 @@ function OriginLabelOverlayItem({ displaySet }: OverlayItemProps) {
   }
 
   const origin = deriveDisplaySetOrigin(displaySet) ?? 'patient';
+  const originType = origin === 'ai' ? 'ai' : 'patient';
 
   const isAI = origin === 'ai';
   const text = isAI ? 'AI-generated scan' : 'Patient CT scan';
@@ -566,7 +567,12 @@ function OriginLabelOverlayItem({ displaySet }: OverlayItemProps) {
 
   return (
     <div className="overlay-item flex flex-row">
-      <span className={`${baseClasses} ${palette}`}>{text}</span>
+      <span
+        className={`${baseClasses} ${palette}`}
+        data-cy={`origin-label-${originType}`}
+      >
+        {text}
+      </span>
     </div>
   );
 }
@@ -577,6 +583,7 @@ function OriginBadgeOverlayItem({ displaySet }: OverlayItemProps) {
   }
 
   const origin = deriveDisplaySetOrigin(displaySet);
+  const originType = origin === 'ai' ? 'ai' : 'patient';
 
   if (!origin) {
     return null;
@@ -593,6 +600,8 @@ function OriginBadgeOverlayItem({ displaySet }: OverlayItemProps) {
     <div className="overlay-item flex flex-col items-end text-right">
       <span
         className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide ${badgeClasses}`}
+        data-cy={`origin-badge-${originType}`}
+        data-viewport-id={displaySet?.viewportId || displaySet?.viewportUID || ''}
       >
         {label}
       </span>
