@@ -297,7 +297,7 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
     }
 
     const HARD_CODED_ACCESSION = '678543127898756';
-    const HARD_CODED_SERIES = ['0000000000037', '0000000000038', '0000000000039'];
+    const HARD_CODED_SERIES = ['0000000000041', '0000000000042', '0000000000043'];
     const patientAccession = String((patientDisplaySet as any)?.AccessionNumber || '').trim();
 
     const resolveHardcoded = () =>
