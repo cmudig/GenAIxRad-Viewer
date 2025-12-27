@@ -3,6 +3,26 @@ import { useViewportGrid } from '@ohif/ui';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../../platform/app/src/firebase';
 
+const getViewportsArray = (state: any): any[] => {
+  if (!state?.viewports) {
+    return [];
+  }
+
+  if (Array.isArray(state.viewports)) {
+    return state.viewports;
+  }
+
+  if (typeof state.viewports.values === 'function') {
+    return Array.from(state.viewports.values());
+  }
+
+  if (typeof state.viewports === 'object') {
+    return Object.values(state.viewports);
+  }
+
+  return [];
+};
+
 type ChatGPTPanelProps = {
   commandsManager: any;
   servicesManager: any;
@@ -22,6 +42,14 @@ type ChatMessage = {
   text: string;
   questionId?: string;
   status?: 'pending' | 'done' | 'error';
+  followups?: string[];
+};
+
+type PromptQuestion = {
+  id: string;
+  title: string;
+  prompt: string;
+  system_prompt?: string;
 };
 
 const LOCAL_STORAGE_KEY = 'chatgpt-panel-gemini-key';
@@ -32,12 +60,14 @@ const DEFAULT_ENDPOINT =
 const BASE_SYSTEM_PROMPT =
   'You are an expert radiology assistant, with expertise in identifying abnormalities in the chest. Remember that the right and left sides are flipped. If the slice is normal, explicitly state that no abnormalities are visible. Do not provide more than 5 sentences of information.';
 
+const FOLLOWUP_FLAVORS = ['What if … ?', 'What features on this slice distinguish … from … ?'];
+
 const QUESTION_PRESETS = [
   {
     id: 'describe',
     title: 'Describe the findings in this image.',
     prompt:
-      'Analyze this CT slice and report your impression of the visible abnormalities. Report your response as IMPRESSION:',
+      'Analyze this CT slice and report your impression of the visible abnormalities. Report your response in the phrasing of a junior radiology resident in the United States starting with IMPRESSION:',
     system_prompt: BASE_SYSTEM_PROMPT,
   },
   {
@@ -55,6 +85,17 @@ const QUESTION_PRESETS = [
     system_prompt: BASE_SYSTEM_PROMPT,
   },
 ];
+
+const extractModelContent = (payload: any): string => {
+  const parts = payload?.candidates?.[0]?.content?.parts;
+  if (Array.isArray(parts)) {
+    return parts
+      .map((part: any) => (typeof part?.text === 'string' ? part.text.trim() : ''))
+      .filter(Boolean)
+      .join('\n\n');
+  }
+  return payload?.choices?.[0]?.message?.content ?? payload?.data?.[0]?.content ?? '';
+};
 
 const readConfig = (): AssistantConfig => {
   if (typeof window === 'undefined') {
@@ -153,12 +194,20 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
   const [remoteKeyError, setRemoteKeyError] = useState('');
   const messageCounterRef = useRef(0);
   const didHydrateRef = useRef(false);
+  const [activeDisplaySetUID, setActiveDisplaySetUID] = useState<string | null>(null);
+  const [displaySetNudgeKey, setDisplaySetNudgeKey] = useState(0);
+  const lastQAViewportDisplaySetRef = useRef<string | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
   const apiKey = config.apiKey ?? storedKey;
   const endpoint = config.endpoint ?? DEFAULT_ENDPOINT;
   const temperature = config.temperature ?? 1;
 
   const cornerstoneViewportService = servicesManager?.services?.cornerstoneViewportService ?? null;
+  const viewportGridService =
+    servicesManager?.services?.viewportGridService ||
+    servicesManager?.services?.ViewportGridService ||
+    null;
 
   const captureActiveViewport = useCallback(async (): Promise<string> => {
     if (!cornerstoneViewportService) {
@@ -285,11 +334,116 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
     setMessages(prev => prev.map(msg => (msg.id === id ? { ...msg, ...updates } : msg)));
   }, []);
 
-  const askQuestion = useCallback(
-    async (questionId: string) => {
-      const question = QUESTION_PRESETS.find(item => item.id === questionId) ?? QUESTION_PRESETS[0];
-      const questionIndex = QUESTION_PRESETS.findIndex(item => item.id === question.id);
+  // Track the active display set while the Q&A tab is open so we can show a nudge in the chat
+  useEffect(() => {
+    if (!viewportGridService) {
+      return;
+    }
 
+    const readActiveDisplaySet = () => {
+      const state =
+        viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+      const viewports = getViewportsArray(state);
+      const activeViewport =
+        viewports.find(v => v?.viewportId === activeViewportId) ?? viewports[0] ?? null;
+      const uid =
+        activeViewport?.displaySetInstanceUIDs?.[0] ||
+        activeViewport?.displaySetOptions?.displaySetInstanceUIDs?.[0] ||
+        null;
+
+      setActiveDisplaySetUID(uid);
+
+      const lastSeen = lastQAViewportDisplaySetRef.current;
+      if (uid && lastSeen && uid !== lastSeen) {
+        setDisplaySetNudgeKey(key => key + 1);
+      }
+      if (uid) {
+        lastQAViewportDisplaySetRef.current = uid;
+      }
+    };
+
+    readActiveDisplaySet();
+
+    const activeSub = viewportGridService.subscribe?.(
+      viewportGridService.EVENTS?.ACTIVE_VIEWPORT_ID_CHANGED || 'ACTIVE_VIEWPORT_ID_CHANGED',
+      readActiveDisplaySet
+    );
+
+    const gridSub = viewportGridService.subscribe?.(
+      viewportGridService.EVENTS?.GRID_STATE_CHANGED || 'GRID_STATE_CHANGED',
+      readActiveDisplaySet
+    );
+
+    return () => {
+      activeSub?.unsubscribe?.();
+      gridSub?.unsubscribe?.();
+    };
+  }, [viewportGridService, activeViewportId]);
+
+  const requestFollowups = useCallback(
+    async (context: { questionTitle: string; answerText: string }) => {
+      if (!apiKey) {
+        return [];
+      }
+
+      const url = endpoint.includes('?')
+        ? `${endpoint}&key=${apiKey}`
+        : `${endpoint}?key=${apiKey}`;
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: `You are a helpful radiology assistant for a junior radiology resident in the United States. Suggest two simple follow-up questions the resident might ask next about the same CT slice. Keep them short and on-topic. Follow question styles such as: ${FOLLOWUP_FLAVORS.join(
+                      ' '
+                    )}. Ground the questions in seeking comparison, rationale, or uncertainty. Return only the questions, one per line, with no bullets or numbering.`,
+                  },
+                  { text: `User question: ${context.questionTitle}` },
+                  { text: `Your previous answer: ${context.answerText}` },
+                ],
+              },
+            ],
+            generationConfig: {
+              temperature: Math.min(temperature, 0.7),
+              candidateCount: 1,
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          return [];
+        }
+
+        const payload = await response.json();
+        const content = extractModelContent(payload);
+        if (!content) {
+          return [];
+        }
+
+        const followups = content
+          .split('\n')
+          .map(line => line.replace(/^[\s*-]+/, '').trim())
+          .filter(Boolean)
+          .slice(0, 2);
+
+        return followups;
+      } catch (error) {
+        console.warn('ChatGPTPanel: follow-up suggestion failed', error);
+        return [];
+      }
+    },
+    [apiKey, endpoint, temperature]
+  );
+
+  const runQuestion = useCallback(
+    async (question: PromptQuestion) => {
       abortInFlight();
       setBusyQuestionId(question.id);
       activeQuestionRef.current = question.id;
@@ -306,6 +460,7 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
         text: 'Analyzing slice…',
         questionId: question.id,
         status: 'pending',
+        followups: [],
       });
 
       try {
@@ -374,25 +529,21 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
         }
 
         const payload = await response.json();
-
-        const extractContent = () => {
-          const parts = payload?.candidates?.[0]?.content?.parts;
-          if (Array.isArray(parts)) {
-            return parts
-              .map((part: any) => (typeof part?.text === 'string' ? part.text.trim() : ''))
-              .filter(Boolean)
-              .join('\n\n');
-          }
-          return payload?.choices?.[0]?.message?.content ?? payload?.data?.[0]?.content ?? '';
-        };
-
-        const content = extractContent();
+        const content = extractModelContent(payload);
 
         if (!content) {
           throw new Error('Gemini did not return a description.');
         }
 
         updateMessage(pendingAssistantId, { text: content, status: 'done' });
+
+        const followups = await requestFollowups({
+          questionTitle: question.title,
+          answerText: content,
+        });
+        if (followups.length) {
+          updateMessage(pendingAssistantId, { followups });
+        }
       } catch (err: any) {
         if (err?.name === 'AbortError') {
           updateMessage(pendingAssistantId, { text: 'Request canceled.', status: 'error' });
@@ -408,8 +559,68 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
         }
       }
     },
-    [abortInFlight, addMessage, apiKey, captureActiveViewport, endpoint, temperature, updateMessage]
+    [
+      abortInFlight,
+      addMessage,
+      apiKey,
+      captureActiveViewport,
+      endpoint,
+      requestFollowups,
+      temperature,
+      updateMessage,
+    ]
   );
+
+  const askQuestion = useCallback(
+    (questionId: string) => {
+      const question = QUESTION_PRESETS.find(item => item.id === questionId) ?? QUESTION_PRESETS[0];
+      runQuestion(question);
+    },
+    [runQuestion]
+  );
+
+  const askFollowup = useCallback(
+    (text: string) => {
+      if (!text) {
+        return;
+      }
+      const followupQuestion: PromptQuestion = {
+        id: `followup-${Date.now()}`,
+        title: text,
+        prompt: text,
+        system_prompt: BASE_SYSTEM_PROMPT,
+      };
+      runQuestion(followupQuestion);
+    },
+    [runQuestion]
+  );
+
+  const firstAssistantIndex = useMemo(
+    () => messages.findIndex(msg => msg.role === 'assistant'),
+    [messages]
+  );
+  const shouldShowBanner =
+    activeDisplaySetUID && displaySetNudgeKey > 0 && firstAssistantIndex >= 0;
+  const renderNewScanBanner = () => (
+    <div
+      key={`banner-${displaySetNudgeKey}`}
+      className="flex items-center gap-2 text-[11px] text-white/60"
+      data-cy="new-scan-banner"
+    >
+      <span className="flex-1 border-t border-white/20" />
+      <span>referring to a new CT scan</span>
+      <span className="flex-1 border-t border-white/20" />
+    </div>
+  );
+
+  // Auto-scroll chat to newest message
+  useEffect(() => {
+    const node = chatContainerRef.current;
+    if (!node) {
+      return;
+    }
+    node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' });
+  }, [messages]);
 
   return (
     <div className="flex h-full flex-col text-white">
@@ -446,21 +657,16 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
         })}
       </div>
 
-      {unlockedPresetCount > 1 && (
-        <div className="mt-2 flex items-center gap-2 text-[11px] text-white/60">
-          <span className="flex-1 border-t border-white/20" />
-          <span>referring to a new CT scan</span>
-          <span className="flex-1 border-t border-white/20" />
-        </div>
-      )}
-
-      <div className="ohif-scrollbar mt-4 flex-1 space-y-3 overflow-y-auto rounded-2xl bg-[#0b1433] p-4 shadow-inner shadow-black/40">
+      <div
+        ref={chatContainerRef}
+        className="ohif-scrollbar mt-4 flex-1 space-y-3 overflow-y-auto rounded-2xl bg-[#0b1433] p-4 shadow-inner shadow-black/40"
+      >
         {messages.length === 0 ? (
           <div className="border-white/15 rounded-xl border bg-[#0f1c3c] p-3 text-sm text-white/80">
             Select a preset question above to start the conversation.
           </div>
         ) : (
-          messages.map(msg => {
+          messages.flatMap((msg, index) => {
             const isUser = msg.role === 'user';
             const bubbleClasses = isUser
               ? 'ml-auto bg-[#1f3f8f] text-white'
@@ -468,7 +674,7 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
                 ? 'bg-red-600/20 text-red-100'
                 : 'bg-[#131f3d] text-white';
             const borderClasses = isUser ? 'border-[#8fb5ff]' : 'border-white/15';
-            return (
+            const rendered = [
               <div
                 key={msg.id}
                 className={`max-w-[80%] rounded-2xl border ${borderClasses} p-3 ${bubbleClasses} shadow-sm shadow-black/40`}
@@ -480,8 +686,51 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
                 {msg.status === 'pending' && (
                   <p className="mt-1 text-[11px] text-white/70">Generating…</p>
                 )}
-              </div>
-            );
+              </div>,
+            ];
+
+            if (
+              !isUser &&
+              msg.status === 'done' &&
+              Array.isArray(msg.followups) &&
+              msg.followups.length
+            ) {
+              rendered.push(
+                <div
+                  key={`${msg.id}-followups`}
+                  className="max-w-[80%] rounded-xl border border-white/10 bg-[#0f1c3c] px-3 py-2 text-[12px] text-white/80 shadow-inner shadow-black/30"
+                >
+                  <div className="mb-1 text-[11px] uppercase tracking-wide text-white/60">
+                    Suggested next questions
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {msg.followups.map((followup, idx) => {
+                      const disabled = !apiKey || !!busyQuestionId;
+                      return (
+                        <button
+                          key={`${msg.id}-followup-${idx}`}
+                          className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition ${
+                            disabled
+                              ? 'cursor-not-allowed border-white/20 text-white/50'
+                              : 'border-[#8fb5ff] bg-transparent text-white hover:bg-[#1f3f8f]'
+                          }`}
+                          onClick={() => askFollowup(followup)}
+                          disabled={disabled}
+                        >
+                          {followup}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }
+
+            if (shouldShowBanner && index === firstAssistantIndex) {
+              rendered.push(renderNewScanBanner());
+            }
+
+            return rendered;
           })
         )}
       </div>

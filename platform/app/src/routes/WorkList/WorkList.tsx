@@ -265,7 +265,11 @@ function WorkList({
 
         // If this is the target study, move the target series to the front
         if (studyInstanceUid === TARGET_STUDY_INSTANCE_UID) {
-          const idx = sortedSeries.findIndex(item => item.seriesInstanceUid === TARGET_SERIES_UID);
+          const idx = sortedSeries.findIndex(
+            item =>
+              item.seriesInstanceUid === TARGET_SERIES_UID ||
+              item.SeriesInstanceUID === TARGET_SERIES_UID
+          );
 
           if (idx > -1) {
             const [item] = sortedSeries.splice(idx, 1);
