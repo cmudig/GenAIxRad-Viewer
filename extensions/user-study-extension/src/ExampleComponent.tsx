@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getRenderingEngine } from '@cornerstonejs/core';
+import { jumpToSlice } from '@cornerstonejs/core/utilities';
 
 import { rankDisplaySetsByPrompt, RankedDisplaySet } from './similarity';
 import { setDisplaySetOrigin } from './utils/displaySetOrigin';
@@ -60,6 +62,108 @@ const tokenize = (value: string): Set<string> => {
       .split(/\s+/)
       .filter(Boolean)
   );
+};
+
+type SliceReference = {
+  index: number;
+  ratio: number | null;
+};
+
+const resolveSliceCount = (viewport: any): number | null => {
+  if (!viewport) {
+    return null;
+  }
+
+  const numSlices = viewport.getNumberOfSlices?.();
+  if (typeof numSlices === 'number' && numSlices >= 0) {
+    return numSlices;
+  }
+
+  const imageIds = viewport.getImageIds?.();
+  if (Array.isArray(imageIds)) {
+    return imageIds.length;
+  }
+
+  return null;
+};
+
+const captureSliceReferenceByViewportId = (viewportId: string | null): SliceReference | null => {
+  if (!viewportId) {
+    return null;
+  }
+
+  const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
+  const viewport = renderingEngine?.getViewport(viewportId);
+  if (!viewport) {
+    return null;
+  }
+
+  const currentIndex = viewport.getCurrentImageIdIndex?.();
+  if (!Number.isFinite(currentIndex)) {
+    return null;
+  }
+
+  const sliceCount = resolveSliceCount(viewport);
+  const maxIndex = sliceCount && sliceCount > 0 ? sliceCount - 1 : null;
+  const clampedIndex =
+    maxIndex !== null
+      ? Math.min(Math.max(0, currentIndex as number), maxIndex)
+      : (currentIndex as number);
+  const ratio = maxIndex && maxIndex > 0 ? clampedIndex / maxIndex : null;
+
+  return {
+    index: clampedIndex,
+    ratio,
+  };
+};
+
+const capturePatientSliceReference = (
+  viewportGridService: any,
+  patientUID: string | null
+): SliceReference | null => {
+  if (!viewportGridService) {
+    return null;
+  }
+
+  const state = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+  const viewports = getViewportsArray(state);
+  const patientViewport =
+    viewports.find(v => v?.displaySetInstanceUIDs?.includes?.(patientUID)) || null;
+  const targetViewportId =
+    patientViewport?.viewportId || state?.activeViewportId || viewports[0]?.viewportId || null;
+
+  return captureSliceReferenceByViewportId(targetViewportId);
+};
+
+const alignViewportToReferenceSlice = async (
+  viewportId: string,
+  reference: SliceReference | null
+) => {
+  if (!reference) {
+    return;
+  }
+
+  const renderingEngine = getRenderingEngine('OHIFCornerstoneRenderingEngine');
+  const viewport = renderingEngine?.getViewport(viewportId);
+
+  if (!viewport || !viewport.element) {
+    return;
+  }
+
+  const sliceCount = resolveSliceCount(viewport);
+  if (!sliceCount || sliceCount < 2) {
+    return;
+  }
+
+  const maxIndex = sliceCount - 1;
+  const targetIndex =
+    reference.ratio !== null && reference.ratio !== undefined
+      ? Math.round(reference.ratio * maxIndex)
+      : Math.min(reference.index, maxIndex);
+
+  if (Number.isFinite(targetIndex)) {
+    jumpToSlice(viewport.element, { imageIndex: Math.max(0, Math.min(targetIndex, maxIndex)) });
+  }
 };
 
 const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) => {
@@ -422,6 +526,8 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
         return false;
       }
 
+      const patientReference = capturePatientSliceReference(viewportGridService, patientUID);
+
       const unique = matchUIDs.filter(
         (uid, index) => uid && matchUIDs.indexOf(uid) === index
       ) as string[];
@@ -541,6 +647,22 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
           }
         }
 
+        if (patientReference) {
+          const latestState =
+            viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+          const viewports = getViewportsArray(latestState);
+          const viewportIds = assignments
+            .map(a => a.viewportId)
+            .filter(Boolean)
+            .map(id => id as string);
+
+          // Wait for volumes in the newly assigned viewports before aligning slices.
+          await Promise.all(viewportIds.map(id => waitForViewportVolumes(id)));
+          await Promise.all(
+            viewportIds.map(id => alignViewportToReferenceSlice(id, patientReference))
+          );
+        }
+
         setAddedMatchUIDs(limited);
         setAddedDisplaySets(new Set(limited));
         return true;
@@ -555,7 +677,7 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
         return false;
       }
     },
-    [viewportGridService, displaySetService, patientDisplaySet, uiNotificationService]
+    [viewportGridService, displaySetService, patientDisplaySet, uiNotificationService, waitForViewportVolumes]
   );
 
   const handleResetViewports = useCallback(async () => {
@@ -636,24 +758,9 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
         return;
       }
 
-      const remaining = addedMatchUIDs.filter(uid => uid !== matchUID);
-      if (!remaining.length) {
-        await handleResetViewports();
-        return;
-      }
-
-      const success = await layoutPatientWithMatches(remaining);
-      if (!success) {
-        uiNotificationService?.show?.({
-          title: 'Unable to remove case',
-          message: 'Resetting the viewport layout.',
-          type: 'warning',
-          duration: 2500,
-        });
-        await handleResetViewports();
-      }
+      await handleResetViewports();
     },
-    [addedMatchUIDs, handleResetViewports, layoutPatientWithMatches, uiNotificationService]
+    [handleResetViewports]
   );
 
   const addMatchToViewport = useCallback(
