@@ -131,7 +131,21 @@ function buildSeriesKey(ds: SeriesLike): string {
       return text;
     }
     const match = String(text).match(/[^.?!]+/);
-    return match ? match[0] : text;
+    const first = match ? match[0] : text;
+
+    // If the first sentence says there are no abnormalities, keep the entire description
+    // so we can match on any additional detail that follows.
+    const normalize = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
+    const norm = normalize(first);
+    if (norm === 'no sign of any abnormalities' || norm === 'no signs of any abnormalities') {
+      return text;
+    }
+
+    return first;
   };
 
   // Pull common DICOM-ish fields; add any custom metadata you store (e.g., SeriesPrompt)
@@ -187,7 +201,7 @@ function scoreCandidate(
   const specificity = Math.min(buildSeriesKey(ds).length / 80, 0.08);
 
   // Encourage matches on key associated-finding tokens and lightly penalize mismatches
-  const assocTerms = ['thickening', 'nodularity', 'atelectasis'];
+  const assocTerms = ['thickening', 'nodularity', 'consolidation'];
   let assocAdjust = 0;
   assocTerms.forEach(term => {
     const promptHas = pTokens.has(term);
