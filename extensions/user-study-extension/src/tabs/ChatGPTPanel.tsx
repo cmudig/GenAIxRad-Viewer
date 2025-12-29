@@ -60,8 +60,6 @@ const DEFAULT_ENDPOINT =
 const BASE_SYSTEM_PROMPT =
   'You are an expert radiology assistant, with expertise in identifying abnormalities in the chest. Remember that the right and left sides are flipped. If the slice is normal, explicitly state that no abnormalities are visible. Do not provide more than 5 sentences of information.';
 
-const FOLLOWUP_FLAVORS = ['What if … ?', 'What features on this slice distinguish … from … ?'];
-
 const QUESTION_PRESETS = [
   {
     id: 'describe',
@@ -380,68 +378,6 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
     };
   }, [viewportGridService, activeViewportId]);
 
-  const requestFollowups = useCallback(
-    async (context: { questionTitle: string; answerText: string }) => {
-      if (!apiKey) {
-        return [];
-      }
-
-      const url = endpoint.includes('?')
-        ? `${endpoint}&key=${apiKey}`
-        : `${endpoint}?key=${apiKey}`;
-
-      try {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: `You are a helpful radiology assistant for a junior radiology resident in the United States. Suggest two simple follow-up questions the resident might ask next about the same CT slice. Keep them short and on-topic. Follow question styles such as: ${FOLLOWUP_FLAVORS.join(
-                      ' '
-                    )}. Ground the questions in seeking comparison, rationale, or uncertainty. Return only the questions, one per line, with no bullets or numbering.`,
-                  },
-                  { text: `User question: ${context.questionTitle}` },
-                  { text: `Your previous answer: ${context.answerText}` },
-                ],
-              },
-            ],
-            generationConfig: {
-              temperature: Math.min(temperature, 0.7),
-              candidateCount: 1,
-            },
-          }),
-        });
-
-        if (!response.ok) {
-          return [];
-        }
-
-        const payload = await response.json();
-        const content = extractModelContent(payload);
-        if (!content) {
-          return [];
-        }
-
-        const followups = content
-          .split('\n')
-          .map(line => line.replace(/^[\s*-]+/, '').trim())
-          .filter(Boolean)
-          .slice(0, 2);
-
-        return followups;
-      } catch (error) {
-        console.warn('ChatGPTPanel: follow-up suggestion failed', error);
-        return [];
-      }
-    },
-    [apiKey, endpoint, temperature]
-  );
-
   const runQuestion = useCallback(
     async (question: PromptQuestion) => {
       abortInFlight();
@@ -475,9 +411,9 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
 
         const base64Data = dataUrl.split(',')[1] || '';
 
-        const url = endpoint.includes('?')
-          ? `${endpoint}&key=${apiKey}`
-          : `${endpoint}?key=${apiKey}`;
+      const url = endpoint.includes('?')
+        ? `${endpoint}&key=${apiKey}`
+        : `${endpoint}?key=${apiKey}`;
 
         const systemPrompt = question.system_prompt || BASE_SYSTEM_PROMPT;
 
@@ -536,14 +472,6 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
         }
 
         updateMessage(pendingAssistantId, { text: content, status: 'done' });
-
-        const followups = await requestFollowups({
-          questionTitle: question.title,
-          answerText: content,
-        });
-        if (followups.length) {
-          updateMessage(pendingAssistantId, { followups });
-        }
       } catch (err: any) {
         if (err?.name === 'AbortError') {
           updateMessage(pendingAssistantId, { text: 'Request canceled.', status: 'error' });
@@ -565,7 +493,6 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
       apiKey,
       captureActiveViewport,
       endpoint,
-      requestFollowups,
       temperature,
       updateMessage,
     ]
@@ -575,22 +502,6 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
     (questionId: string) => {
       const question = QUESTION_PRESETS.find(item => item.id === questionId) ?? QUESTION_PRESETS[0];
       runQuestion(question);
-    },
-    [runQuestion]
-  );
-
-  const askFollowup = useCallback(
-    (text: string) => {
-      if (!text) {
-        return;
-      }
-      const followupQuestion: PromptQuestion = {
-        id: `followup-${Date.now()}`,
-        title: text,
-        prompt: text,
-        system_prompt: BASE_SYSTEM_PROMPT,
-      };
-      runQuestion(followupQuestion);
     },
     [runQuestion]
   );
@@ -689,42 +600,7 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
               </div>,
             ];
 
-            if (
-              !isUser &&
-              msg.status === 'done' &&
-              Array.isArray(msg.followups) &&
-              msg.followups.length
-            ) {
-              rendered.push(
-                <div
-                  key={`${msg.id}-followups`}
-                  className="max-w-[80%] rounded-xl border border-white/10 bg-[#0f1c3c] px-3 py-2 text-[12px] text-white/80 shadow-inner shadow-black/30"
-                >
-                  <div className="mb-1 text-[11px] uppercase tracking-wide text-white/60">
-                    Suggested next questions
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {msg.followups.map((followup, idx) => {
-                      const disabled = !apiKey || !!busyQuestionId;
-                      return (
-                        <button
-                          key={`${msg.id}-followup-${idx}`}
-                          className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition ${
-                            disabled
-                              ? 'cursor-not-allowed border-white/20 text-white/50'
-                              : 'border-[#8fb5ff] bg-transparent text-white hover:bg-[#1f3f8f]'
-                          }`}
-                          onClick={() => askFollowup(followup)}
-                          disabled={disabled}
-                        >
-                          {followup}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            }
+            // Follow-up question feature is paused; skip rendering suggested prompts for now.
 
             if (shouldShowBanner && index === firstAssistantIndex) {
               rendered.push(renderNewScanBanner());
