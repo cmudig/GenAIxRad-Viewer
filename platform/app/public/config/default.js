@@ -686,9 +686,11 @@ window.config = {
                   (vp && vp.querySelector('canvas.cornerstone-canvas')) ||
                   (vp && vp.querySelector('.cornerstone-viewport-element')) ||
                   vp;
-                canvas?.click?.();
+                if (canvas && typeof canvas.click === 'function') {
+                  canvas.click();
+                }
               }
-              return new Promise<void>(resolve => {
+              return new Promise(resolve => {
                 window.requestAnimationFrame(() => window.setTimeout(resolve, 50));
               });
             }),
