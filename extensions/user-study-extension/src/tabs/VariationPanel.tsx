@@ -161,7 +161,7 @@ const abnormalOptionsList = [
   { prompt: 'Location', options: ['Left', 'Bilateral', 'Right'], required: true },
   {
     prompt: 'Associated Findings',
-    options: ['None', 'Pleural thickening', 'Pleural nodularity', 'Consolidation'],
+    options: ['None', 'Pleural thickening', 'Pleural nodularity', 'Atelectasis'],
     required: false,
   },
   { prompt: 'Severity', options: ['Small', 'Moderate', 'Severe'], required: true },

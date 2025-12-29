@@ -50,6 +50,12 @@ const normalize = (s: string) =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
+const normalizeSentenceExact = (s: string) =>
+  String(s || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\.+$/, '');
+
 function tokenize(key: string): string[] {
   return normalize(key)
     .split(' ')
@@ -124,30 +130,25 @@ function tokenSetDice(a: Set<string>, b: Set<string>): number {
   return (2 * inter) / (a2.length + b2.length || 1);
 }
 
+// Only use the first sentence of SeriesDescription to avoid matching on negated findings that follow.
+const firstSentence = (text?: string) => {
+  if (!text) {
+    return text;
+  }
+  const match = String(text).match(/[^.?!]+/);
+  const first = match ? match[0] : text;
+
+  // If the first sentence says there are no abnormalities, keep the entire description
+  // so we can match on any additional detail that follows.
+  const norm = normalize(first);
+  if (norm === 'no sign of any abnormalities' || norm === 'no signs of any abnormalities') {
+    return text;
+  }
+
+  return first;
+};
+
 function buildSeriesKey(ds: SeriesLike): string {
-  // Only use the first sentence of SeriesDescription to avoid matching on negated findings that follow.
-  const firstSentence = (text?: string) => {
-    if (!text) {
-      return text;
-    }
-    const match = String(text).match(/[^.?!]+/);
-    const first = match ? match[0] : text;
-
-    // If the first sentence says there are no abnormalities, keep the entire description
-    // so we can match on any additional detail that follows.
-    const normalize = (s: string) =>
-      s
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, ' ')
-        .trim();
-    const norm = normalize(first);
-    if (norm === 'no sign of any abnormalities' || norm === 'no signs of any abnormalities') {
-      return text;
-    }
-
-    return first;
-  };
-
   // Pull common DICOM-ish fields; add any custom metadata you store (e.g., SeriesPrompt)
   const parts: Array<string | number | undefined> = [
     firstSentence(ds.SeriesDescription),
@@ -167,9 +168,23 @@ function scoreCandidate(
   ds: SeriesLike,
   promptContext?: { modality?: string; bodyPart?: string }
 ): number {
+  const rawPromptTokens = tokenize(promptKey);
+  const rawSeriesTokens = tokenize(buildSeriesKey(ds));
+
   const pTokens = expandTokens(tokenize(promptKey));
   const sKey = buildSeriesKey(ds);
   const sTokens = expandTokens(tokenize(sKey));
+  const exactPromptSentence = normalizeSentenceExact(promptKey);
+  const exactSeriesFirstSentence = normalizeSentenceExact(firstSentence(ds.SeriesDescription) || '');
+
+  // Exact first-sentence match (case-insensitive) should trump everything.
+  if (exactPromptSentence && exactPromptSentence === exactSeriesFirstSentence) {
+    return 1;
+  }
+
+  // If the first sentences differ, note it so we can avoid runaway scores.
+  const firstSentenceMismatchPenalty =
+    exactPromptSentence && exactSeriesFirstSentence ? -0.2 : 0;
 
   const baseJ = jaccard(pTokens, sTokens); // 0..1
   const baseD = tokenSetDice(pTokens, sTokens); // 0..1
@@ -213,7 +228,56 @@ function scoreCandidate(
     }
   });
 
-  return Math.max(0, Math.min(1, base + numBonus + hint + specificity + assocAdjust));
+  // Laterality alignment: reward exact matches, penalize cross/missing
+  const promptHasLeft = rawPromptTokens.includes('left');
+  const promptHasRight = rawPromptTokens.includes('right');
+  const promptHasBilateral = rawPromptTokens.includes('bilateral');
+  const seriesHasLeft = rawSeriesTokens.includes('left');
+  const seriesHasRight = rawSeriesTokens.includes('right');
+  const seriesHasBilateral = rawSeriesTokens.includes('bilateral');
+
+  let lateralityAdjust = 0;
+  if (promptHasLeft && seriesHasLeft) {
+    lateralityAdjust += 0.16;
+  }
+  if (promptHasRight && seriesHasRight) {
+    lateralityAdjust += 0.16;
+  }
+  if (promptHasLeft && seriesHasRight) {
+    lateralityAdjust -= 0.28;
+  }
+  if (promptHasRight && seriesHasLeft) {
+    lateralityAdjust -= 0.28;
+  }
+  if ((promptHasLeft || promptHasRight) && !seriesHasLeft && !seriesHasRight && !seriesHasBilateral) {
+    lateralityAdjust -= 0.2; // requested unilateral but series has no side info
+  }
+  if (!promptHasBilateral && (promptHasLeft || promptHasRight) && seriesHasBilateral) {
+    lateralityAdjust -= 0.2; // prefer unilateral when user asked for unilateral
+  }
+  if (promptHasBilateral && (seriesHasLeft !== seriesHasRight)) {
+    lateralityAdjust -= 0.08; // prefer bilateral when the request is bilateral
+  }
+
+  // Lightly down-rank extra associated findings when none were requested
+  const seriesAssocPresent = assocTerms.some(term => rawSeriesTokens.includes(term));
+  const promptAssocPresent = assocTerms.some(term => rawPromptTokens.includes(term));
+  const extraAssocAdjust = !promptAssocPresent && seriesAssocPresent ? -0.12 : 0;
+
+  return Math.max(
+    0,
+    Math.min(
+      0.99, // keep headroom unless exact-first-sentence match hits
+      base +
+        numBonus +
+        hint +
+        specificity +
+        assocAdjust +
+        lateralityAdjust +
+        extraAssocAdjust +
+        firstSentenceMismatchPenalty
+    )
+  );
 }
 
 export type RankedDisplaySet = {
