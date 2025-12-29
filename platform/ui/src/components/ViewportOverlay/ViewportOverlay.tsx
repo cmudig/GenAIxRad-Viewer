@@ -559,6 +559,7 @@ const ViewportOverlay = ({
         {topRight}
 
         <button
+          data-cy="viewport-capture"
           className="pointer-events-auto ml-2 rounded-md bg-black/60 px-3 py-1 text-xs font-semibold text-white transition hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-60"
           onClick={copyViewportToClipboard}
           disabled={isCopying}
