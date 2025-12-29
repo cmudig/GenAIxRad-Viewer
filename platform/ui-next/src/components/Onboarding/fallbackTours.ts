@@ -56,7 +56,7 @@ export const fallbackTours: Array<{
       {
         id: 'patientCtBadge',
         title: 'Patient CT Scan',
-        text: 'This badge indicates you are viewing the original patient CT scan (not an AI-generated case).',
+        text: 'This badge indicates that you are viewing the original patient CT scan (not an AI-generated CT scan).',
         attachTo: {
           element: '[data-cy="origin-label-patient"]',
           on: 'left',
@@ -66,7 +66,7 @@ export const fallbackTours: Array<{
       {
         id: 'displayOptions',
         title: 'Display Options',
-        text: 'Use window/level presets (Soft tissue, Lung, Bone, etc.) from the display options menu to quickly apply common viewing settings.',
+        text: 'Use window/level presets (such as Soft tissue, Lung, Bone, etc.) from the display options menu to quickly apply common viewing settings. You can also simply drag your mouse over the CT scan to adjust the window/level to your preferred settings. ',
         attachTo: {
           element: '[data-cy="window-level-menu-trigger"]',
           on: 'left',
@@ -99,7 +99,7 @@ export const fallbackTours: Array<{
       {
         id: 'windowPresetLung',
         title: 'Window Presets',
-        text: 'Select the Lung preset (1500 / -600) to optimize the view for lung parenchyma.',
+        text: 'For example, you can select the Lung preset (1500 / -600) to optimize the view for the lungs.',
         attachTo: {
           element: '[data-cy="window-preset-lung"]',
           on: 'left',
@@ -150,7 +150,7 @@ export const fallbackTours: Array<{
       {
         id: 'generateCtFromSimilar',
         title: 'Generate CT scan',
-        text: 'Use a similar case to generate an AI scan for comparison.',
+        text: 'You will click generate CT scan to bring it into the viewport. ',
         attachTo: {
           element: '[data-cy="similar-generate-ct"]',
           on: 'left',
@@ -168,7 +168,7 @@ export const fallbackTours: Array<{
       {
         id: 'aiGeneratedBadge',
         title: 'AI-generated scan',
-        text: 'This badge indicates the viewport is showing an AI-generated scan.',
+        text: 'This badge indicates that the CT scan was generated using AI.',
         attachTo: {
           element: '[data-cy="origin-label-ai"]',
           on: 'left',
@@ -216,6 +216,16 @@ export const fallbackTours: Array<{
             dropdownToggle?.click?.();
             return waitForElement('[data-cy="ImageSliceSync"]');
           }),
+      },
+      {
+        id: 'captureViewport',
+        title: 'Capture Image',
+        text: 'Use the Capture button in the viewport overlay to copy a snapshot of the current slice to your clipboard for easy copying/pasting.',
+        attachTo: {
+          element: '[data-cy="viewport-capture"]',
+          on: 'left',
+        },
+        beforeShowPromise: () => waitForElement('[data-cy="viewport-capture"]'),
       },
       {
         id: 'variationTab',
