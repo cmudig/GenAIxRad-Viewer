@@ -15,23 +15,47 @@ const createPrompt = (tab, answerList) => {
     }
 
     // Existing "Abnormal" behavior
-    const findings = answerList['Findings'] || '';
+    const baseAbnormality = answerList['Base Abnormality'] || 'Pleural effusion';
     const location = answerList['Location'] || '';
     const severity = answerList['Severity'] || ''; // could be number
     const assocRaw = answerList['Associated Findings'] || '';
     const assoc = typeof assocRaw === 'string' ? assocRaw.trim() : '';
-    const hasAssoc = assoc && assoc.toLowerCase() !== 'none';
+    const normalizedBase = baseAbnormality.toLowerCase();
+    const hasAssoc =
+      (normalizedBase === 'pleural effusion' || normalizedBase === 'consolidation') &&
+      assoc &&
+      assoc.toLowerCase() !== 'none';
+
+    const locationNormalized = location.toLowerCase();
+    const locationText =
+      locationNormalized === 'bilateral'
+        ? 'both lungs'
+        : locationNormalized
+        ? `the ${locationNormalized} lung`
+        : '';
+
+    // Consolidation uses a dedicated wording
+    if (normalizedBase === 'consolidation') {
+      const severityText = severity ? severity.toLowerCase() : '';
+      const parts = ['A'];
+      if (severityText) {
+        parts.push(severityText);
+      }
+      parts.push('area of dense consolidation');
+      if (locationText) {
+        parts.push('in', locationText);
+      }
+      if (hasAssoc) {
+        parts.push('with', 'associated', assoc);
+      }
+      const text = parts.join(' ').trim();
+      const key = normalize(text);
+      return { text, key };
+    }
 
     // Build pretty text with only present parts
-    const parts = [findings].filter(Boolean);
-    const severityText = severity ? `${severity} pleural effusion` : 'pleural effusion';
-    const locationText = location
-      ? location.toLowerCase() === 'bilateral'
-        ? 'both lungs (bilateral)'
-        : `the ${location.toLowerCase()} lung${location.toLowerCase() === 'left' || location.toLowerCase() === 'right' ? '' : 's'}`
-      : '';
-
-    let text = `${parts.join(' ')} ${severityText}`.trim();
+    const severityText = severity ? `${severity} ${normalizedBase}` : normalizedBase;
+    let text = `${severityText}`.trim();
     if (locationText) {
       text = `${text} in ${locationText}`.trim();
     }

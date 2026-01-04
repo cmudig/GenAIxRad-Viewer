@@ -33,15 +33,12 @@ const STOPWORDS = new Set([
 const SYNONYMS: Record<string, string[]> = {
   // Customize for your domain
   'pleural effusion': ['effusion', 'pleural fluid'],
-  left: ['lt', 'left-sided', 'lhs'],
-  right: ['rt', 'right-sided', 'rhs'],
-  bilateral: ['both sides', 'left and right', 'right and left', 'left', 'right'],
-  severe: ['marked', 'high', 'grade 3', '3', 'significant'],
-  moderate: ['intermediate', 'grade 2', '2'],
+  left: ['lt', 'left lung', 'left-sided', 'lhs'],
+  right: ['rt', 'right-sided', 'right lung', 'rhs'],
+  bilateral: ['both sides', 'both lungs', 'left and right', 'right and left'],
+  severe: ['marked', 'high', 'grade 3', '3', 'significant', 'large', 'severe'],
+  moderate: ['intermediate', 'grade 2', '2', 'moderate'],
   small: ['low', 'slight', 'grade 1', '1', 'small', 'mild', 'minimal'],
-  ct: ['computed tomography'],
-  mr: ['mri', 'magnetic resonance'],
-  xray: ['radiograph', 'xr'],
 };
 
 const normalize = (s: string) =>
@@ -174,8 +171,11 @@ function scoreCandidate(
   const pTokens = expandTokens(tokenize(promptKey));
   const sKey = buildSeriesKey(ds);
   const sTokens = expandTokens(tokenize(sKey));
+  const normalizedPrompt = normalize(promptKey);
   const exactPromptSentence = normalizeSentenceExact(promptKey);
-  const exactSeriesFirstSentence = normalizeSentenceExact(firstSentence(ds.SeriesDescription) || '');
+  const exactSeriesFirstSentence = normalizeSentenceExact(
+    firstSentence(ds.SeriesDescription) || ''
+  );
 
   // Exact first-sentence match (case-insensitive) should trump everything.
   if (exactPromptSentence && exactPromptSentence === exactSeriesFirstSentence) {
@@ -183,8 +183,7 @@ function scoreCandidate(
   }
 
   // If the first sentences differ, note it so we can avoid runaway scores.
-  const firstSentenceMismatchPenalty =
-    exactPromptSentence && exactSeriesFirstSentence ? -0.2 : 0;
+  const firstSentenceMismatchPenalty = exactPromptSentence && exactSeriesFirstSentence ? -0.2 : 0;
 
   const baseJ = jaccard(pTokens, sTokens); // 0..1
   const baseD = tokenSetDice(pTokens, sTokens); // 0..1
@@ -228,6 +227,15 @@ function scoreCandidate(
     }
   });
 
+  // If the prompt is consolidation-focused, also recognize "with associated consolidation" phrasing.
+  if (
+    normalizedPrompt.includes('consolidation') &&
+    !normalizedPrompt.includes('effusion') &&
+    sKey.includes('with associated consolidation')
+  ) {
+    assocAdjust += 0.1;
+  }
+
   // Laterality alignment: reward exact matches, penalize cross/missing
   const promptHasLeft = rawPromptTokens.includes('left');
   const promptHasRight = rawPromptTokens.includes('right');
@@ -249,13 +257,18 @@ function scoreCandidate(
   if (promptHasRight && seriesHasLeft) {
     lateralityAdjust -= 0.28;
   }
-  if ((promptHasLeft || promptHasRight) && !seriesHasLeft && !seriesHasRight && !seriesHasBilateral) {
+  if (
+    (promptHasLeft || promptHasRight) &&
+    !seriesHasLeft &&
+    !seriesHasRight &&
+    !seriesHasBilateral
+  ) {
     lateralityAdjust -= 0.2; // requested unilateral but series has no side info
   }
   if (!promptHasBilateral && (promptHasLeft || promptHasRight) && seriesHasBilateral) {
     lateralityAdjust -= 0.2; // prefer unilateral when user asked for unilateral
   }
-  if (promptHasBilateral && (seriesHasLeft !== seriesHasRight)) {
+  if (promptHasBilateral && seriesHasLeft !== seriesHasRight) {
     lateralityAdjust -= 0.08; // prefer bilateral when the request is bilateral
   }
 

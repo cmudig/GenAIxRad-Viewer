@@ -157,15 +157,24 @@ const waitForViewportVolumes = (cornerstoneViewportService: any, viewportId: str
 const gateOption = { prompt: 'Normal / Abnormal', options: ['Normal', 'Abnormal'], required: true };
 
 // The rest render only if Abnormal is selected
-const abnormalOptionsList = [
-  { prompt: 'Location', options: ['Left', 'Bilateral', 'Right'], required: true },
-  {
-    prompt: 'Associated Findings',
-    options: ['None', 'Pleural thickening', 'Pleural nodularity', 'Atelectasis'],
-    required: false,
-  },
-  { prompt: 'Severity', options: ['Small', 'Moderate', 'Severe'], required: true },
-];
+const baseAbnormalityOption = {
+  prompt: 'Base Abnormality',
+  options: ['Pleural effusion', 'Consolidation'],
+  required: true,
+};
+
+const locationOption = { prompt: 'Location', options: ['Left', 'Bilateral', 'Right'], required: true };
+const severityOption = { prompt: 'Severity', options: ['Small', 'Moderate', 'Severe'], required: true };
+const pleuralAssociatedFindingsOption = {
+  prompt: 'Associated Findings',
+  options: ['None', 'Pleural thickening', 'Pleural nodularity', 'Atelectasis', 'Consolidation'],
+  required: false,
+};
+const consolidationAssociatedFindingsOption = {
+  prompt: 'Associated Findings',
+  options: ['None', 'Pleural effusion', 'Atelectasis'],
+  required: false,
+};
 
 const VariationPanel = ({
   commandsManager,
@@ -315,6 +324,9 @@ const VariationPanel = ({
 
   const isAbnormal = answers['Normal / Abnormal'] === 'Abnormal';
   const isNormal = answers['Normal / Abnormal'] === 'Normal';
+  const baseAbnormality = answers[baseAbnormalityOption.prompt];
+  const isPleuralEffusionBase = baseAbnormality === 'Pleural effusion';
+  const isConsolidationBase = baseAbnormality === 'Consolidation';
 
   const handleSelection = (prompt: string, option: string) => {
     if (prompt === 'Normal / Abnormal') {
@@ -322,12 +334,24 @@ const VariationPanel = ({
         const next = { ...prev, [prompt]: option };
         if (option === 'Normal') {
           // clear only abnormal fields
+          delete next[baseAbnormalityOption.prompt];
           delete next['Location'];
           delete next['Associated Findings'];
           delete next['Severity'];
           // ⬇️ reset only the abnormal controls,
           // DO NOT touch the gate so its highlight stays
           setAbnormalResetKey(k => k + 1);
+        }
+        return next;
+      });
+      return;
+    }
+
+    if (prompt === baseAbnormalityOption.prompt) {
+      setAnswers(prev => {
+        const next = { ...prev, [prompt]: option };
+        if (option !== 'Pleural effusion' && option !== 'Consolidation') {
+          delete next['Associated Findings'];
         }
         return next;
       });
@@ -366,10 +390,11 @@ const VariationPanel = ({
 
   // Button enable rules:
   // - If Normal: only need the gate answered
-  // - If Abnormal: all abnormal required fields + Severity must be answered
+  // - If Abnormal: base abnormality + required fields must be answered
   const abnormalRequiredOk =
-    abnormalOptionsList.filter(o => o.required).every(o => answers.hasOwnProperty(o.prompt)) &&
-    answers.hasOwnProperty('Severity');
+    answers.hasOwnProperty(baseAbnormalityOption.prompt) &&
+    answers.hasOwnProperty(locationOption.prompt) &&
+    answers.hasOwnProperty(severityOption.prompt);
 
   const allRequiredAnswered =
     answers.hasOwnProperty('Normal / Abnormal') &&
@@ -417,16 +442,62 @@ const VariationPanel = ({
 
         {isAbnormal ? (
           <div className="space-y-3">
-            {abnormalOptionsList.map(({ prompt, options }) => (
-              <div key={`${prompt}-${abnormalResetKey}`} className={cardClass}>
+            <div key={`${baseAbnormalityOption.prompt}-${abnormalResetKey}`} className={cardClass}>
+              <GenerationOptions
+                prompt={baseAbnormalityOption.prompt}
+                options={baseAbnormalityOption.options}
+                onOptionSelect={option => handleSelection(baseAbnormalityOption.prompt, option)}
+                resetKey={abnormalResetKey}
+              />
+            </div>
+
+            <div key={`${locationOption.prompt}-${abnormalResetKey}`} className={cardClass}>
+              <GenerationOptions
+                prompt={locationOption.prompt}
+                options={locationOption.options}
+                onOptionSelect={option => handleSelection(locationOption.prompt, option)}
+                resetKey={abnormalResetKey}
+              />
+            </div>
+
+            {isPleuralEffusionBase ? (
+              <div
+                key={`${pleuralAssociatedFindingsOption.prompt}-${abnormalResetKey}-${baseAbnormality}`}
+                className={cardClass}
+              >
                 <GenerationOptions
-                  prompt={prompt}
-                  options={options}
-                  onOptionSelect={option => handleSelection(prompt, option)}
+                  prompt={pleuralAssociatedFindingsOption.prompt}
+                  options={pleuralAssociatedFindingsOption.options}
+                  onOptionSelect={option =>
+                    handleSelection(pleuralAssociatedFindingsOption.prompt, option)
+                  }
                   resetKey={abnormalResetKey}
                 />
               </div>
-            ))}
+            ) : isConsolidationBase ? (
+              <div
+                key={`${consolidationAssociatedFindingsOption.prompt}-${abnormalResetKey}-${baseAbnormality}`}
+                className={cardClass}
+              >
+                <GenerationOptions
+                  prompt={consolidationAssociatedFindingsOption.prompt}
+                  options={consolidationAssociatedFindingsOption.options}
+                  onOptionSelect={option =>
+                    handleSelection(consolidationAssociatedFindingsOption.prompt, option)
+                  }
+                  resetKey={abnormalResetKey}
+                />
+              </div>
+            ) : null}
+
+            <div key={`${severityOption.prompt}-${abnormalResetKey}`} className={cardClass}>
+              <GenerationOptions
+                prompt={severityOption.prompt}
+                options={severityOption.options}
+                onOptionSelect={option => handleSelection(severityOption.prompt, option)}
+                resetKey={abnormalResetKey}
+              />
+            </div>
           </div>
         ) : null}
 

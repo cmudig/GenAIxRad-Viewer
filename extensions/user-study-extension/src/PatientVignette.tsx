@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../../platform/app/src/firebase';
 import { getMetadataFromSeries } from '../../../platform/app/src/components/dicom_helpers';
@@ -366,6 +367,35 @@ const extractLabeledDetail = (details: string[], labels: string[]): string | nul
   return null;
 };
 
+const getQueryStudyInstanceUIDs = (search: string, hash: string): string[] => {
+  const rawSearch = search && search.startsWith('?') ? search : search ? `?${search}` : '';
+  let hashSearch = '';
+  if (hash) {
+    const hashIndex = hash.indexOf('?');
+    if (hashIndex >= 0) {
+      hashSearch = hash.slice(hashIndex);
+    }
+  }
+
+  const collectFrom = (query: string): string[] => {
+    if (!query) {
+      return [];
+    }
+    const params = new URLSearchParams(query);
+    const rawValues = [
+      ...params.getAll('StudyInstanceUIDs'),
+      ...params.getAll('studyId'),
+      ...params.getAll('StudyID'),
+    ];
+    return rawValues
+      .flatMap(value => value.split(','))
+      .map(value => value.trim())
+      .filter(Boolean);
+  };
+
+  return [...collectFrom(rawSearch), ...collectFrom(hashSearch)];
+};
+
 const STUDY_OVERRIDES: Record<
   string,
   {
@@ -399,6 +429,27 @@ const STUDY_OVERRIDES: Record<
         'Patient presents with a 2-week history of an acute, non-productive cough. She reports associated chest pain (pain worsens with coughing/deep breathing). She denies fevers, chills, or recent travel. Symptoms have been resistant to over-the-counter cough suppressants.',
       pastMedicalHistory:
         'Significant for Stage II Breast Cancer (treated 5 years ago with lumpectomy and chemotherapy, currently in remission). No history of asthma or COPD.',
+    },
+  },
+  '620043239794181': {
+    demographics: {
+      age: '66-year-old',
+      sex: 'Male',
+      bodyPart: 'Thorax',
+    },
+    narrative: {
+      headline: '66-year-old man with shortness of breath and fever.',
+      details: [
+        'Acute worsening of shortness of breath with high-grade fevers.',
+        'New productive cough with thick, purulent sputum.',
+        'Reports an episode of mild diarrhea and generalized weakness.',
+      ],
+    },
+    clinicalContext: {
+      chiefComplaint: 'Shortness of breath and fever.',
+      historyPresentIllness:
+        'Patient with a history of poorly controlled Type 2 Diabetes presents with acute worsening of shortness of breath. He recently recovered from a mild flu-like illness with congestion, but now presents with high-grade fevers and a new cough productive of thick, purulent sputum. He also notes an episode of mild diarrhea and generalized weakness.',
+      pastMedicalHistory: 'Type 2 Diabetes Mellitus, Hypertension.',
     },
   },
 };
@@ -456,6 +507,7 @@ const getSeriesDescription = (displaySet: any): string | null => {
 };
 
 const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) => {
+  const location = useLocation();
   const viewportGridService =
     servicesManager?.services?.viewportGridService ||
     servicesManager?.services?.ViewportGridService;
@@ -900,8 +952,38 @@ const PatientVignette: React.FC<PatientVignetteProps> = ({ servicesManager }) =>
   const isLoadingNarrative = loadingMeta && !seriesPrompt;
 
   const studyOverride = useMemo(
-    () => (studyInstanceUID ? (STUDY_OVERRIDES[studyInstanceUID] ?? null) : null),
-    [studyInstanceUID]
+    () => {
+      if (
+        location.search.includes('620043239794181') ||
+        location.hash.includes('620043239794181')
+      ) {
+        return STUDY_OVERRIDES['620043239794181'] ?? null;
+      }
+
+      const candidates: string[] = [];
+      if (studyInstanceUID) {
+        candidates.push(studyInstanceUID);
+      }
+      const queryIds = getQueryStudyInstanceUIDs(location.search, location.hash);
+      candidates.push(...queryIds);
+      const metaStudyId =
+        (ds as any)?.StudyID ??
+        ds?.metadata?.StudyID ??
+        ds?.getAttribute?.('StudyID') ??
+        null;
+      if (metaStudyId) {
+        candidates.push(String(metaStudyId));
+      }
+
+      for (const id of candidates) {
+        if (STUDY_OVERRIDES[id]) {
+          return STUDY_OVERRIDES[id];
+        }
+      }
+
+      return null;
+    },
+    [ds, location.search, studyInstanceUID]
   );
 
   const effectiveDemographics = useMemo(() => {
