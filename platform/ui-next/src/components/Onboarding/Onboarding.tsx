@@ -31,6 +31,12 @@ const Onboarding = () => {
     }
 
     const searchParams = new URLSearchParams(location.search);
+    const studyIds = searchParams.getAll('StudyInstanceUIDs');
+    const skipStudyIds = new Set(['620043239794181', '678543127898756']);
+    if (studyIds.some(id => skipStudyIds.has(id))) {
+      console.info('Onboarding: skipping tour for study');
+      return;
+    }
     const forcedTourId = searchParams.get('runTour');
     const forceTour = searchParams.get('forceTour') === '1';
 

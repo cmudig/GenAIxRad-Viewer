@@ -145,12 +145,17 @@ const persistKey = (value: string) => {
   }
 };
 
-const loadChatState = (): { messages: ChatMessage[]; unlockedPresetCount: number } | null => {
+const getChatStorageKey = (studyId?: string | null) =>
+  studyId ? `${CHAT_STATE_KEY}:${studyId}` : CHAT_STATE_KEY;
+
+const loadChatState = (
+  storageKey: string
+): { messages: ChatMessage[]; unlockedPresetCount: number } | null => {
   if (typeof window === 'undefined') {
     return null;
   }
   try {
-    const raw = window.localStorage.getItem(CHAT_STATE_KEY);
+    const raw = window.localStorage.getItem(storageKey);
     if (!raw) {
       return null;
     }
@@ -167,15 +172,45 @@ const loadChatState = (): { messages: ChatMessage[]; unlockedPresetCount: number
   }
 };
 
-const persistChatState = (state: { messages: ChatMessage[]; unlockedPresetCount: number }) => {
+const persistChatState = (
+  storageKey: string,
+  state: { messages: ChatMessage[]; unlockedPresetCount: number }
+) => {
   if (typeof window === 'undefined') {
     return;
   }
   try {
-    window.localStorage.setItem(CHAT_STATE_KEY, JSON.stringify(state));
+    window.localStorage.setItem(storageKey, JSON.stringify(state));
   } catch (err) {
     console.warn('ChatGPTPanel: unable to persist chat state', err);
   }
+};
+
+const getStudyInstanceUID = (displaySet: any): string | null => {
+  if (!displaySet) {
+    return null;
+  }
+  return (
+    displaySet.StudyInstanceUID ??
+    displaySet.studyInstanceUID ??
+    displaySet.metadata?.StudyInstanceUID ??
+    displaySet.getAttribute?.('StudyInstanceUID') ??
+    null
+  );
+};
+
+const getStudyId = (displaySet: any): string | null => {
+  if (!displaySet) {
+    return null;
+  }
+  return (
+    displaySet.StudyID ??
+    displaySet.studyId ??
+    displaySet.studyID ??
+    displaySet.metadata?.StudyID ??
+    displaySet.getAttribute?.('StudyID') ??
+    null
+  );
 };
 
 const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
@@ -195,17 +230,25 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
   const [activeDisplaySetUID, setActiveDisplaySetUID] = useState<string | null>(null);
   const [displaySetNudgeKey, setDisplaySetNudgeKey] = useState(0);
   const lastQAViewportDisplaySetRef = useRef<string | null>(null);
+  const [activeStudyInstanceUID, setActiveStudyInstanceUID] = useState<string | null>(null);
+  const [activeStudyId, setActiveStudyId] = useState<string | null>(null);
+  const lastChatStorageKeyRef = useRef<string | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
   const apiKey = config.apiKey ?? storedKey;
   const endpoint = config.endpoint ?? DEFAULT_ENDPOINT;
   const temperature = config.temperature ?? 1;
+  const chatStorageKey = useMemo(() => {
+    const key = activeStudyId || activeStudyInstanceUID;
+    return getChatStorageKey(key);
+  }, [activeStudyId, activeStudyInstanceUID]);
 
   const cornerstoneViewportService = servicesManager?.services?.cornerstoneViewportService ?? null;
   const viewportGridService =
     servicesManager?.services?.viewportGridService ||
     servicesManager?.services?.ViewportGridService ||
     null;
+  const displaySetService = servicesManager?.services?.displaySetService ?? null;
 
   const captureActiveViewport = useCallback(async (): Promise<string> => {
     if (!cornerstoneViewportService) {
@@ -249,27 +292,38 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
     }
   }, []);
 
+  const resetChatState = useCallback(
+    (nextState?: { messages: ChatMessage[]; unlockedPresetCount: number }) => {
+      abortInFlight();
+      setMessages(nextState?.messages ?? []);
+      setUnlockedPresetCount(nextState?.unlockedPresetCount ?? QUESTION_PRESETS.length);
+      setBusyQuestionId(null);
+      messageCounterRef.current = nextState?.messages.length ?? 0;
+      activeQuestionRef.current = null;
+    },
+    [abortInFlight]
+  );
+
   // Hydrate chat state on first mount
   useEffect(() => {
     if (didHydrateRef.current) {
       return;
     }
-    const stored = loadChatState();
+    const stored = loadChatState(chatStorageKey);
     if (stored) {
-      setMessages(stored.messages);
-      setUnlockedPresetCount(QUESTION_PRESETS.length);
-      messageCounterRef.current = stored.messages.length;
+      resetChatState(stored);
     }
+    lastChatStorageKeyRef.current = chatStorageKey;
     didHydrateRef.current = true;
-  }, []);
+  }, [chatStorageKey, resetChatState]);
 
   // Persist chat state when it changes (after initial hydration)
   useEffect(() => {
     if (!didHydrateRef.current) {
       return;
     }
-    persistChatState({ messages, unlockedPresetCount });
-  }, [messages, unlockedPresetCount]);
+    persistChatState(chatStorageKey, { messages, unlockedPresetCount });
+  }, [chatStorageKey, messages, unlockedPresetCount]);
 
   useEffect(() => {
     if (config.apiKey || storedKey) {
@@ -350,6 +404,14 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
         null;
 
       setActiveDisplaySetUID(uid);
+      if (uid && displaySetService?.getDisplaySetByUID) {
+        const displaySet = displaySetService.getDisplaySetByUID(uid);
+        setActiveStudyInstanceUID(getStudyInstanceUID(displaySet));
+        setActiveStudyId(getStudyId(displaySet));
+      } else {
+        setActiveStudyInstanceUID(null);
+        setActiveStudyId(null);
+      }
 
       const lastSeen = lastQAViewportDisplaySetRef.current;
       if (uid && lastSeen && uid !== lastSeen) {
@@ -376,7 +438,21 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
       activeSub?.unsubscribe?.();
       gridSub?.unsubscribe?.();
     };
-  }, [viewportGridService, activeViewportId]);
+  }, [viewportGridService, activeViewportId, displaySetService]);
+
+  useEffect(() => {
+    if (!activeStudyId && !activeStudyInstanceUID) {
+      return;
+    }
+    const nextKey = chatStorageKey;
+    const lastKey = lastChatStorageKeyRef.current;
+    if (nextKey === lastKey) {
+      return;
+    }
+    const stored = loadChatState(nextKey);
+    resetChatState(stored ?? undefined);
+    lastChatStorageKeyRef.current = nextKey;
+  }, [activeStudyInstanceUID, chatStorageKey, resetChatState]);
 
   const runQuestion = useCallback(
     async (question: PromptQuestion) => {
