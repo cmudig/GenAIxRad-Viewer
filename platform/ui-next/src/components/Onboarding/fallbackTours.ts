@@ -168,7 +168,7 @@ export const fallbackTours: Array<{
       {
         id: 'aiGeneratedBadge',
         title: 'AI-generated scan',
-        text: 'This badge indicates that the CT scan was generated using AI.',
+        text: 'This badge indicates that the CT scan was generated using AI. Note that the AI cannot generate contrast-enhanced CT scans',
         attachTo: {
           element: '[data-cy="origin-label-ai"]',
           on: 'left',
