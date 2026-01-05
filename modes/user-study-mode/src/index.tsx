@@ -118,10 +118,7 @@ function modeFactory({ modeConfiguration }) {
         'Zoom',
         'WindowLevel',
         'Pan',
-        'Capture',
-        'Layout',
         'ImageSliceSync',
-        'Crosshairs',
         'MoreTools',
       ]);
 

@@ -63,23 +63,23 @@ const BASE_SYSTEM_PROMPT =
 const QUESTION_PRESETS = [
   {
     id: 'describe',
-    title: 'Describe the findings in this image.',
+    title: 'Explain how this slice represents the prompted abnormalities.',
     prompt:
-      'Analyze this CT slice and report your impression of the visible abnormalities. Report your response in the phrasing of a junior radiology resident in the United States starting with IMPRESSION:',
+      'Based on the prompt used to generate the CT scan, explain how the slice represents (or does not represent) it.',
     system_prompt: BASE_SYSTEM_PROMPT,
   },
   {
     id: 'counterfactual',
-    title: 'Describe what needs to change for the slice to appear normal.',
+    title: 'Explain why this slice does not appear normal.',
     prompt:
       'Analyze this CT slice and provide a description of what visually would need to change for the slice to appear normal.',
     system_prompt: BASE_SYSTEM_PROMPT,
   },
   {
     id: 'mimic',
-    title: 'Describe potential mimics of the abnormalities in this slice.',
+    title: 'Explain the mimics of the abnormalities in this slice.',
     prompt:
-      'Analyze this CT slice and describe what abnormalities may be mistaken for the true impression.',
+      'Analyze this CT slice and describe what abnormalities may be mistaken for the true impression. Do not provide your impression in the text.',
     system_prompt: BASE_SYSTEM_PROMPT,
   },
 ];
@@ -93,6 +93,47 @@ const extractModelContent = (payload: any): string => {
       .join('\n\n');
   }
   return payload?.choices?.[0]?.message?.content ?? payload?.data?.[0]?.content ?? '';
+};
+
+const deriveDisplaySetOrigin = (displaySet: any): 'patient' | 'ai' | null => {
+  if (!displaySet) {
+    return null;
+  }
+
+  const explicitOrigin = (displaySet as any).__caseOrigin;
+  if (explicitOrigin === 'patient' || explicitOrigin === 'ai') {
+    return explicitOrigin;
+  }
+
+  const promptChanged =
+    displaySet?.SeriesPromptChanged ??
+    displaySet?.metadata?.SeriesPromptChanged ??
+    displaySet?.getAttribute?.('SeriesPromptChanged') ??
+    null;
+
+  if (String(promptChanged).toLowerCase() === 'true') {
+    return 'ai';
+  }
+
+  return null;
+};
+
+const resolveSliceCount = (viewport: any): number | null => {
+  if (!viewport) {
+    return null;
+  }
+
+  const numSlices = viewport.getNumberOfSlices?.();
+  if (typeof numSlices === 'number' && numSlices >= 0) {
+    return numSlices;
+  }
+
+  const imageIds = viewport.getImageIds?.();
+  if (Array.isArray(imageIds)) {
+    return imageIds.length;
+  }
+
+  return null;
 };
 
 const readConfig = (): AssistantConfig => {
@@ -249,6 +290,50 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
     servicesManager?.services?.ViewportGridService ||
     null;
   const displaySetService = servicesManager?.services?.displaySetService ?? null;
+  const activeDisplaySet = useMemo(() => {
+    if (!activeDisplaySetUID || !displaySetService?.getDisplaySetByUID) {
+      return null;
+    }
+    try {
+      return displaySetService.getDisplaySetByUID(activeDisplaySetUID);
+    } catch {
+      return null;
+    }
+  }, [activeDisplaySetUID, displaySetService]);
+  const activeDisplaySetOrigin = useMemo(
+    () => deriveDisplaySetOrigin(activeDisplaySet),
+    [activeDisplaySet]
+  );
+  const isAiGenerated = activeDisplaySetOrigin === 'ai';
+  const getActiveSliceNote = useCallback((): string | null => {
+    if (!cornerstoneViewportService) {
+      return null;
+    }
+
+    const viewportId = activeViewportId ?? cornerstoneViewportService.getActiveViewportId?.();
+    if (!viewportId) {
+      return null;
+    }
+
+    const viewport = cornerstoneViewportService.getCornerstoneViewport(viewportId);
+    if (!viewport) {
+      return null;
+    }
+
+    const currentIndex = viewport.getCurrentImageIdIndex?.();
+    if (!Number.isFinite(currentIndex)) {
+      return null;
+    }
+
+    const sliceCount = resolveSliceCount(viewport);
+    const humanIndex = (currentIndex as number) + 1;
+
+    if (sliceCount && sliceCount > 0) {
+      return `Slice viewed: ${humanIndex}/${sliceCount}`;
+    }
+
+    return `Slice viewed: ${humanIndex}`;
+  }, [activeViewportId, cornerstoneViewportService]);
 
   const captureActiveViewport = useCallback(async (): Promise<string> => {
     if (!cornerstoneViewportService) {
@@ -460,6 +545,20 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
       setBusyQuestionId(question.id);
       activeQuestionRef.current = question.id;
 
+      if (!isAiGenerated) {
+        addMessage({
+          role: 'assistant',
+          text: 'Q&A is only available on AI-generated CT scans.',
+          questionId: question.id,
+          status: 'error',
+        });
+        setBusyQuestionId(null);
+        activeQuestionRef.current = null;
+        return;
+      }
+
+      const sliceNote = getActiveSliceNote();
+
       addMessage({
         role: 'user',
         text: question.title,
@@ -487,9 +586,9 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
 
         const base64Data = dataUrl.split(',')[1] || '';
 
-      const url = endpoint.includes('?')
-        ? `${endpoint}&key=${apiKey}`
-        : `${endpoint}?key=${apiKey}`;
+        const url = endpoint.includes('?')
+          ? `${endpoint}&key=${apiKey}`
+          : `${endpoint}?key=${apiKey}`;
 
         const systemPrompt = question.system_prompt || BASE_SYSTEM_PROMPT;
 
@@ -547,14 +646,16 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
           throw new Error('Gemini did not return a description.');
         }
 
-        updateMessage(pendingAssistantId, { text: content, status: 'done' });
+        const assistantText = sliceNote ? `${content}\n\n${sliceNote}` : content;
+        updateMessage(pendingAssistantId, { text: assistantText, status: 'done' });
       } catch (err: any) {
         if (err?.name === 'AbortError') {
           updateMessage(pendingAssistantId, { text: 'Request canceled.', status: 'error' });
           return;
         }
         const message = err?.message || 'Unexpected error while contacting Gemini.';
-        updateMessage(pendingAssistantId, { text: message, status: 'error' });
+        const errorText = sliceNote ? `${message}\n\n${sliceNote}` : message;
+        updateMessage(pendingAssistantId, { text: errorText, status: 'error' });
       } finally {
         controllerRef.current = null;
         if (activeQuestionRef.current === question.id) {
@@ -569,6 +670,8 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
       apiKey,
       captureActiveViewport,
       endpoint,
+      getActiveSliceNote,
+      isAiGenerated,
       temperature,
       updateMessage,
     ]
@@ -624,31 +727,38 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
         )}
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        {QUESTION_PRESETS.map(question => {
-          const isBusy = busyQuestionId === question.id;
-          return (
-            <button
-              key={question.id}
-              className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
-                isBusy
-                  ? 'cursor-wait border-[#8fb5ff] bg-[#1f3f8f] text-white'
-                  : 'border-[#8fb5ff] bg-[#1f3f8f] text-white hover:bg-[#234ca8]'
-              } ${!apiKey ? 'cursor-not-allowed opacity-60' : ''}`}
-              onClick={() => askQuestion(question.id)}
-              disabled={isBusy || !apiKey}
-            >
-              {isBusy ? 'Asking…' : question.title}
-            </button>
-          );
-        })}
-      </div>
+      {!isAiGenerated && (
+        <div className="mt-2 rounded-xl border border-white/10 bg-[#0f1c3c] p-3 text-xs text-white/70">
+          Q&amp;A is available only when the active viewport shows an AI-generated CT scan.
+        </div>
+      )}
+      {isAiGenerated && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {QUESTION_PRESETS.map(question => {
+            const isBusy = busyQuestionId === question.id;
+            return (
+              <button
+                key={question.id}
+                className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${
+                  isBusy
+                    ? 'cursor-wait border-[#8fb5ff] bg-[#1f3f8f] text-white'
+                    : 'border-[#8fb5ff] bg-[#1f3f8f] text-white hover:bg-[#234ca8]'
+                } ${!apiKey ? 'cursor-not-allowed opacity-60' : ''}`}
+                onClick={() => askQuestion(question.id)}
+                disabled={isBusy || !apiKey}
+              >
+                {isBusy ? 'Asking…' : question.title}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div
         ref={chatContainerRef}
         className="ohif-scrollbar mt-4 flex-1 space-y-3 overflow-y-auto rounded-2xl bg-[#0b1433] p-4 shadow-inner shadow-black/40"
       >
-        {messages.length === 0 ? (
+        {messages.length === 0 && isAiGenerated ? (
           <div className="border-white/15 rounded-xl border bg-[#0f1c3c] p-3 text-sm text-white/80">
             Select a preset question above to start the conversation.
           </div>
