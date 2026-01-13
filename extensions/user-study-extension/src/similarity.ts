@@ -11,80 +11,11 @@ export type SeriesLike = {
   getAttribute?: (name: string) => string | number | undefined;
 };
 
-const STOPWORDS = new Set([
-  'a',
-  'an',
-  'and',
-  'the',
-  'of',
-  'for',
-  'to',
-  'with',
-  'in',
-  'on',
-  'by',
-  'at',
-  'from',
-  'signs',
-  'finding',
-  'findings',
-]);
-
-const SYNONYMS: Record<string, string[]> = {
-  // Customize for your domain
-  'pleural effusion': ['effusion', 'pleural fluid'],
-  left: ['lt', 'left lung', 'left-sided', 'lhs'],
-  right: ['rt', 'right-sided', 'right lung', 'rhs'],
-  bilateral: ['both sides', 'both lungs', 'left and right', 'right and left'],
-  severe: ['marked', 'high', 'grade 3', '3', 'significant', 'large', 'severe'],
-  moderate: ['intermediate', 'grade 2', '2', 'moderate'],
-  small: ['low', 'slight', 'grade 1', '1', 'small', 'mild', 'minimal'],
-};
-
 const normalize = (s: string) =>
   String(s || '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
-
-const normalizeSentenceExact = (s: string) =>
-  String(s || '')
-    .trim()
-    .toLowerCase()
-    .replace(/\.+$/, '');
-
-function tokenize(key: string): string[] {
-  return normalize(key)
-    .split(' ')
-    .filter(t => t && !STOPWORDS.has(t));
-}
-
-function expandTokens(tokens: string[]): Set<string> {
-  const out = new Set<string>(tokens);
-  const joined = tokens.join(' ');
-  // multi-word expansions first
-  for (const [k, vals] of Object.entries(SYNONYMS)) {
-    const kTok = normalize(k);
-    const hasKey = joined.includes(kTok);
-    const hasSynonym = vals.some(v => joined.includes(normalize(v)));
-    if (hasKey || hasSynonym) {
-      out.add(kTok);
-      vals.forEach(v => out.add(normalize(v)));
-    }
-  }
-  // per-token expansions
-  for (const t of tokens) {
-    for (const [k, vals] of Object.entries(SYNONYMS)) {
-      if (t === normalize(k)) {
-        vals.forEach(v => out.add(normalize(v)));
-      }
-      if (vals.includes(t)) {
-        out.add(normalize(k));
-      }
-    }
-  }
-  return out;
-}
 
 const detectLaterality = (text: string) => {
   const normalized = normalize(text);
@@ -109,48 +40,79 @@ const detectLaterality = (text: string) => {
   return { hasLeft, hasRight, hasBilateral };
 };
 
-// Numeric tokens can be important (e.g., severity "3")
-const numTokens = (tokens: Iterable<string>) => new Set([...tokens].filter(t => /^\d+$/.test(t)));
+type Severity = 'small' | 'moderate' | 'severe';
 
-function jaccard(a: Set<string>, b: Set<string>): number {
-  let inter = 0;
-  for (const x of a) {
-    if (b.has(x)) {
-      inter++;
-    }
+const detectSeverity = (text: string): Severity | undefined => {
+  const normalized = normalize(text);
+  if (
+    normalized.includes('small') ||
+    normalized.includes('mild') ||
+    normalized.includes('minimal') ||
+    normalized.includes('slight') ||
+    /grade\s*1/.test(normalized)
+  ) {
+    return 'small';
   }
-  const union = a.size + b.size - inter;
-  return union === 0 ? 0 : inter / union;
-}
+  if (normalized.includes('moderate') || normalized.includes('intermediate') || /grade\s*2/.test(normalized)) {
+    return 'moderate';
+  }
+  if (
+    normalized.includes('severe') ||
+    normalized.includes('marked') ||
+    normalized.includes('significant') ||
+    normalized.includes('large') ||
+    /grade\s*3/.test(normalized)
+  ) {
+    return 'severe';
+  }
+  return undefined;
+};
 
-// Levenshtein on token sets (cheap approximation via dice on character bags)
-function tokenSetDice(a: Set<string>, b: Set<string>): number {
-  const A = [...a].join(' ');
-  const B = [...b].join(' ');
-  if (!A || !B) {
-    return 0;
-  }
-  const bigrams = (s: string) => {
-    const arr: string[] = [];
-    for (let i = 0; i < s.length - 1; i++) {
-      arr.push(s.slice(i, i + 2));
+type BaseAbnormality = 'pleural effusion' | 'consolidation';
+
+type ExtractedAttributes = {
+  base?: BaseAbnormality;
+  laterality: { hasLeft: boolean; hasRight: boolean; hasBilateral: boolean };
+  severity?: Severity;
+  associated: Set<string>;
+};
+
+const BASE_ABNORMALITY_PHRASES: Record<BaseAbnormality, string[]> = {
+  'pleural effusion': ['pleural effusion', 'pleural fluid', 'effusion'],
+  consolidation: ['consolidation'],
+};
+
+const ASSOCIATED_FINDING_PHRASES: Record<string, string[]> = {
+  'pleural effusion': ['pleural effusion', 'pleural fluid', 'effusion'],
+  consolidation: ['consolidation'],
+  'pleural thickening': ['pleural thickening', 'thickening'],
+  'pleural nodularity': ['pleural nodularity', 'nodularity'],
+  atelectasis: ['atelectasis'],
+};
+
+const isNegated = (normalized: string, matchIndex: number) => {
+  const windowStart = Math.max(0, matchIndex - 24);
+  const window = normalized.slice(windowStart, matchIndex).trimEnd();
+  return /(?:no|without)\s+(?:signs\s+of\s+)?$/.test(window);
+};
+
+const findPhraseIndex = (normalized: string, phrase: string): number => {
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+  const regex = new RegExp(`\\b${escaped}\\b`);
+  const match = normalized.match(regex);
+  return match?.index ?? -1;
+};
+
+const findEarliestMatch = (normalized: string, phrases: string[]) => {
+  let bestIndex = Number.POSITIVE_INFINITY;
+  for (const phrase of phrases) {
+    const index = findPhraseIndex(normalized, phrase);
+    if (index >= 0 && !isNegated(normalized, index) && index < bestIndex) {
+      bestIndex = index;
     }
-    return arr;
-  };
-  const a2 = bigrams(A),
-    b2 = bigrams(B);
-  const b2Map = new Map<string, number>();
-  b2.forEach(x => b2Map.set(x, (b2Map.get(x) || 0) + 1));
-  let inter = 0;
-  for (const x of a2) {
-    const c = b2Map.get(x) || 0;
-    if (c > 0) {
-      inter++;
-      b2Map.set(x, c - 1);
-    }
   }
-  return (2 * inter) / (a2.length + b2.length || 1);
-}
+  return Number.isFinite(bestIndex) ? bestIndex : -1;
+};
 
 // Only use the first sentence of SeriesDescription to avoid matching on negated findings that follow.
 const firstSentence = (text?: string) => {
@@ -170,163 +132,111 @@ const firstSentence = (text?: string) => {
   return first;
 };
 
-function buildSeriesKey(ds: SeriesLike): string {
-  // Pull common DICOM-ish fields; add any custom metadata you store (e.g., SeriesPrompt)
+const getSeriesText = (ds: SeriesLike): string => {
   const parts: Array<string | number | undefined> = [
     firstSentence(ds.SeriesDescription),
     ds.ProtocolName,
-    ds.BodyPartExamined,
-    ds.Modality,
-    ds.SeriesNumber,
-    ds.getAttribute?.('SeriesPrompt'), // if you saved one
-    ds.getAttribute?.('SeriesPromptChanged') === 'true' ? 'changed' : undefined,
+    ds.getAttribute?.('SeriesPrompt'),
   ];
 
   return normalize(parts.filter(Boolean).join(' '));
-}
+};
+
+const extractAttributes = (text: string): ExtractedAttributes => {
+  const normalized = normalize(text);
+  const laterality = detectLaterality(text);
+  const severity = detectSeverity(text);
+
+  let base: BaseAbnormality | undefined;
+  let bestIndex = Number.POSITIVE_INFINITY;
+  (Object.keys(BASE_ABNORMALITY_PHRASES) as BaseAbnormality[]).forEach(key => {
+    const idx = findEarliestMatch(normalized, BASE_ABNORMALITY_PHRASES[key]);
+    if (idx >= 0 && idx < bestIndex) {
+      bestIndex = idx;
+      base = key;
+    }
+  });
+
+  const associated = new Set<string>();
+  Object.entries(ASSOCIATED_FINDING_PHRASES).forEach(([key, phrases]) => {
+    if (key === base) {
+      return;
+    }
+    if (findEarliestMatch(normalized, phrases) >= 0) {
+      associated.add(key);
+    }
+  });
+
+  return {
+    base,
+    laterality,
+    severity,
+    associated,
+  };
+};
 
 function scoreCandidate(
   promptKey: string,
   ds: SeriesLike,
-  promptContext?: { modality?: string; bodyPart?: string }
+  _promptContext?: { modality?: string; bodyPart?: string }
 ): number {
-  const rawPromptTokens = tokenize(promptKey);
-  const rawSeriesTokens = tokenize(buildSeriesKey(ds));
-
-  const pTokens = expandTokens(tokenize(promptKey));
-  const sKey = buildSeriesKey(ds);
-  const sTokens = expandTokens(tokenize(sKey));
-  const normalizedPrompt = normalize(promptKey);
-  const exactPromptSentence = normalizeSentenceExact(promptKey);
-  const exactSeriesFirstSentence = normalizeSentenceExact(
-    firstSentence(ds.SeriesDescription) || ''
-  );
-
-  // Exact first-sentence match (case-insensitive) should trump everything.
-  if (exactPromptSentence && exactPromptSentence === exactSeriesFirstSentence) {
-    return 1;
+  const promptAttrs = extractAttributes(promptKey);
+  if (!promptAttrs.base) {
+    return 0;
   }
 
-  // If the first sentences differ, note it so we can avoid runaway scores.
-  const firstSentenceMismatchPenalty = exactPromptSentence && exactSeriesFirstSentence ? -0.2 : 0;
+  const seriesText = getSeriesText(ds);
+  const seriesAttrs = extractAttributes(seriesText);
 
-  const baseJ = jaccard(pTokens, sTokens); // 0..1
-  const baseD = tokenSetDice(pTokens, sTokens); // 0..1
-  const base = 0.65 * baseD + 0.35 * baseJ; // smooth + order-insensitive
-
-  // Numeric alignment bonus (e.g., severity grades)
-  const pNums = numTokens(pTokens);
-  const sNums = numTokens(sTokens);
-  let numBonus = 0;
-  for (const n of pNums) {
-    if (sNums.has(n)) {
-      numBonus += 0.05;
-    }
-  } // small but meaningful
-  numBonus = Math.min(numBonus, 0.15);
-
-  // Domain hints (if you pass context, otherwise inferred from ds)
-  const modality = promptContext?.modality?.toLowerCase();
-  const body = promptContext?.bodyPart?.toLowerCase();
-  let hint = 0;
-  if (modality && normalize(ds.Modality || '').includes(modality)) {
-    hint += 0.05;
-  }
-  if (body && normalize(ds.BodyPartExamined || '').includes(body)) {
-    hint += 0.05;
+  if (!seriesAttrs.base || seriesAttrs.base !== promptAttrs.base) {
+    return 0;
   }
 
-  // Prefer more specific series (longer key) slightly to break ties
-  const specificity = Math.min(buildSeriesKey(ds).length / 80, 0.08);
+  let score = 0.5;
 
-  // Encourage matches on key associated-finding tokens and lightly penalize mismatches
-  const assocTerms = ['thickening', 'nodularity', 'consolidation'];
-  let assocAdjust = 0;
-  assocTerms.forEach(term => {
-    const promptHas = pTokens.has(term);
-    const seriesHas = sTokens.has(term);
-    if (promptHas && seriesHas) {
-      assocAdjust += 0.08; // small bonus when the requested associated finding is present
-    } else if (promptHas && !seriesHas) {
-      assocAdjust -= 0.12; // penalty when the requested associated finding is absent
-    }
-  });
+  const pLat = promptAttrs.laterality;
+  const sLat = seriesAttrs.laterality;
+  const promptHasLaterality = pLat.hasLeft || pLat.hasRight || pLat.hasBilateral;
 
-  // If the prompt is consolidation-focused, also recognize "with associated consolidation" phrasing.
-  if (
-    normalizedPrompt.includes('consolidation') &&
-    !normalizedPrompt.includes('effusion') &&
-    sKey.includes('with associated consolidation')
-  ) {
-    assocAdjust += 0.1;
-  }
-
-  // Laterality alignment: reward exact matches, penalize cross/missing
-  const promptLaterality = detectLaterality(promptKey);
-  const seriesLaterality = detectLaterality(sKey);
-  const promptHasLeft = promptLaterality.hasLeft;
-  const promptHasRight = promptLaterality.hasRight;
-  const promptHasBilateral = promptLaterality.hasBilateral;
-  const seriesHasLeft = seriesLaterality.hasLeft;
-  const seriesHasRight = seriesLaterality.hasRight;
-  const seriesHasBilateral = seriesLaterality.hasBilateral;
-
-  let lateralityAdjust = 0;
-  if (promptHasBilateral) {
-    if (seriesHasBilateral) {
-      lateralityAdjust += 0.22;
-    }
-    if (seriesHasLeft !== seriesHasRight) {
-      lateralityAdjust -= 0.25; // discourage unilateral when bilateral requested
-    }
-    if (!seriesHasLeft && !seriesHasRight && !seriesHasBilateral) {
-      lateralityAdjust -= 0.18; // missing laterality info
-    }
-  } else {
-    if (promptHasLeft && seriesHasLeft) {
-      lateralityAdjust += 0.16;
-    }
-    if (promptHasRight && seriesHasRight) {
-      lateralityAdjust += 0.16;
-    }
-    if (promptHasLeft && seriesHasRight) {
-      lateralityAdjust -= 0.28;
-    }
-    if (promptHasRight && seriesHasLeft) {
-      lateralityAdjust -= 0.28;
-    }
-    if (
-      (promptHasLeft || promptHasRight) &&
-      !seriesHasLeft &&
-      !seriesHasRight &&
-      !seriesHasBilateral
-    ) {
-      lateralityAdjust -= 0.2; // requested unilateral but series has no side info
-    }
-    if ((promptHasLeft || promptHasRight) && seriesHasBilateral) {
-      lateralityAdjust -= 0.2; // prefer unilateral when user asked for unilateral
+  if (promptHasLaterality) {
+    if (pLat.hasBilateral) {
+      score += sLat.hasBilateral ? 0.2 : -0.15;
+    } else if (pLat.hasLeft) {
+      if (sLat.hasLeft) {
+        score += 0.2;
+      } else if (sLat.hasRight || sLat.hasBilateral) {
+        score -= 0.2;
+      } else {
+        score -= 0.1;
+      }
+    } else if (pLat.hasRight) {
+      if (sLat.hasRight) {
+        score += 0.2;
+      } else if (sLat.hasLeft || sLat.hasBilateral) {
+        score -= 0.2;
+      } else {
+        score -= 0.1;
+      }
     }
   }
 
-  // Lightly down-rank extra associated findings when none were requested
-  const seriesAssocPresent = assocTerms.some(term => rawSeriesTokens.includes(term));
-  const promptAssocPresent = assocTerms.some(term => rawPromptTokens.includes(term));
-  const extraAssocAdjust = !promptAssocPresent && seriesAssocPresent ? -0.12 : 0;
+  if (promptAttrs.severity) {
+    if (seriesAttrs.severity) {
+      score += promptAttrs.severity === seriesAttrs.severity ? 0.2 : -0.2;
+    } else {
+      score -= 0.1;
+    }
+  }
 
-  return Math.max(
-    0,
-    Math.min(
-      0.99, // keep headroom unless exact-first-sentence match hits
-      base +
-        numBonus +
-        hint +
-        specificity +
-        assocAdjust +
-        lateralityAdjust +
-        extraAssocAdjust +
-        firstSentenceMismatchPenalty
-    )
-  );
+  if (promptAttrs.associated.size) {
+    promptAttrs.associated.forEach(term => {
+      score += seriesAttrs.associated.has(term) ? 0.1 : -0.15;
+    });
+  } else if (seriesAttrs.associated.size) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(0.99, score));
 }
 
 export type RankedDisplaySet = {

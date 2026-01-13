@@ -338,7 +338,7 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
       }, new Map())
     ).map(([, ds]) => ds);
 
-    return unique;
+    return unique.filter(ds => !isProbabilityMapDisplaySet(ds));
   }
 
 let _lastPromptKey = '';
@@ -364,6 +364,40 @@ const getViewportsArray = (state: any): any[] => {
   }
 
   return [];
+};
+
+const PMAP_SOP_CLASS_UID = '1.2.840.10008.5.1.4.1.1.30';
+
+const isProbabilityMapDisplaySet = (displaySet: any): boolean => {
+  if (!displaySet) {
+    return false;
+  }
+
+  const sopClassUID = String(
+    displaySet.SOPClassUID ??
+      displaySet?.metadata?.SOPClassUID ??
+      displaySet?.getAttribute?.('SOPClassUID') ??
+      ''
+  );
+  const modality = String(
+    displaySet.Modality ?? displaySet?.metadata?.Modality ?? displaySet?.getAttribute?.('Modality') ?? ''
+  ).toUpperCase();
+  const description = String(
+    displaySet.SeriesDescription ??
+      displaySet?.metadata?.SeriesDescription ??
+      displaySet?.getAttribute?.('SeriesDescription') ??
+      ''
+  ).toLowerCase();
+  const displaySetUID = String(displaySet.displaySetInstanceUID ?? '').toLowerCase();
+
+  return (
+    sopClassUID === PMAP_SOP_CLASS_UID ||
+    modality === 'PMAP' ||
+    displaySetUID.startsWith('pmap.') ||
+    description.includes('probability map') ||
+    description.includes('saliency map') ||
+    description.includes('pmap')
+  );
 };
 
 const getGridSizeForViewportCount = (
