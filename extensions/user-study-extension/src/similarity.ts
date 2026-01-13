@@ -65,7 +65,9 @@ function expandTokens(tokens: string[]): Set<string> {
   // multi-word expansions first
   for (const [k, vals] of Object.entries(SYNONYMS)) {
     const kTok = normalize(k);
-    if (joined.includes(kTok)) {
+    const hasKey = joined.includes(kTok);
+    const hasSynonym = vals.some(v => joined.includes(normalize(v)));
+    if (hasKey || hasSynonym) {
       out.add(kTok);
       vals.forEach(v => out.add(normalize(v)));
     }
@@ -83,6 +85,29 @@ function expandTokens(tokens: string[]): Set<string> {
   }
   return out;
 }
+
+const detectLaterality = (text: string) => {
+  const normalized = normalize(text);
+  const tokens = new Set(normalized.split(' ').filter(Boolean));
+  const hasLeft =
+    tokens.has('left') ||
+    tokens.has('lt') ||
+    normalized.includes('left lung') ||
+    normalized.includes('left sided');
+  const hasRight =
+    tokens.has('right') ||
+    tokens.has('rt') ||
+    normalized.includes('right lung') ||
+    normalized.includes('right sided');
+  const hasBilateral =
+    tokens.has('bilateral') ||
+    normalized.includes('both lungs') ||
+    normalized.includes('both sides') ||
+    normalized.includes('left and right') ||
+    normalized.includes('right and left');
+
+  return { hasLeft, hasRight, hasBilateral };
+};
 
 // Numeric tokens can be important (e.g., severity "3")
 const numTokens = (tokens: Iterable<string>) => new Set([...tokens].filter(t => /^\d+$/.test(t)));
@@ -237,39 +262,50 @@ function scoreCandidate(
   }
 
   // Laterality alignment: reward exact matches, penalize cross/missing
-  const promptHasLeft = rawPromptTokens.includes('left');
-  const promptHasRight = rawPromptTokens.includes('right');
-  const promptHasBilateral = rawPromptTokens.includes('bilateral');
-  const seriesHasLeft = rawSeriesTokens.includes('left');
-  const seriesHasRight = rawSeriesTokens.includes('right');
-  const seriesHasBilateral = rawSeriesTokens.includes('bilateral');
+  const promptLaterality = detectLaterality(promptKey);
+  const seriesLaterality = detectLaterality(sKey);
+  const promptHasLeft = promptLaterality.hasLeft;
+  const promptHasRight = promptLaterality.hasRight;
+  const promptHasBilateral = promptLaterality.hasBilateral;
+  const seriesHasLeft = seriesLaterality.hasLeft;
+  const seriesHasRight = seriesLaterality.hasRight;
+  const seriesHasBilateral = seriesLaterality.hasBilateral;
 
   let lateralityAdjust = 0;
-  if (promptHasLeft && seriesHasLeft) {
-    lateralityAdjust += 0.16;
-  }
-  if (promptHasRight && seriesHasRight) {
-    lateralityAdjust += 0.16;
-  }
-  if (promptHasLeft && seriesHasRight) {
-    lateralityAdjust -= 0.28;
-  }
-  if (promptHasRight && seriesHasLeft) {
-    lateralityAdjust -= 0.28;
-  }
-  if (
-    (promptHasLeft || promptHasRight) &&
-    !seriesHasLeft &&
-    !seriesHasRight &&
-    !seriesHasBilateral
-  ) {
-    lateralityAdjust -= 0.2; // requested unilateral but series has no side info
-  }
-  if (!promptHasBilateral && (promptHasLeft || promptHasRight) && seriesHasBilateral) {
-    lateralityAdjust -= 0.2; // prefer unilateral when user asked for unilateral
-  }
-  if (promptHasBilateral && seriesHasLeft !== seriesHasRight) {
-    lateralityAdjust -= 0.08; // prefer bilateral when the request is bilateral
+  if (promptHasBilateral) {
+    if (seriesHasBilateral) {
+      lateralityAdjust += 0.22;
+    }
+    if (seriesHasLeft !== seriesHasRight) {
+      lateralityAdjust -= 0.25; // discourage unilateral when bilateral requested
+    }
+    if (!seriesHasLeft && !seriesHasRight && !seriesHasBilateral) {
+      lateralityAdjust -= 0.18; // missing laterality info
+    }
+  } else {
+    if (promptHasLeft && seriesHasLeft) {
+      lateralityAdjust += 0.16;
+    }
+    if (promptHasRight && seriesHasRight) {
+      lateralityAdjust += 0.16;
+    }
+    if (promptHasLeft && seriesHasRight) {
+      lateralityAdjust -= 0.28;
+    }
+    if (promptHasRight && seriesHasLeft) {
+      lateralityAdjust -= 0.28;
+    }
+    if (
+      (promptHasLeft || promptHasRight) &&
+      !seriesHasLeft &&
+      !seriesHasRight &&
+      !seriesHasBilateral
+    ) {
+      lateralityAdjust -= 0.2; // requested unilateral but series has no side info
+    }
+    if ((promptHasLeft || promptHasRight) && seriesHasBilateral) {
+      lateralityAdjust -= 0.2; // prefer unilateral when user asked for unilateral
+    }
   }
 
   // Lightly down-rank extra associated findings when none were requested
