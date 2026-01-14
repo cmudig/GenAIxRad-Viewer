@@ -403,9 +403,19 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
     const HARD_CODED_SERIES_BY_STUDY: Record<string, string[]> = {
       '678543127898756': ['0000000000041', '00000000000453', '00000000000454'],
       '620043239794181': ['00000000000625', '00000000000626', '00000000000627'],
+      '974028043241112': ['1.2.826.0.1.3680043.8.498.10244468624156967808415826457751407557'],
     };
     const patientAccession = String((patientDisplaySet as any)?.AccessionNumber || '').trim();
-    const hardcodedSeries = HARD_CODED_SERIES_BY_STUDY[patientAccession] ?? [];
+    const patientStudyId = String(
+      (patientDisplaySet as any)?.StudyID ??
+        (patientDisplaySet as any)?.metadata?.StudyID ??
+        (patientDisplaySet as any)?.getAttribute?.('StudyID') ??
+        ''
+    ).trim();
+    const hardcodedSeries =
+      (patientStudyId && HARD_CODED_SERIES_BY_STUDY[patientStudyId]) ??
+      HARD_CODED_SERIES_BY_STUDY[patientAccession] ??
+      [];
 
     const resolveHardcoded = () =>
       hardcodedSeries.map(seriesId =>
