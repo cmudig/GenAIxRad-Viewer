@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
 // import HistoryPanel from './tabs/HistoryPanel';
 // import MimicPanel from './tabs/MimicPanel';
@@ -6,6 +7,7 @@ import VariationPanel from './tabs/VariationPanel';
 import OverlayComponent from './OverlayComponent';
 import ExampleComponent from './ExampleComponent';
 import ChatGPTPanel from './tabs/ChatGPTPanel';
+import { db } from '../../../platform/app/src/firebase';
 
 const TABS = [
   { id: 'example', label: 'Similar Patients', component: ExampleComponent },
@@ -101,6 +103,30 @@ function ExplanationComponent({ commandsManager, extensionManager, servicesManag
       console.warn(`ExplanationComponent: unknown tab '${tabId}'`);
       return;
     }
+    const viewportGridService =
+      servicesManager?.services?.viewportGridService ||
+      servicesManager?.services?.ViewportGridService;
+    const displaySetService = servicesManager?.services?.displaySetService;
+    const state =
+      viewportGridService?.getState?.() || viewportGridService?.getViewportGridState?.();
+    const activeViewportId = state?.activeViewportId;
+    const activeDisplaySetUID =
+      activeViewportId &&
+      viewportGridService?.getState?.()?.viewports?.get?.(activeViewportId)
+        ?.displaySetInstanceUIDs?.[0];
+    const activeDisplaySet = activeDisplaySetUID
+      ? displaySetService?.getDisplaySetByUID?.(activeDisplaySetUID)
+      : null;
+    const targetTab = TABS.find(tab => tab.id === tabId);
+    addDoc(collection(db, 'explanation-trajectory'), {
+      createdAt: serverTimestamp(),
+      fromTabId: selectedTabId,
+      toTabId: tabId,
+      toTabLabel: targetTab?.label ?? null,
+      studyInstanceUID: activeDisplaySet?.StudyInstanceUID ?? null,
+    }).catch(error => {
+      console.warn('ExplanationComponent: failed to log tab click', error);
+    });
     console.log(`Navigating to nav-button-${tabId} panel`);
     document.dispatchEvent(
       new CustomEvent('tabChanged', {

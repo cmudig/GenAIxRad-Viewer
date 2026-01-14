@@ -3,6 +3,7 @@ import { getRenderingEngine } from '@cornerstonejs/core';
 import { jumpToSlice } from '@cornerstonejs/core/utilities';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import {
   uploadDicomFolder,
   addMetadataToStudy,
@@ -14,6 +15,7 @@ import {
 } from '../../../platform/app/src/components/dicom_helpers';
 import { findBestMatchingDisplaySet } from './similarity';
 import { setDisplaySetOrigin } from './utils/displaySetOrigin';
+import { db } from '../../../platform/app/src/firebase';
 
 // CURL COMMANDS
 // Generation 4 STANDARD FALSE curl -k https://orthanc.katelyncmorrison.com/pacs/series/c8903fa5-bbca061d-8c5f69e7-17a98c10-64355063/metadata/SeriesPromptChanged
@@ -301,6 +303,24 @@ const GenerateButtons: React.FC<GenerateButtonsProps> = ({
     console.table(rows);
     console.groupEnd();
   }
+
+  const getActiveStudyInstanceUID = (servicesManager: any): string | null => {
+    const { displaySetService, viewportGridService } = servicesManager.services ?? {};
+    if (!displaySetService || !viewportGridService) {
+      return null;
+    }
+
+    const state = viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+    const activeViewportId = state?.activeViewportId;
+    const activeDsUid =
+      activeViewportId &&
+      viewportGridService?.getState?.()?.viewports?.get?.(activeViewportId)
+        ?.displaySetInstanceUIDs?.[0];
+    const activeDs = activeDsUid
+      ? displaySetService.getDisplaySetByUID?.(activeDsUid)
+      : undefined;
+    return activeDs?.StudyInstanceUID ?? null;
+  };
 
   async function getDisplaySets(servicesManager) {
     const { displaySetService, viewportGridService } = servicesManager.services ?? {};
@@ -749,6 +769,24 @@ const alignViewportToReferenceSlice = async (
           displaySetInstanceUID: target.displaySetInstanceUID,
           SeriesInstanceUID: target.SeriesInstanceUID,
           SeriesDescription: target.SeriesDescription,
+        });
+      }
+
+      if (tab === 'variation') {
+        const currentStudyInstanceUID = getActiveStudyInstanceUID(servicesManager);
+        addDoc(collection(db, 'variations_log'), {
+          createdAt: serverTimestamp(),
+          promptText,
+          promptKey,
+          answers: answerList ?? null,
+          displaySetInstanceUID: target.displaySetInstanceUID ?? null,
+          seriesInstanceUID: target.SeriesInstanceUID ?? null,
+          seriesDescription: target.SeriesDescription ?? null,
+          studyInstanceUID: target.StudyInstanceUID ?? null,
+          currentStudyInstanceUID,
+          score: Number(score.toFixed(3)),
+        }).catch(error => {
+          console.warn('GenerateButtons: failed to log variation to Firestore', error);
         });
       }
     } catch (error) {

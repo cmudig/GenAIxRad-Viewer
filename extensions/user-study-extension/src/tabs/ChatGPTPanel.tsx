@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router';
 import { useViewportGrid } from '@ohif/ui';
-import { doc, getDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../../../platform/app/src/firebase';
 
 const getViewportsArray = (state: any): any[] => {
@@ -594,6 +594,8 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
         followups: [],
       });
 
+      let finalAssistantText = '';
+      let finalStatus: 'done' | 'error' = 'done';
       try {
         if (!apiKey) {
           throw new Error('Add a Gemini API key to run the analysis.');
@@ -669,17 +671,37 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
           throw new Error('Gemini did not return a description.');
         }
 
-        const assistantText = sliceNote ? `${content}\n\n${sliceNote}` : content;
-        updateMessage(pendingAssistantId, { text: assistantText, status: 'done' });
+        finalAssistantText = sliceNote ? `${content}\n\n${sliceNote}` : content;
+        updateMessage(pendingAssistantId, { text: finalAssistantText, status: 'done' });
       } catch (err: any) {
         if (err?.name === 'AbortError') {
           updateMessage(pendingAssistantId, { text: 'Request canceled.', status: 'error' });
           return;
         }
         const message = err?.message || 'Unexpected error while contacting Gemini.';
-        const errorText = sliceNote ? `${message}\n\n${sliceNote}` : message;
-        updateMessage(pendingAssistantId, { text: errorText, status: 'error' });
+        finalStatus = 'error';
+        finalAssistantText = sliceNote ? `${message}\n\n${sliceNote}` : message;
+        updateMessage(pendingAssistantId, { text: finalAssistantText, status: 'error' });
       } finally {
+        if (finalAssistantText) {
+          const seriesDescription =
+            question.id === 'describe' ? getSeriesDescription(activeDisplaySet) : null;
+          addDoc(collection(db, 'q_and_a'), {
+            createdAt: serverTimestamp(),
+            questionId: question.id,
+            questionTitle: question.title,
+            userText: question.title,
+            assistantText: finalAssistantText,
+            status: finalStatus,
+            studyKey: activeStudyKey ?? null,
+            displaySetInstanceUID: activeDisplaySetUID ?? null,
+            isAiGenerated,
+            seriesDescription,
+            sliceNote: sliceNote ?? null,
+          }).catch(error => {
+            console.warn('ChatGPTPanel: failed to log Q&A to Firestore', error);
+          });
+        }
         controllerRef.current = null;
         if (activeQuestionRef.current === question.id) {
           activeQuestionRef.current = null;
@@ -695,6 +717,9 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
       endpoint,
       getActiveSliceNote,
       isAiGenerated,
+      activeDisplaySet,
+      activeDisplaySetUID,
+      activeStudyKey,
       temperature,
       updateMessage,
     ]
