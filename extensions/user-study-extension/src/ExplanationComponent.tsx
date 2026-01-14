@@ -8,7 +8,7 @@ import ExampleComponent from './ExampleComponent';
 import ChatGPTPanel from './tabs/ChatGPTPanel';
 
 const TABS = [
-  { id: 'example', label: 'Similar Cases', component: ExampleComponent },
+  { id: 'example', label: 'Similar Patients', component: ExampleComponent },
   { id: 'variation', label: 'Variations', component: VariationPanel },
   { id: 'radiopaedia', label: 'Important Regions', component: OverlayComponent },
   { id: 'assistant', label: 'Q&A', component: ChatGPTPanel },

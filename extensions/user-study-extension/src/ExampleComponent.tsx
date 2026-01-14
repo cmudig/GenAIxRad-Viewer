@@ -400,12 +400,15 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
       return [];
     }
 
-    const HARD_CODED_ACCESSION = '678543127898756';
-    const HARD_CODED_SERIES = ['0000000000041', '00000000000453', '00000000000454'];
+    const HARD_CODED_SERIES_BY_STUDY: Record<string, string[]> = {
+      '678543127898756': ['0000000000041', '00000000000453', '00000000000454'],
+      '620043239794181': ['00000000000625', '00000000000626', '00000000000627'],
+    };
     const patientAccession = String((patientDisplaySet as any)?.AccessionNumber || '').trim();
+    const hardcodedSeries = HARD_CODED_SERIES_BY_STUDY[patientAccession] ?? [];
 
     const resolveHardcoded = () =>
-      HARD_CODED_SERIES.map(seriesId =>
+      hardcodedSeries.map(seriesId =>
         allDisplaySets.find(
           ds =>
             String((ds as any)?.SeriesInstanceUID || '') === seriesId ||
@@ -477,14 +480,14 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
         if (!cancelled) {
           setSimilarMatches(matches);
           if (!matches.length) {
-            setSimilarError('No similar cases available yet.');
+            setSimilarError('No similar patients available yet.');
           }
         }
       } catch (err) {
         console.error('ExampleComponent: failed to load similar cases', err);
         if (!cancelled) {
           setSimilarMatches([]);
-          setSimilarError('Unable to load similar cases. Try again shortly.');
+          setSimilarError('Unable to load similar patients. Try again shortly.');
         }
       } finally {
         if (!cancelled) {
@@ -775,7 +778,7 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
       if (!matchUID) {
         uiNotificationService?.show?.({
           title: 'Series unavailable',
-          message: 'This similar case cannot be loaded right now.',
+          message: 'This similar patient cannot be loaded right now.',
           type: 'warning',
           duration: 2500,
         });
@@ -812,7 +815,7 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
       if (!matchUID) {
         uiNotificationService?.show?.({
           title: 'Series unavailable',
-          message: 'This similar case cannot be loaded right now.',
+          message: 'This similar patient cannot be loaded right now.',
           type: 'warning',
           duration: 2500,
         });
@@ -847,17 +850,17 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
         .filter(Boolean) as string[];
 
       if (!matchUIDs.length) {
-        setError('No similar cases available yet.');
+        setError('No similar patients available yet.');
         return;
       }
 
       const success = await layoutPatientWithMatches(matchUIDs);
       if (!success) {
-        setError('Unable to arrange the similar cases in the viewport.');
+        setError('Unable to arrange the similar patients in the viewport.');
       }
     } catch (err) {
       console.error('ExampleComponent: failed to show similar cases', err);
-      setError('Unable to load similar cases right now. Please try again.');
+      setError('Unable to load similar patients right now. Please try again.');
     } finally {
       setIsApplying(false);
     }
@@ -906,8 +909,8 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
     <div className="shadow-primary-main/10 flex h-full flex-col rounded-2xl bg-[#050c24] p-4 text-white shadow-lg">
       <div className="flex flex-wrap items-start gap-3">
         <div>
-          <p className="text-base font-semibold">Similar Cases</p>
-          <p className="text-sm text-white/80">Generate examples that with similar impressions.</p>
+          <p className="text-base font-semibold">Similar Patients</p>
+          <p className="text-sm text-white/80">Generate examples with similar impressions.</p>
         </div>
         <div className="ml-auto flex gap-2">
           <button
@@ -954,7 +957,7 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
           return (
             <CaseCard
               key={matchUID || `match-${index}`}
-              title={`Similar Case #${index + 1}`}
+              title={`Similar Patient #${index + 1}`}
               body={getSeriesDescription(match.displaySet) || 'Untitled series'}
               primaryActionLabel={alreadyAdded ? 'Remove from viewport' : 'Generate CT scan'}
               primaryAction={() =>
@@ -969,7 +972,7 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
 
         {!loadingSimilar && !similarMatches.length && (
           <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 p-4 text-sm text-white/70">
-            No similar cases available yet. Load another study or refresh the viewer.
+            No similar patients available yet. Load another study or refresh the viewer.
           </div>
         )}
       </div>

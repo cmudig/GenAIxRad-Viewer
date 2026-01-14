@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useViewportGrid } from '@ohif/ui';
-import { getRenderingEngine, StackViewport, VolumeViewport } from '@cornerstonejs/core';
+import { cache, getRenderingEngine, StackViewport, VolumeViewport } from '@cornerstonejs/core';
 import { jumpToSlice } from '@cornerstonejs/core/utilities';
 
 const PMAP_SOP_CLASS_UID = '1.2.840.10008.5.1.4.1.1.30';
@@ -131,6 +131,18 @@ const getSOPClassUID = (displaySet: any): string => {
 
 const isPmapDisplaySet = (displaySet: any): boolean =>
   getSOPClassUID(displaySet) === PMAP_SOP_CLASS_UID;
+
+const isPmapCacheReady = (displaySet: any): boolean => {
+  if (!displaySet?.getReferencedVolumeId) {
+    return false;
+  }
+  try {
+    const volumeId = displaySet.getReferencedVolumeId();
+    return !!volumeId && !!cache.getVolume(volumeId);
+  } catch {
+    return false;
+  }
+};
 
 const derivePmapLabel = (description: string, fallback: string): string => {
   if (!description) {
@@ -618,6 +630,44 @@ const OverlayComponent: React.FC<OverlayComponentProps> = ({ servicesManager }) 
     return entries;
   }, [activeViewportId, baseInfo, displaySetService, resolveDisplaySet, selectedPmapUID]);
 
+  const prefetchedPmapRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!displaySetService || !availablePmaps.length) {
+      return;
+    }
+
+    const { userAuthenticationService } = servicesManager?.services ?? {};
+    const headers = userAuthenticationService?.getAuthorizationHeader?.();
+
+    availablePmaps.forEach(entry => {
+      const uid = entry.displaySetInstanceUID;
+      if (!uid || prefetchedPmapRef.current.has(uid)) {
+        return;
+      }
+
+      const displaySet = resolveDisplaySet(uid);
+      if (!displaySet?.load) {
+        return;
+      }
+
+      const alreadyLoaded =
+        displaySet.isLoaded ||
+        displaySet.loading ||
+        displaySet.loadStatus?.loaded ||
+        displaySet.loadStatus?.loading;
+
+      if (alreadyLoaded || !isPmapCacheReady(displaySet)) {
+        return;
+      }
+
+      prefetchedPmapRef.current.add(uid);
+      Promise.resolve(displaySet.load({ headers })).catch(() => {
+        prefetchedPmapRef.current.delete(uid);
+      });
+    });
+  }, [availablePmaps, displaySetService, resolveDisplaySet, servicesManager]);
+
   const applyDisplaySetToViewport = useCallback(
     async (
       viewportId: string,
@@ -882,7 +932,7 @@ const OverlayComponent: React.FC<OverlayComponentProps> = ({ servicesManager }) 
     return (
       <div className="ohif-scrollbar flex h-full flex-col p-4 text-white">
         <div className="rounded-2xl border border-white/10 bg-black/40 p-4 text-sm text-white/80">
-          You first need to generate a CT scan from the Variations or Similar Cases tab before
+          You first need to generate a CT scan from the Variations or Similar Patients tab before
           viewing important regions.
         </div>
       </div>

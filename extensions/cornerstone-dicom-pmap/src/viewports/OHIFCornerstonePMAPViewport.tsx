@@ -82,12 +82,6 @@ function OHIFCornerstonePMAPViewport(props: withAppTypes) {
       },
     });
 
-    uiNotificationService.show({
-      title: 'Parametric Map',
-      type: 'warning',
-      message: 'The values are multiplied by 100 in the viewport for better visibility',
-    });
-
     return (
       <Component
         {...props}
