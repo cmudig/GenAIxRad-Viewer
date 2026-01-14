@@ -238,17 +238,42 @@ const getSeriesDescription = (displaySet: any): string | null => {
   return typeof description === 'string' && description.trim() ? description.trim() : null;
 };
 
-const getStudyIdFromSearch = (search: string): string | null => {
-  if (!search) {
+const normalizeStudyIds = (values: string[]): string | null => {
+  const ids = values
+    .flatMap(value => value.split(/[,;]/))
+    .map(value => value.trim())
+    .filter(Boolean);
+  if (!ids.length) {
     return null;
   }
-  const params = new URLSearchParams(search);
-  return (
-    params.get('StudyID') ||
-    params.get('studyID') ||
-    params.get('StudyInstanceUIDs') ||
-    params.get('studyInstanceUIDs')
-  );
+  return ids.sort().join('|');
+};
+
+const getStudyKeyFromLocation = (search: string, hash: string): string | null => {
+  const normalizedSearch = search && search.startsWith('?') ? search : search ? `?${search}` : '';
+  let hashSearch = '';
+  if (hash) {
+    const hashIndex = hash.indexOf('?');
+    if (hashIndex >= 0) {
+      hashSearch = hash.slice(hashIndex);
+    }
+  }
+
+  const collectValues = (query: string): string[] => {
+    if (!query) {
+      return [];
+    }
+    const params = new URLSearchParams(query);
+    return [
+      ...params.getAll('StudyInstanceUIDs'),
+      ...params.getAll('studyInstanceUIDs'),
+      ...params.getAll('StudyID'),
+      ...params.getAll('studyID'),
+      ...params.getAll('studyId'),
+    ];
+  };
+
+  return normalizeStudyIds([...collectValues(normalizedSearch), ...collectValues(hashSearch)]);
 };
 
 const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
@@ -275,10 +300,13 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
   const apiKey = config.apiKey ?? storedKey;
   const endpoint = config.endpoint ?? DEFAULT_ENDPOINT;
   const temperature = config.temperature ?? 1;
-  const chatStorageKey = CHAT_STATE_KEY;
-  const activeStudyId = useMemo(
-    () => getStudyIdFromSearch(location.search),
-    [location.search]
+  const activeStudyKey = useMemo(
+    () => getStudyKeyFromLocation(location.search, location.hash),
+    [location.search, location.hash]
+  );
+  const chatStorageKey = useMemo(
+    () => (activeStudyKey ? `${CHAT_STATE_KEY}-${activeStudyKey}` : CHAT_STATE_KEY),
+    [activeStudyKey]
   );
 
   const cornerstoneViewportService = servicesManager?.services?.cornerstoneViewportService ?? null;
@@ -414,21 +442,16 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
 
   // Reset Q&A history when the study in the URL changes.
   useEffect(() => {
-    const normalizedStudyId = activeStudyId ?? '';
+    const normalizedStudyKey = activeStudyKey ?? '';
     if (lastStudyIdRef.current === null) {
-      lastStudyIdRef.current = normalizedStudyId;
+      lastStudyIdRef.current = normalizedStudyKey;
       return;
     }
-    if (lastStudyIdRef.current !== normalizedStudyId) {
-      lastStudyIdRef.current = normalizedStudyId;
-      try {
-        window.localStorage.removeItem(chatStorageKey);
-      } catch (error) {
-        console.warn('ChatGPTPanel: unable to clear chat state', error);
-      }
-      resetChatState();
+    if (lastStudyIdRef.current !== normalizedStudyKey) {
+      lastStudyIdRef.current = normalizedStudyKey;
+      resetChatState(loadChatState(chatStorageKey) ?? undefined);
     }
-  }, [activeStudyId, chatStorageKey, resetChatState]);
+  }, [activeStudyKey, chatStorageKey, resetChatState]);
 
   useEffect(() => {
     if (config.apiKey || storedKey) {
