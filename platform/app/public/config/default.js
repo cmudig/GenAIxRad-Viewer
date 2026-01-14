@@ -672,7 +672,7 @@ window.config = {
             waitForElement('[data-cy="origin-label-ai"]').then(() => {
               const badges = Array.from(
                 document.querySelectorAll('[data-cy="origin-badge-ai"]')
-              ) as HTMLElement[];
+              );
               const target = badges.length > 1 ? badges[badges.length - 1] : badges[0];
               if (target) {
                 const vid =
@@ -680,17 +680,17 @@ window.config = {
                   target.closest('[data-viewport-id]')?.getAttribute('data-viewport-id') ||
                   '';
                 const vp =
-                  (vid && (document.querySelector(`[data-viewport-id="${vid}"]`) as HTMLElement)) ||
+                  (vid && document.querySelector(`[data-viewport-id="${vid}"]`)) ||
                   target.closest('[data-viewport-id]') ||
                   target.closest('.viewport-element') ||
                   null;
                 const canvas =
-                  (vp && (vp.querySelector('canvas.cornerstone-canvas') as HTMLElement)) ||
-                  (vp && (vp.querySelector('.cornerstone-viewport-element') as HTMLElement)) ||
+                  (vp && vp.querySelector('canvas.cornerstone-canvas')) ||
+                  (vp && vp.querySelector('.cornerstone-viewport-element')) ||
                   vp;
                 canvas?.click?.();
               }
-              return new Promise<void>(resolve => {
+              return new Promise(resolve => {
                 window.requestAnimationFrame(() => window.setTimeout(resolve, 50));
               });
             }),
@@ -707,8 +707,10 @@ window.config = {
             waitForElement('[data-cy="MoreTools-split-button-secondary"]').then(() => {
               const dropdownToggle = document.querySelector(
                 '[data-cy="MoreTools-split-button-secondary"]'
-              ) as HTMLElement | null;
-              dropdownToggle?.click?.();
+              );
+              if (dropdownToggle && typeof dropdownToggle.click === 'function') {
+                dropdownToggle.click();
+              }
               return waitForElement('[data-cy="ImageSliceSync"]');
             }),
         },
