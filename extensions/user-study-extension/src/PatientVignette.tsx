@@ -433,6 +433,7 @@ const STUDY_OVERRIDES: Record<
   },
   '620043239794181': {
     demographics: {
+      patientName: 'Marcus Dean',
       age: '66-year-old',
       sex: 'Male',
       bodyPart: 'Thorax',

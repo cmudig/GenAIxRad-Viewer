@@ -66,7 +66,7 @@ export const fallbackTours: Array<{
       {
         id: 'displayOptions',
         title: 'Display Options',
-        text: 'Use window/level presets (such as Soft tissue, Lung, Bone, etc.) from the display options menu to quickly apply common viewing settings. You can also simply drag your mouse over the CT scan to adjust the window/level to your preferred settings. ',
+        text: 'Use window/level presets (such as Soft tissue, Lung, Bone, etc.) from the display options menu to quickly apply common viewing settings. You can also simply drag your mouse over the CT scan to adjust the window/level to your preferred settings.',
         attachTo: {
           element: '[data-cy="window-level-menu-trigger"]',
           on: 'left',
@@ -132,8 +132,8 @@ export const fallbackTours: Array<{
       },
       {
         id: 'exampleTab',
-        title: 'Similar Cases',
-        text: 'Use AI to find other patients’ chest CT scans with similar abnormalities to those of your current patient’s chest CT scan.',
+        title: 'Similar Patients',
+        text: 'Use AI to find other patients’ chest CT scans (with different anatomy) with similar abnormalities to those of your current patient’s chest CT scan.',
         attachTo: {
           element: '[data-cy="explanation-component"]',
           on: 'left',
@@ -150,7 +150,7 @@ export const fallbackTours: Array<{
       {
         id: 'generateCtFromSimilar',
         title: 'Generate CT scan',
-        text: 'You will click generate CT scan to bring it into the viewport. ',
+        text: 'You will click generate CT scan to bring it into the viewport.',
         attachTo: {
           element: '[data-cy="similar-generate-ct"]',
           on: 'left',
@@ -168,7 +168,7 @@ export const fallbackTours: Array<{
       {
         id: 'aiGeneratedBadge',
         title: 'AI-generated scan',
-        text: 'This badge indicates that the CT scan was generated using AI. Note that the AI cannot generate contrast-enhanced CT scans',
+        text: 'This badge indicates that the CT scan was generated using AI. Note that this AI cannot generate contrast-enhanced CT scans.',
         attachTo: {
           element: '[data-cy="origin-label-ai"]',
           on: 'left',

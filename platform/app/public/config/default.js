@@ -561,7 +561,7 @@ window.config = {
         {
           id: 'displayOptions',
           title: 'Display Options',
-          text: 'Use window/level presets (such as Soft tissue, Lung, Bone, etc.) from the display options menu to quickly apply common viewing settings. You can also simply drag your mouse over the CT scan to adjust the window/level to your preferred settings. ',
+          text: 'Use window/level presets (such as Soft tissue, Lung, Bone, etc.) from the display options menu to quickly apply common viewing settings. You can also simply drag your mouse over the CT scan to adjust the window/level to your preferred settings.',
           attachTo: {
             element: '[data-cy="window-level-menu-trigger"]',
             on: 'left',
@@ -627,8 +627,8 @@ window.config = {
         },
         {
           id: 'exampleTab',
-          title: 'Similar Cases',
-          text: 'Use AI to find other patients’ chest CT scans with similar abnormalities to those of your current patient’s chest CT scan.',
+          title: 'Similar Patients',
+          text: 'Use AI to find other patients’ chest CT scans (with different anatomy) with similar abnormalities to those of your current patient’s chest CT scan.',
           attachTo: {
             element: '[data-cy="explanation-component"]',
             on: 'left',
@@ -645,7 +645,7 @@ window.config = {
         {
           id: 'generateCtFromSimilar',
           title: 'Generate CT scan',
-          text: 'You will click generate CT scan to bring it into the viewport. ',
+          text: 'You will click generate CT scan to bring it into the viewport.',
           attachTo: {
             element: '[data-cy="similar-generate-ct"]',
             on: 'left',
@@ -663,14 +663,16 @@ window.config = {
         {
           id: 'aiGeneratedBadge',
           title: 'AI-generated scan',
-          text: 'This badge indicates that the CT scan was generated using AI. Note that the AI cannot generate contrast-enhanced CT scans',
+          text: 'This badge indicates that the CT scan was generated using AI. Note that this AI cannot generate contrast-enhanced CT scans.',
           attachTo: {
             element: '[data-cy="origin-label-ai"]',
             on: 'left',
           },
           beforeShowPromise: () =>
             waitForElement('[data-cy="origin-label-ai"]').then(() => {
-              const badges = Array.from(document.querySelectorAll('[data-cy="origin-badge-ai"]'));
+              const badges = Array.from(
+                document.querySelectorAll('[data-cy="origin-badge-ai"]')
+              ) as HTMLElement[];
               const target = badges.length > 1 ? badges[badges.length - 1] : badges[0];
               if (target) {
                 const vid =
@@ -678,19 +680,17 @@ window.config = {
                   target.closest('[data-viewport-id]')?.getAttribute('data-viewport-id') ||
                   '';
                 const vp =
-                  (vid && document.querySelector(`[data-viewport-id="${vid}"]`)) ||
+                  (vid && (document.querySelector(`[data-viewport-id="${vid}"]`) as HTMLElement)) ||
                   target.closest('[data-viewport-id]') ||
                   target.closest('.viewport-element') ||
                   null;
                 const canvas =
-                  (vp && vp.querySelector('canvas.cornerstone-canvas')) ||
-                  (vp && vp.querySelector('.cornerstone-viewport-element')) ||
+                  (vp && (vp.querySelector('canvas.cornerstone-canvas') as HTMLElement)) ||
+                  (vp && (vp.querySelector('.cornerstone-viewport-element') as HTMLElement)) ||
                   vp;
-                if (canvas && typeof canvas.click === 'function') {
-                  canvas.click();
-                }
+                canvas?.click?.();
               }
-              return new Promise(resolve => {
+              return new Promise<void>(resolve => {
                 window.requestAnimationFrame(() => window.setTimeout(resolve, 50));
               });
             }),
@@ -707,7 +707,7 @@ window.config = {
             waitForElement('[data-cy="MoreTools-split-button-secondary"]').then(() => {
               const dropdownToggle = document.querySelector(
                 '[data-cy="MoreTools-split-button-secondary"]'
-              );
+              ) as HTMLElement | null;
               dropdownToggle?.click?.();
               return waitForElement('[data-cy="ImageSliceSync"]');
             }),

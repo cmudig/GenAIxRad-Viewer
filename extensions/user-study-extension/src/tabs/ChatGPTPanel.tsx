@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router';
 import { useViewportGrid } from '@ohif/ui';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../../platform/app/src/firebase';
@@ -70,7 +71,7 @@ const QUESTION_PRESETS = [
   },
   {
     id: 'counterfactual',
-    title: 'Explain why this slice does not appear normal.',
+    title: 'Explain if and why this slice does not appear normal.',
     prompt:
       'Analyze this CT slice and provide a description of what visually would need to change for the slice to appear normal.',
     system_prompt: BASE_SYSTEM_PROMPT,
@@ -186,9 +187,6 @@ const persistKey = (value: string) => {
   }
 };
 
-const getChatStorageKey = (studyId?: string | null) =>
-  studyId ? `${CHAT_STATE_KEY}:${studyId}` : CHAT_STATE_KEY;
-
 const loadChatState = (
   storageKey: string
 ): { messages: ChatMessage[]; unlockedPresetCount: number } | null => {
@@ -227,35 +225,35 @@ const persistChatState = (
   }
 };
 
-const getStudyInstanceUID = (displaySet: any): string | null => {
+const getSeriesDescription = (displaySet: any): string | null => {
   if (!displaySet) {
     return null;
   }
-  return (
-    displaySet.StudyInstanceUID ??
-    displaySet.studyInstanceUID ??
-    displaySet.metadata?.StudyInstanceUID ??
-    displaySet.getAttribute?.('StudyInstanceUID') ??
-    null
-  );
+  const description =
+    displaySet.SeriesDescription ??
+    displaySet.seriesDescription ??
+    displaySet.metadata?.SeriesDescription ??
+    displaySet.getAttribute?.('SeriesDescription') ??
+    null;
+  return typeof description === 'string' && description.trim() ? description.trim() : null;
 };
 
-const getStudyId = (displaySet: any): string | null => {
-  if (!displaySet) {
+const getStudyIdFromSearch = (search: string): string | null => {
+  if (!search) {
     return null;
   }
+  const params = new URLSearchParams(search);
   return (
-    displaySet.StudyID ??
-    displaySet.studyId ??
-    displaySet.studyID ??
-    displaySet.metadata?.StudyID ??
-    displaySet.getAttribute?.('StudyID') ??
-    null
+    params.get('StudyID') ||
+    params.get('studyID') ||
+    params.get('StudyInstanceUIDs') ||
+    params.get('studyInstanceUIDs')
   );
 };
 
 const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
   const [{ activeViewportId }] = useViewportGrid();
+  const location = useLocation();
   const config = useMemo(() => readConfig(), []);
 
   const [storedKey, setStoredKey] = useState(() => loadStoredKey());
@@ -271,18 +269,17 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
   const [activeDisplaySetUID, setActiveDisplaySetUID] = useState<string | null>(null);
   const [displaySetNudgeKey, setDisplaySetNudgeKey] = useState(0);
   const lastQAViewportDisplaySetRef = useRef<string | null>(null);
-  const [activeStudyInstanceUID, setActiveStudyInstanceUID] = useState<string | null>(null);
-  const [activeStudyId, setActiveStudyId] = useState<string | null>(null);
-  const lastChatStorageKeyRef = useRef<string | null>(null);
+  const lastStudyIdRef = useRef<string | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
   const apiKey = config.apiKey ?? storedKey;
   const endpoint = config.endpoint ?? DEFAULT_ENDPOINT;
   const temperature = config.temperature ?? 1;
-  const chatStorageKey = useMemo(() => {
-    const key = activeStudyId || activeStudyInstanceUID;
-    return getChatStorageKey(key);
-  }, [activeStudyId, activeStudyInstanceUID]);
+  const chatStorageKey = CHAT_STATE_KEY;
+  const activeStudyId = useMemo(
+    () => getStudyIdFromSearch(location.search),
+    [location.search]
+  );
 
   const cornerstoneViewportService = servicesManager?.services?.cornerstoneViewportService ?? null;
   const viewportGridService =
@@ -328,12 +325,18 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
     const sliceCount = resolveSliceCount(viewport);
     const humanIndex = (currentIndex as number) + 1;
 
-    if (sliceCount && sliceCount > 0) {
-      return `Slice viewed: ${humanIndex}/${sliceCount}`;
-    }
+    const seriesDescription = getSeriesDescription(activeDisplaySet);
+    const promptNote = seriesDescription
+      ? `Prompt used to generate CT Scan: ${seriesDescription}`
+      : null;
 
-    return `Slice viewed: ${humanIndex}`;
-  }, [activeViewportId, cornerstoneViewportService]);
+    const sliceLine =
+      sliceCount && sliceCount > 0
+        ? `Slice viewed: ${humanIndex}/${sliceCount}`
+        : `Slice viewed: ${humanIndex}`;
+
+    return promptNote ? `${sliceLine}\n${promptNote}` : sliceLine;
+  }, [activeDisplaySet, activeViewportId, cornerstoneViewportService]);
 
   const captureActiveViewport = useCallback(async (): Promise<string> => {
     if (!cornerstoneViewportService) {
@@ -398,7 +401,6 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
     if (stored) {
       resetChatState(stored);
     }
-    lastChatStorageKeyRef.current = chatStorageKey;
     didHydrateRef.current = true;
   }, [chatStorageKey, resetChatState]);
 
@@ -409,6 +411,24 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
     }
     persistChatState(chatStorageKey, { messages, unlockedPresetCount });
   }, [chatStorageKey, messages, unlockedPresetCount]);
+
+  // Reset Q&A history when the study in the URL changes.
+  useEffect(() => {
+    const normalizedStudyId = activeStudyId ?? '';
+    if (lastStudyIdRef.current === null) {
+      lastStudyIdRef.current = normalizedStudyId;
+      return;
+    }
+    if (lastStudyIdRef.current !== normalizedStudyId) {
+      lastStudyIdRef.current = normalizedStudyId;
+      try {
+        window.localStorage.removeItem(chatStorageKey);
+      } catch (error) {
+        console.warn('ChatGPTPanel: unable to clear chat state', error);
+      }
+      resetChatState();
+    }
+  }, [activeStudyId, chatStorageKey, resetChatState]);
 
   useEffect(() => {
     if (config.apiKey || storedKey) {
@@ -489,15 +509,6 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
         null;
 
       setActiveDisplaySetUID(uid);
-      if (uid && displaySetService?.getDisplaySetByUID) {
-        const displaySet = displaySetService.getDisplaySetByUID(uid);
-        setActiveStudyInstanceUID(getStudyInstanceUID(displaySet));
-        setActiveStudyId(getStudyId(displaySet));
-      } else {
-        setActiveStudyInstanceUID(null);
-        setActiveStudyId(null);
-      }
-
       const lastSeen = lastQAViewportDisplaySetRef.current;
       if (uid && lastSeen && uid !== lastSeen) {
         setDisplaySetNudgeKey(key => key + 1);
@@ -524,20 +535,6 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
       gridSub?.unsubscribe?.();
     };
   }, [viewportGridService, activeViewportId, displaySetService]);
-
-  useEffect(() => {
-    if (!activeStudyId && !activeStudyInstanceUID) {
-      return;
-    }
-    const nextKey = chatStorageKey;
-    const lastKey = lastChatStorageKeyRef.current;
-    if (nextKey === lastKey) {
-      return;
-    }
-    const stored = loadChatState(nextKey);
-    resetChatState(stored ?? undefined);
-    lastChatStorageKeyRef.current = nextKey;
-  }, [activeStudyInstanceUID, chatStorageKey, resetChatState]);
 
   const runQuestion = useCallback(
     async (question: PromptQuestion) => {
@@ -592,6 +589,22 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
 
         const systemPrompt = question.system_prompt || BASE_SYSTEM_PROMPT;
 
+        const seriesDescription =
+          question.id === 'describe' ? getSeriesDescription(activeDisplaySet) : null;
+        const parts: Array<Record<string, any>> = [
+          { text: systemPrompt },
+          { text: question.prompt },
+        ];
+        if (seriesDescription) {
+          parts.push({ text: `Prompt used to generate current CT scan: ${seriesDescription}` });
+        }
+        parts.push({
+          inline_data: {
+            mime_type: 'image/png',
+            data: base64Data,
+          },
+        });
+
         const response = await fetch(url, {
           method: 'POST',
           signal: controller.signal,
@@ -601,20 +614,7 @@ const ChatGPTPanel: React.FC<ChatGPTPanelProps> = ({ servicesManager }) => {
           body: JSON.stringify({
             contents: [
               {
-                parts: [
-                  {
-                    text: systemPrompt,
-                  },
-                  {
-                    text: question.prompt,
-                  },
-                  {
-                    inline_data: {
-                      mime_type: 'image/png',
-                      data: base64Data,
-                    },
-                  },
-                ],
+                parts,
               },
             ],
             generationConfig: {
