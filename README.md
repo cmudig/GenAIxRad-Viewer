@@ -66,7 +66,7 @@ Here is a schematic representation of our development workflow:
 5. Start the Application with Orthanc as backend `yarn dev:orthanc` (in a new terminal)
 5a. IF YOU ARE NOT USING LOCAL DOCKER FOR ORTHANC: You can also just run `yarn dev` and it will work
 6. You may need to update the frontend URL path to blackened located in this file: extensions/text-input-extension/src/GenerativeAIComponent.tsx
-7. If you want to deploy the frontend, then you need to run `npm run build` then `firebase deploy`. Make sure you are in the root directory of the project. You may need to do `nvm use 20` to get Node to be the right version when deploying.
+7. If you want to deploy the frontend, then you need to run `npm run build` then `firebase deploy`. Make sure you are in the root directory of the project. You may need to do `npx nx reset` then `nvm use 20` to get Node to be the right version when deploying.
 
 #### Run Backend
 0. For local development with the model: ssh -L 3443:localhost:3443 exouser@149.165.174.17
