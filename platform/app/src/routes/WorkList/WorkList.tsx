@@ -465,10 +465,12 @@ function WorkList({
               const firstSeries =
                 seriesInStudiesMap.get(studyInstanceUid) &&
                 seriesInStudiesMap.get(studyInstanceUid)[0];
-              const firstSeriesUid =
-                firstSeries?.seriesInstanceUid || firstSeries?.SeriesInstanceUID;
-              if (firstSeriesUid) {
-                query.append('initialSeriesInstanceUID', firstSeriesUid);
+              const resolvedFirstSeriesUid =
+                firstSeries?.seriesInstanceUid ||
+                firstSeries?.SeriesInstanceUID ||
+                (studyInstanceUid === TARGET_STUDY_INSTANCE_UID ? TARGET_SERIES_UID : undefined);
+              if (resolvedFirstSeriesUid) {
+                query.append('initialSeriesInstanceUID', resolvedFirstSeriesUid);
               }
               query.append('StudyInstanceUIDs', studyInstanceUid);
               return (

@@ -405,26 +405,59 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
       '620043239794181': ['00000000000625', '00000000000626', '00000000000627'],
       '974028043241112': ['1.2.826.0.1.3680043.8.498.10244468624156967808415826457751407557'],
     };
-    const patientAccession = String((patientDisplaySet as any)?.AccessionNumber || '').trim();
-    const patientStudyId = String(
-      (patientDisplaySet as any)?.StudyID ??
-        (patientDisplaySet as any)?.metadata?.StudyID ??
-        (patientDisplaySet as any)?.getAttribute?.('StudyID') ??
-        ''
-    ).trim();
-    const hardcodedSeries =
-      (patientStudyId && HARD_CODED_SERIES_BY_STUDY[patientStudyId]) ??
-      HARD_CODED_SERIES_BY_STUDY[patientAccession] ??
-      [];
+    const resolveStudyKey = () => {
+      const candidates = [
+        (patientDisplaySet as any)?.StudyInstanceUID,
+        (patientDisplaySet as any)?.studyInstanceUID,
+        (patientDisplaySet as any)?.studyInstanceUid,
+        (patientDisplaySet as any)?.metadata?.StudyInstanceUID,
+        (patientDisplaySet as any)?.metadata?.studyInstanceUID,
+        (patientDisplaySet as any)?.metadata?.studyInstanceUid,
+        (patientDisplaySet as any)?.getAttribute?.('StudyInstanceUID'),
+        (patientDisplaySet as any)?.StudyID,
+        (patientDisplaySet as any)?.studyID,
+        (patientDisplaySet as any)?.studyId,
+        (patientDisplaySet as any)?.metadata?.StudyID,
+        (patientDisplaySet as any)?.metadata?.studyID,
+        (patientDisplaySet as any)?.metadata?.studyId,
+        (patientDisplaySet as any)?.getAttribute?.('StudyID'),
+        (patientDisplaySet as any)?.AccessionNumber,
+        (patientDisplaySet as any)?.accessionNumber,
+        (patientDisplaySet as any)?.metadata?.AccessionNumber,
+        (patientDisplaySet as any)?.metadata?.accessionNumber,
+        (patientDisplaySet as any)?.getAttribute?.('AccessionNumber'),
+      ];
+
+      for (const candidate of candidates) {
+        const key = String(candidate || '').trim();
+        if (key && HARD_CODED_SERIES_BY_STUDY[key]) {
+          return key;
+        }
+      }
+
+      return '';
+    };
+
+    const hardcodedStudyKey = resolveStudyKey();
+    const hardcodedSeries = hardcodedStudyKey
+      ? HARD_CODED_SERIES_BY_STUDY[hardcodedStudyKey] || []
+      : [];
+
+    const matchesSeriesId = (ds: any, seriesId: string) => {
+      if (!ds || !seriesId) {
+        return false;
+      }
+      return (
+        String(ds.SeriesInstanceUID || '') === seriesId ||
+        String(ds.seriesInstanceUid || '') === seriesId ||
+        String(ds.metadata?.SeriesInstanceUID || '') === seriesId ||
+        String(ds.getAttribute?.('SeriesInstanceUID') || '') === seriesId ||
+        String(ds.displaySetInstanceUID || '') === seriesId
+      );
+    };
 
     const resolveHardcoded = () =>
-      hardcodedSeries.map(seriesId =>
-        allDisplaySets.find(
-          ds =>
-            String((ds as any)?.SeriesInstanceUID || '') === seriesId ||
-            String((ds as any)?.displaySetInstanceUID || '') === seriesId
-        )
-      )
+      hardcodedSeries.map(seriesId => allDisplaySets.find(ds => matchesSeriesId(ds, seriesId)))
         .filter(Boolean)
         .map(ds => ({ displaySet: ds, score: 1 }));
 
