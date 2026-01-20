@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "genai-rad-user-study",
+    "site": "vlm-mammogram-study",
     "public": "platform/app/dist",
     "headers": [
       {
@@ -47,11 +47,7 @@
         ]
       }
     ],
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
         "source": "**",

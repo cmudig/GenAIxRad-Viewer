@@ -1,10 +1,10 @@
 import React from 'react';
-import PatientVignette from './PatientVignette';
+import ReportComparisonPanel from './ReportComparisonPanel';
 
 function StudyQuestionComponent({ commandsManager, extensionManager, servicesManager }) {
   return (
-    <div className="p-4 bg-primary-dark text-white h-full" data-cy="study-question-component">
-      <PatientVignette servicesManager={servicesManager} />
+    <div className="h-full" data-cy="study-question-component">
+      <ReportComparisonPanel />
     </div>
   );
 }

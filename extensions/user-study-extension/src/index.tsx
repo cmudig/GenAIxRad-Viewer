@@ -1,6 +1,6 @@
 import { id } from './id';
 import StudyQuestionComponent from './StudyQuestionComponent';
-import ExplanationComponent from './ExplanationComponent';
+import ReportEvaluationPanel from './ReportEvaluationPanel';
 import OverlayComponent from './OverlayComponent';
 
 /**
@@ -31,8 +31,8 @@ export default {
       {
         name: 'study-question-panel',
         iconName: 'tab-studies',
-        iconLabel: 'Patient Vignette',
-        label: 'Patient Vignette',
+        iconLabel: 'Report Comparison',
+        label: 'Report Comparison',
         component: StudyQuestionComponent.bind(null, {
           commandsManager,
           extensionManager,
@@ -42,9 +42,9 @@ export default {
       {
         name: 'explanation-panel',
         iconName: 'tab-studies',
-        iconLabel: 'AI Tools',
-        label: 'AI Tools',
-        component: ExplanationComponent.bind(null, {
+        iconLabel: 'Report Evaluation',
+        label: 'Report Evaluation',
+        component: ReportEvaluationPanel.bind(null, {
           commandsManager,
           extensionManager,
           servicesManager,

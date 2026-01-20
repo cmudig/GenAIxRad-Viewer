@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getRenderingEngine } from '@cornerstonejs/core';
 import { jumpToSlice } from '@cornerstonejs/core/utilities';
-
 import { rankDisplaySetsByPrompt, RankedDisplaySet } from './similarity';
 import { setDisplaySetOrigin } from './utils/displaySetOrigin';
 
