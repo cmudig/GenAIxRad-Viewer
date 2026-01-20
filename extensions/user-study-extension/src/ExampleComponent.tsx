@@ -402,6 +402,7 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
 
     const HARD_CODED_SERIES_BY_STUDY: Record<string, string[]> = {
       '678543127898756': ['0000000000041', '00000000000453', '00000000000454'],
+      // '678543127898756': ['0000000000041', '0000000000043', '0000000000044'],
       '620043239794181': ['00000000000625', '00000000000626', '00000000000627'],
       '974028043241112': ['1.2.826.0.1.3680043.8.498.10244468624156967808415826457751407557'],
     };
@@ -457,7 +458,8 @@ const ExampleComponent: React.FC<ExampleComponentProps> = ({ servicesManager }) 
     };
 
     const resolveHardcoded = () =>
-      hardcodedSeries.map(seriesId => allDisplaySets.find(ds => matchesSeriesId(ds, seriesId)))
+      hardcodedSeries
+        .map(seriesId => allDisplaySets.find(ds => matchesSeriesId(ds, seriesId)))
         .filter(Boolean)
         .map(ds => ({ displaySet: ds, score: 1 }));
 
