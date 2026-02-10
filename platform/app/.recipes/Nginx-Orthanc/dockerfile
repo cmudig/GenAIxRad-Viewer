@@ -45,7 +45,7 @@
 
 
 # Stage 1: Build the application
-FROM node:18.16.1-slim as builder
+FROM node:18.20.4-slim AS builder
 
 # Setup the working directory
 RUN mkdir /usr/src/app
