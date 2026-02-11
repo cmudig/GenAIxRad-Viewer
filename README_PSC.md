@@ -146,7 +146,7 @@ https://stanford-nonconceptual-intemperately.ngrok-free.dev
 That forwards to `http://localhost:8042` on the HPC.
 
 
-## 7) Update OHIF to use the ngrok URL
+## 7) This is the Frontnend Changes: Update OHIF to use the ngrok URL
 
 Edit `platform/app/public/config/default.js` and set the DICOMweb roots to the ngrok URL. Example:
 
@@ -163,7 +163,7 @@ Notes:
 - The ngrok URL changes whenever ngrok restarts (free plan). Update config accordingly.
 - Basic Auth credentials in a static frontend are visible to users. Keep the app restricted if data is sensitive.
 
-## 8) Redeploy Firebase hosting
+## 8) Frontend: Redeploy Firebase hosting
 
 Redeploy your Firebase frontend after updating the config.
 
