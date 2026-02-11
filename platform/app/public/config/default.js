@@ -47,9 +47,13 @@ window.config = {
       sourceName: 'dicomweb',
       configuration: {
         friendlyName: 'Orthanc DICOMweb Server',
-        wadoUriRoot: 'https://orthanc.katelyncmorrison.com/wado',
-        qidoRoot: 'https://orthanc.katelyncmorrison.com/pacs',
-        wadoRoot: 'https://orthanc.katelyncmorrison.com/pacs',
+        wadoUriRoot: 'https://stanford-nonconceptual-intemperately.ngrok-free.dev/wado',
+        qidoRoot: 'https://stanford-nonconceptual-intemperately.ngrok-free.dev/dicom-web',
+        wadoRoot: 'https://stanford-nonconceptual-intemperately.ngrok-free.dev/dicom-web',
+        requestOptions: {
+          // Basic Auth for ngrok/Orthanc. Replace before deploy.
+          auth: 'ohif:bu_mammogram_study_2026_cmu_scottie_dog',
+        },
         qidoSupportsIncludeField: true,
         supportsFuzzyMatching: true,
         supportsWildcard: true,
@@ -195,9 +199,13 @@ window.config = {
       configuration: {
         friendlyName: 'Orthanc Server',
         name: 'Orthanc',
-        wadoUriRoot: 'https://orthanc.katelyncmorrison.com/wado',
-        qidoRoot: 'https://orthanc.katelyncmorrison.com/dicom-web/',
-        wadoRoot: 'https://orthanc.katelyncmorrison.com/dicom-web/',
+        wadoUriRoot: 'https://stanford-nonconceptual-intemperately.ngrok-free.dev/wado',
+        qidoRoot: 'https://stanford-nonconceptual-intemperately.ngrok-free.dev/dicom-web',
+        wadoRoot: 'https://stanford-nonconceptual-intemperately.ngrok-free.dev/dicom-web',
+        requestOptions: {
+          // Basic Auth for ngrok/Orthanc. Replace before deploy.
+          auth: 'ohif:bu_mammogram_study_2026_cmu_scottie_dog',
+        },
         qidoSupportsIncludeField: true,
         imageRendering: 'wadors',
         thumbnailRendering: 'wadors',
