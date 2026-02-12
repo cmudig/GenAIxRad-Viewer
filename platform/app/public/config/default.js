@@ -47,13 +47,9 @@ window.config = {
       sourceName: 'dicomweb',
       configuration: {
         friendlyName: 'Orthanc DICOMweb Server',
-        wadoUriRoot: 'https://stanford-nonconceptual-intemperately.ngrok-free.dev/wado',
-        qidoRoot: 'https://stanford-nonconceptual-intemperately.ngrok-free.dev/dicom-web',
-        wadoRoot: 'https://stanford-nonconceptual-intemperately.ngrok-free.dev/dicom-web',
-        requestOptions: {
-          // Basic Auth for ngrok/Orthanc. Replace before deploy.
-          auth: 'ohif:bu_mammogram_study_2026_cmu_scottie_dog',
-        },
+        wadoUriRoot: '/wado',
+        qidoRoot: '/pacs/dicom-web',
+        wadoRoot: '/pacs/dicom-web',
         qidoSupportsIncludeField: true,
         supportsFuzzyMatching: true,
         supportsWildcard: true,
@@ -65,9 +61,9 @@ window.config = {
       configuration: {
         friendlyName: 'AWS S3 Static wado server',
         name: 'aws',
-        wadoUriRoot: 'https://d14fa38qiwhyfd.cloudfront.net/dicomweb',
-        qidoRoot: 'https://d14fa38qiwhyfd.cloudfront.net/dicomweb',
-        wadoRoot: 'https://d14fa38qiwhyfd.cloudfront.net/dicomweb',
+        wadoUriRoot: 'https://scarlett-progambling-uneccentrically.ngrok-free.dev/dicomweb',
+        qidoRoot: 'https://scarlett-progambling-uneccentrically.ngrok-free.dev/dicomweb',
+        wadoRoot: 'https://scarlett-progambling-uneccentrically.ngrok-free.dev/dicomweb',
         qidoSupportsIncludeField: false,
         imageRendering: 'wadors',
         thumbnailRendering: 'wadors',
@@ -94,9 +90,9 @@ window.config = {
       configuration: {
         friendlyName: 'AWS S3 Static wado secondary server',
         name: 'aws',
-        wadoUriRoot: 'https://dd14fa38qiwhyfd.cloudfront.net/dicomweb',
-        qidoRoot: 'https://dd14fa38qiwhyfd.cloudfront.net/dicomweb',
-        wadoRoot: 'https://dd14fa38qiwhyfd.cloudfront.net/dicomweb',
+        wadoUriRoot: 'https://scarlett-progambling-uneccentrically.ngrok-free.dev/dicomweb',
+        qidoRoot: 'https://scarlett-progambling-uneccentrically.ngrok-free.dev/dicomweb',
+        wadoRoot: 'https://scarlett-progambling-uneccentrically.ngrok-free.dev/dicomweb',
         qidoSupportsIncludeField: false,
         supportsReject: false,
         imageRendering: 'wadors',
@@ -122,9 +118,9 @@ window.config = {
       configuration: {
         friendlyName: 'AWS S3 Static wado secondary server',
         name: 'aws',
-        wadoUriRoot: 'https://d3t6nz73ql33tx.cloudfront.net/dicomweb',
-        qidoRoot: 'https://d3t6nz73ql33tx.cloudfront.net/dicomweb',
-        wadoRoot: 'https://d3t6nz73ql33tx.cloudfront.net/dicomweb',
+        wadoUriRoot: 'https://scarlett-progambling-uneccentrically.ngrok-free.dev/dicomweb',
+        qidoRoot: 'https://scarlett-progambling-uneccentrically.ngrok-free.dev/dicomweb',
+        wadoRoot: 'https://scarlett-progambling-uneccentrically.ngrok-free.dev/dicomweb',
         qidoSupportsIncludeField: false,
         supportsReject: false,
         imageRendering: 'wadors',
@@ -199,13 +195,9 @@ window.config = {
       configuration: {
         friendlyName: 'Orthanc Server',
         name: 'Orthanc',
-        wadoUriRoot: 'https://stanford-nonconceptual-intemperately.ngrok-free.dev/wado',
-        qidoRoot: 'https://stanford-nonconceptual-intemperately.ngrok-free.dev/dicom-web',
-        wadoRoot: 'https://stanford-nonconceptual-intemperately.ngrok-free.dev/dicom-web',
-        requestOptions: {
-          // Basic Auth for ngrok/Orthanc. Replace before deploy.
-          auth: 'ohif:bu_mammogram_study_2026_cmu_scottie_dog',
-        },
+        wadoUriRoot: '/wado',
+        qidoRoot: '/pacs/dicom-web',
+        wadoRoot: '/pacs/dicom-web',
         qidoSupportsIncludeField: true,
         imageRendering: 'wadors',
         thumbnailRendering: 'wadors',

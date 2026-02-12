@@ -24,6 +24,7 @@ const PROXY_TARGET = process.env.PROXY_TARGET;
 const PROXY_DOMAIN = process.env.PROXY_DOMAIN;
 const PROXY_PATH_REWRITE_FROM = process.env.PROXY_PATH_REWRITE_FROM;
 const PROXY_PATH_REWRITE_TO = process.env.PROXY_PATH_REWRITE_TO;
+const PROXY_BASIC_AUTH = process.env.PROXY_BASIC_AUTH;
 
 const OHIF_PORT = Number(process.env.OHIF_PORT || 3000);
 const ENTRY_TARGET = process.env.ENTRY_TARGET || `${SRC_DIR}/index.js`;
@@ -206,6 +207,12 @@ module.exports = (env, argv) => {
         changeOrigin: true,
         pathRewrite: {
           [`^${PROXY_PATH_REWRITE_FROM}`]: PROXY_PATH_REWRITE_TO,
+        },
+        onProxyReq: proxyReq => {
+          if (PROXY_BASIC_AUTH) {
+            const encoded = Buffer.from(PROXY_BASIC_AUTH).toString('base64');
+            proxyReq.setHeader('Authorization', `Basic ${encoded}`);
+          }
         },
       },
     };
