@@ -1,4 +1,10 @@
 {
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default"
+    }
+  ],
   "hosting": {
     "site": "vlm-mammogram-study",
     "public": "platform/app/dist",
@@ -49,6 +55,14 @@
     ],
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
+      {
+        "source": "/auth/**",
+        "function": "apiProxy"
+      },
+      {
+        "source": "/api/**",
+        "function": "apiProxy"
+      },
       {
         "source": "**",
         "destination": "/index.html"

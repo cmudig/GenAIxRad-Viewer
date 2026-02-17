@@ -1,66 +1,85 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../firebase'; // Ensure this points to your Firebase configuration
-import BackItem from 'platform/ui/src/components/AllInOneMenu/BackItem';
-import { toEmail, toUsername } from '../utils/authUtils';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, user => {
-      if (user) {
-        setUserEmail(toUsername(user.email));
-      } else {
-        setUserEmail(null);
-      }
-      setLoading(false);
-    });
+    let cancelled = false;
 
-    return () => unsubscribe(); // cleanup
+    const checkSession = async () => {
+      try {
+        const response = await fetch('/auth/session', {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        if (!cancelled) {
+          setIsLoggedIn(response.ok);
+        }
+      } catch {
+        if (!cancelled) {
+          setIsLoggedIn(false);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsCheckingSession(false);
+        }
+      }
+    };
+
+    checkSession();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsSubmitting(true);
+
     try {
-      const emailWithDomain = toEmail(email);
-      await signInWithEmailAndPassword(auth, emailWithDomain, password);
-      navigate('/?patientName=Walkthrough&sortBy=studyDate&sortDirection=ascending'); // Redirect to the main page after login
-    } catch (error) {
-      setError(`Failed to log in. Please check your credentials.`);
+      const response = await fetch('/auth/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          password,
+        }),
+      });
+
+      if (!response.ok) {
+        setError('Invalid username or password.');
+        return;
+      }
+
+      navigate('/');
+    } catch {
+      setError('Login failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  // const handleDemoLogin = async () => {
-  //   try {
-  //     // Automatically log in the demo user
-  //     await signInWithEmailAndPassword(auth, 'demo@demo.com', 'demo_demo');
-  //     // After successful login, redirect to the desired URL
-  //     window.location.href = 'https://genai-radiology.web.app/generative-ai?StudyInstanceUIDs=1.3';
-  //   } catch (error) {
-  //     setError('Failed to log in as demo user.');
-  //     console.error('Failed to log in as demo user:', error);
-  //   }
-  // };
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth); // Log the user out of Firebase Authentication
-      navigate('/login'); // Redirect to the login page
-    } catch (error) {
-      console.error('Failed to log out:', error);
-    }
+    await fetch('/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    });
+    setIsLoggedIn(false);
   };
 
-  if (loading) {
+  if (isCheckingSession) {
     return (
       <div style={styles.container}>
         <p style={{ color: 'white' }}>Checking login status...</p>
@@ -68,27 +87,17 @@ const Login = () => {
     );
   }
 
-  if (userEmail) {
-    // Already logged in
+  if (isLoggedIn) {
     return (
       <div style={styles.container}>
-        <button
-          style={styles.homeButton}
-          onClick={() => navigate('/search')}
-        >
-          Go Home
-        </button>
-        <div style={{ marginTop: '200px', ...styles.container }}>
-          <h2 style={styles.title}>Welcome back!</h2>
-          <img
-            style={styles.cornerIcon}
-            src="../../assets/profile-icon.png"
-            alt="stack icon"
-            onClick={() => navigate('/login')}
-          ></img>
-          <p style={{ color: '#ffffff' }}>
-            Username: <strong>{userEmail}</strong>
-          </p>
+        <div style={styles.backgroundBox}>
+          <h2 style={styles.title}>You are signed in</h2>
+          <button
+            style={styles.button}
+            onClick={() => navigate('/')}
+          >
+            Go to Study List
+          </button>
           <button
             style={styles.logoutButton}
             onClick={handleLogout}
@@ -102,30 +111,24 @@ const Login = () => {
 
   return (
     <div style={styles.container}>
-      {/* <img
-        style={styles.mainIcon}
-        src="../../assets/logo.png"
-        alt="stack icon"
-        onClick={() => navigate('/')}
-      ></img> */}
       <div style={styles.backgroundBox}>
-        <h2 style={styles.title}>Login</h2>
+        <h2 style={styles.title}>Study Login</h2>
         <form
           onSubmit={handleLogin}
           style={styles.form}
         >
           <div style={styles.inputContainer}>
             <label
-              htmlFor="email"
+              htmlFor="username"
               style={styles.label}
             >
               Username
             </label>
             <input
               type="text"
-              id="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              id="username"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
               required
               style={styles.input}
             />
@@ -150,29 +153,11 @@ const Login = () => {
           <button
             type="submit"
             style={styles.button}
+            disabled={isSubmitting}
           >
-            Log In
+            {isSubmitting ? 'Signing In...' : 'Log In'}
           </button>
         </form>
-
-        {/* <button onClick={handleDemoLogin} style={styles.demoButton}>
-          Try Demo Mode
-        </button> */}
-
-        <p style={styles.label}>
-          Don't have an account?{' '}
-          <button
-            style={{
-              ...styles.button,
-              backgroundColor: 'transparent',
-              color: '#008aff',
-              textDecoration: 'underline',
-            }}
-            onClick={() => navigate('/signup')}
-          >
-            Sign Up
-          </button>
-        </p>
       </div>
     </div>
   );
@@ -188,12 +173,6 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
   },
-  cornerIcon: {
-    width: '40px',
-    height: '40px',
-    marginTop: '10px',
-    marginRight: '10px',
-  },
   container: {
     display: 'flex',
     flexDirection: 'column',
@@ -202,11 +181,6 @@ const styles = {
     height: '100%',
     width: '100%',
     backgroundColor: '#000000',
-  },
-  mainIcon: {
-    width: '120px',
-    height: 'auto',
-    marginBottom: '100px',
   },
   title: {
     fontSize: '32px',
@@ -242,32 +216,13 @@ const styles = {
     border: 'none',
     cursor: 'pointer',
   },
-  homeButton: {
-    padding: '10px',
-    borderRadius: '4px',
-    backgroundColor: 'none',
-    color: '#ffffff',
-    border: 'none',
-    cursor: 'pointer',
-    marginRight: '80%',
-    marginTop: '20px',
-  },
   logoutButton: {
     padding: '10px',
     backgroundColor: '#152A66',
     color: '#ffffff',
     border: 'none',
     cursor: 'pointer',
-    margin: '20px 0',
-  },
-  demoButton: {
-    padding: '15px',
-    borderRadius: '8px',
-    backgroundColor: '#152A66',
-    color: '#ffffff',
-    border: 'none',
-    cursor: 'pointer',
-    marginTop: '20px',
+    marginTop: '12px',
   },
   error: {
     color: 'red',

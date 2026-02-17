@@ -1,8 +1,56 @@
-// src/components/ProtectedRoute.tsx
 import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 
-// Auth temporarily disabled; always render the requested route.
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  const location = useLocation();
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const checkSession = async () => {
+      try {
+        const response = await fetch('/auth/session', {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        if (!cancelled) {
+          setIsAuthenticated(response.ok);
+        }
+      } catch {
+        if (!cancelled) {
+          setIsAuthenticated(false);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    checkSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: `${location.pathname}${location.search}` }}
+      />
+    );
+  }
+
   return children;
 };
 

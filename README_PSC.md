@@ -185,6 +185,53 @@ Notes:
 
 Redeploy your Firebase frontend after updating the config.
 
+## 9) Firebase server-side proxy (required when ngrok uses Basic Auth)
+
+If the frontend is hosted on Firebase and Orthanc/nginx are exposed through ngrok with Basic Auth, route DICOMweb through a Firebase Function so the browser does not call ngrok directly.
+
+The viewer config should use:
+
+```js
+wadoUriRoot: '/api/wado',
+qidoRoot: '/api/dicom-web',
+wadoRoot: '/api/dicom-web',
+```
+
+Set Firebase Function secrets:
+
+```bash
+firebase functions:secrets:set NGROK_BASE_URL
+# value example: https://scarlett-progambling-uneccentrically.ngrok-free.dev
+
+firebase functions:secrets:set NGROK_BASIC_AUTH
+# value example: viewer:YOUR_NGROK_PASSWORD
+
+firebase functions:secrets:set STUDY_USERNAME
+# value example: studyuser
+
+firebase functions:secrets:set STUDY_PASSWORD
+# value example: STRONG_PASSWORD
+
+firebase functions:secrets:set SESSION_SECRET
+# value example: a long random string
+```
+
+Install function dependencies and deploy:
+
+```bash
+cd functions
+yarn install
+cd ..
+
+firebase deploy --only functions,hosting
+```
+
+### Shared login gate for asynchronous studies
+
+`/login` now checks a shared username/password via `/auth/login` in Firebase Functions.
+On success, a secure HttpOnly session cookie is set, and `/api/*` requests are allowed only with a valid session.
+To revoke all sessions quickly, rotate `SESSION_SECRET`.
+
 ## Troubleshooting
 
 - `Inexistent path to plugins`: check `Plugins` path in `orthanc.json` and ensure the file exists.
@@ -232,17 +279,14 @@ curl -i http://127.0.0.1:8080/dicom-web/studies
 /jet/home/morrisok/bin/ngrok http 8080 --basic-auth="viewer:YOUR_VIEWER_PASSWORD"
 ```
 
-6) Copy the new ngrok URL and update frontend config:
+6) If ngrok URL changes, update Firebase Function secret (frontend config stays `/api/...`):
 
-In `platform/app/public/config/default.js`, for both datasource blocks (`dicomweb` and `orthanc`), set:
+```bash
+firebase functions:secrets:set NGROK_BASE_URL
+# value: https://<NEW_NGROK_URL>
 
-```js
-wadoUriRoot: 'https://<NEW_NGROK_URL>/wado',
-qidoRoot: 'https://<NEW_NGROK_URL>/dicom-web',
-wadoRoot: 'https://<NEW_NGROK_URL>/dicom-web',
+firebase deploy --only functions:apiProxy
 ```
-
-Do not include `requestOptions.auth` in frontend config.
 
 7) From local machine, rebuild + redeploy Firebase hosting:
 

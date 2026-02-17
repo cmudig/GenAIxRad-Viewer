@@ -4,7 +4,6 @@ import i18n from '@ohif/i18n';
 import { I18nextProvider } from 'react-i18next';
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
 import Login from './components/Login'; // Import Login component
-import SignUp from './components/SignUp'; // Import SignUp component
 import ProtectedRoute from './components/ProtectedRoute'; // Import ProtectedRoute component
 import Compose from './routes/Mode/Compose';
 import {
@@ -43,8 +42,7 @@ let commandsManager: CommandsManager,
   serviceProvidersManager: ServiceProvidersManager,
   hotkeysManager: HotkeysManager;
 
-// Temporarily disable auth gating.
-const requireAuth = false;
+const requireAuth = true;
 
 function App({
   config = {
@@ -160,10 +158,6 @@ function App({
               <Route
                 path="/login"
                 element={<Login />}
-              />
-              <Route
-                path="/signup"
-                element={<SignUp />}
               />
               <Route
                 path="/search"

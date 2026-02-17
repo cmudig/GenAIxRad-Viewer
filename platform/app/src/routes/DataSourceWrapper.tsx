@@ -55,7 +55,7 @@ function DataSourceWrapper(props: withAppTypes) {
     let dataSourceName = lowerCaseSearchParams.get('datasources');
 
     if (!dataSourceName && window.config.defaultDataSourceName) {
-      return '';
+      return window.config.defaultDataSourceName;
     }
 
     if (!dataSourceName) {
