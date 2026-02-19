@@ -27,7 +27,8 @@ Screenshot of Generative AI extension. Left: Findings and Impressions of origina
 
 - `master` - The latest dev release
 
-This is typically where the latest development happens. Code that is in the master branch has passed code reviews and automated tests, but it may not be deemed ready for production. This branch usually contains the most recent changes and features being worked on by the development team. It's often the starting point for creating feature branches (where new features are developed) and hotfix branches (for urgent fixes).
+This is typically where the latest development happens. Code that is in the master branch has passed code reviews and automated tests, but it may not be deemed ready for production. This branch usually contains the most recent changes and features being worked on by the development team. It's often the starting point for creating feature branches (where new features are developed) and hotfix branches (for urgent fixe
+s).
 
 Each package is tagged with beta version numbers, and published to npm such as `@ohif/ui@3.6.0-beta.1`
 

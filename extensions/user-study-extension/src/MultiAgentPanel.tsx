@@ -39,13 +39,21 @@ const AGENT_COMPONENTS: Record<ComponentAgentName, React.ComponentType<any>> = {
 const AgentCardHeader: React.FC<{
   agentName: AgentToolName;
   hasError?: boolean;
-}> = ({ agentName, hasError }) => (
-  <div className="flex items-center gap-2 border-b border-white/10 pb-2 mb-3">
+  collapsed?: boolean;
+  onToggle?: () => void;
+}> = ({ agentName, hasError, collapsed, onToggle }) => (
+  <div
+    className={`flex items-center gap-2 px-4 py-3 border-b border-white/10 ${onToggle ? 'cursor-pointer select-none hover:bg-white/[0.02] transition' : ''}`}
+    onClick={onToggle}
+  >
     <span className="font-mono text-xs text-white/40">{AGENT_ICONS[agentName]}</span>
-    <span className="text-[10px] font-semibold uppercase tracking-widest text-white/50">
+    <span className="text-[10px] font-semibold uppercase tracking-widest text-white/50 flex-1">
       {AGENT_LABELS[agentName]}
     </span>
-    {hasError && <span className="ml-auto text-[10px] text-red-400">Error</span>}
+    {hasError && <span className="text-[10px] text-red-400">Error</span>}
+    {onToggle !== undefined && (
+      <span className="text-[9px] text-white/25 ml-1">{collapsed ? '▼' : '▲'}</span>
+    )}
   </div>
 );
 
@@ -72,37 +80,42 @@ const ComponentAgentCard: React.FC<
     extensionManager: any;
   }
 > = ({ agentName, userMessageId, status, errorMessage, commandsManager, servicesManager, extensionManager }) => {
+  const [collapsed, setCollapsed] = useState(agentName === 'generate_variation');
   const EmbeddedComponent = AGENT_COMPONENTS[agentName as ComponentAgentName];
 
   return (
     <div className="rounded-2xl border border-white/10 bg-[#0b1433] overflow-hidden">
-      <div className="px-4 pt-4">
-        <AgentCardHeader agentName={agentName} hasError={status === 'error'} />
+      <AgentCardHeader
+        agentName={agentName}
+        hasError={status === 'error'}
+        collapsed={collapsed}
+        onToggle={() => setCollapsed(c => !c)}
+      />
+      <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${collapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'}`}>
+        <div className="overflow-hidden">
+          {status === 'loading' && (
+            <div className="px-4 py-3">
+              <p className="text-sm text-white/50">Loading...</p>
+            </div>
+          )}
+          {status === 'error' && (
+            <div className="px-4 py-3">
+              <p className="rounded-xl bg-red-500/10 p-3 text-sm text-red-300">{errorMessage}</p>
+            </div>
+          )}
+          {status === 'ready' && EmbeddedComponent && (
+            <div className="min-h-[200px]">
+              {/* key includes userMessageId so each new conversation turn remounts fresh */}
+              <EmbeddedComponent
+                key={`${agentName}-${userMessageId}`}
+                commandsManager={commandsManager}
+                servicesManager={servicesManager}
+                extensionManager={extensionManager}
+              />
+            </div>
+          )}
+        </div>
       </div>
-
-      {status === 'loading' && (
-        <div className="px-4 pb-4">
-          <p className="text-sm text-white/50">Loading...</p>
-        </div>
-      )}
-
-      {status === 'error' && (
-        <div className="px-4 pb-4">
-          <p className="rounded-xl bg-red-500/10 p-3 text-sm text-red-300">{errorMessage}</p>
-        </div>
-      )}
-
-      {status === 'ready' && EmbeddedComponent && (
-        <div className="min-h-[200px]">
-          {/* key includes userMessageId so each new conversation turn remounts fresh */}
-          <EmbeddedComponent
-            key={`${agentName}-${userMessageId}`}
-            commandsManager={commandsManager}
-            servicesManager={servicesManager}
-            extensionManager={extensionManager}
-          />
-        </div>
-      )}
     </div>
   );
 };
@@ -113,24 +126,37 @@ const TextAgentCard: React.FC<TextAgentMessage> = ({
   status,
   content,
   errorMessage,
-}) => (
-  <div className="rounded-2xl border border-white/10 bg-[#0b1433] p-4">
-    <AgentCardHeader agentName={agentName} hasError={status === 'error'} />
-    <p className="text-xs text-white/40 italic mb-3">&ldquo;{question}&rdquo;</p>
-
-    {status === 'loading' && (
-      <p className="text-sm text-white/50">Capturing slice and consulting AI...</p>
-    )}
-    {(status === 'done') && content && (
-      <p className="rounded-xl bg-[#0e1c4a] p-3 text-sm leading-relaxed text-white">
-        {content}
-      </p>
-    )}
-    {status === 'error' && (
-      <p className="rounded-xl bg-red-500/10 p-3 text-sm text-red-300">{errorMessage}</p>
-    )}
-  </div>
-);
+}) => {
+  const [collapsed, setCollapsed] = useState(false);
+  return (
+    <div className="rounded-2xl border border-white/10 bg-[#0b1433] overflow-hidden">
+      <AgentCardHeader
+        agentName={agentName}
+        hasError={status === 'error'}
+        collapsed={collapsed}
+        onToggle={() => setCollapsed(c => !c)}
+      />
+      <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${collapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'}`}>
+        <div className="overflow-hidden">
+          <div className="px-4 py-3">
+            <p className="text-xs text-white/40 italic mb-3">&ldquo;{question}&rdquo;</p>
+            {status === 'loading' && (
+              <p className="text-sm text-white/50">Capturing slice and consulting AI...</p>
+            )}
+            {status === 'done' && content && (
+              <p className="rounded-xl bg-[#0e1c4a] p-3 text-sm leading-relaxed text-white">
+                {content}
+              </p>
+            )}
+            {status === 'error' && (
+              <p className="rounded-xl bg-red-500/10 p-3 text-sm text-red-300">{errorMessage}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ThinkingIndicator: React.FC = () => (
   <div className="flex justify-start">
@@ -145,9 +171,9 @@ const ThinkingIndicator: React.FC = () => (
 );
 
 const SUGGESTIONS = [
+  { text: 'Generate an AI comparison scan', hint: 'Create a counterfactual variation to compare against this patient scan' },
   { text: 'Show me similar diagnosed cases', hint: 'Compare against known presentations' },
   { text: "What regions drove the AI's prediction?", hint: 'Understand where the AI focused' },
-  { text: 'What would this look like without the finding?', hint: 'Explore a counterfactual scan' },
   { text: "What's the main finding on this slice?", hint: 'Get an AI read of the current view' },
 ];
 
@@ -245,47 +271,6 @@ const ErrorBanner: React.FC<{ message: string }> = ({ message }) => (
   </div>
 );
 
-const GenerateScanBanner: React.FC<{
-  hasGenerated: boolean;
-  isThinking: boolean;
-  onGenerate: () => void;
-}> = ({ hasGenerated, isThinking, onGenerate }) => (
-  <div className="shrink-0 border-b border-white/10">
-    {hasGenerated ? (
-      <div className="flex items-center justify-between px-4 py-2">
-        <div className="flex items-center gap-2">
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-400/60" />
-          <p className="text-[11px] text-white/40">AI comparison scan ready</p>
-        </div>
-        <button
-          onClick={onGenerate}
-          disabled={isThinking}
-          className="text-[11px] text-white/25 hover:text-white/55 transition disabled:opacity-40"
-        >
-          Regenerate
-        </button>
-      </div>
-    ) : (
-      <div className="flex items-center gap-2 border-l-2 border-primary-main/60 bg-primary-main/[0.05] pl-3 pr-3 py-2.5">
-        <div className="flex-1 min-w-0">
-          <p className="text-[11px] leading-snug text-white/60">
-            <span className="font-semibold text-primary-main/80">Step 1 — </span>
-            Generate an AI comparison scan before using XAI tools
-          </p>
-        </div>
-        <button
-          onClick={onGenerate}
-          disabled={isThinking}
-          className="shrink-0 rounded-md bg-primary-main px-3 py-1 text-[11px] font-semibold
-                     text-black hover:bg-primary-light transition disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          Generate
-        </button>
-      </div>
-    )}
-  </div>
-);
-
 // ─── Message renderer ─────────────────────────────────────────────────────────
 
 const MessageRenderer: React.FC<{
@@ -376,14 +361,6 @@ function MultiAgentPanel({ commandsManager, servicesManager, extensionManager }:
     [sendMessage]
   );
 
-  const hasGeneratedScan = state.messages.some(
-    m => m.role === 'agent' && (m as ComponentAgentMessage | TextAgentMessage).agentName === 'generate_variation'
-  );
-
-  const handleGenerateScan = useCallback(() => {
-    sendMessage('Generate an AI comparison scan');
-  }, [sendMessage]);
-
   return (
     <div className="ohif-scrollbar flex h-full flex-col bg-[#050c24] text-white">
       {/* Header */}
@@ -426,13 +403,6 @@ function MultiAgentPanel({ commandsManager, servicesManager, extensionManager }:
           Ask a question — the orchestrator routes to the right agent automatically
         </p>
       </div>
-
-      {/* Generate scan banner */}
-      <GenerateScanBanner
-        hasGenerated={hasGeneratedScan}
-        isThinking={state.isThinking}
-        onGenerate={handleGenerateScan}
-      />
 
       {/* Message thread */}
       <div
