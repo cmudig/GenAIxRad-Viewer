@@ -268,19 +268,41 @@ function MultiAgentPanel({ commandsManager, servicesManager, extensionManager }:
   return (
     <div className="ohif-scrollbar flex h-full flex-col bg-[#050c24] text-white">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 shrink-0">
-        <div>
-          <p className="text-sm font-semibold text-white">XAI Agents</p>
-          <p className="text-[10px] text-white/40 uppercase tracking-widest">Multi-agent system</p>
+      <div className="border-b border-white/10 px-4 pt-4 pb-3 shrink-0">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm font-bold text-white leading-tight">Explainability Agent System</p>
+            <p className="text-[11px] text-white/50 mt-0.5 leading-snug">
+              Four specialized AI agents working together
+            </p>
+          </div>
+          {state.messages.length > 0 && (
+            <button
+              onClick={clearThread}
+              className="rounded-full px-3 py-1 text-xs text-white/40 hover:text-white/70 transition border border-white/10 hover:border-white/30 shrink-0 ml-2"
+            >
+              Clear
+            </button>
+          )}
         </div>
-        {state.messages.length > 0 && (
-          <button
-            onClick={clearThread}
-            className="rounded-full px-3 py-1 text-xs text-white/40 hover:text-white/70 transition border border-white/10 hover:border-white/30"
-          >
-            Clear
-          </button>
-        )}
+
+        <div className="mt-3 grid grid-cols-2 gap-1.5">
+          {[
+            { label: 'Similar Cases', technique: 'Exemplar-Based' },
+            { label: 'Saliency Maps', technique: 'Attention-Based' },
+            { label: 'Variations', technique: 'Counterfactual' },
+            { label: 'Visual Q&A', technique: 'Reasoning-Based' },
+          ].map(({ label, technique }) => (
+            <div key={label} className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5">
+              <p className="text-[11px] font-medium text-white/80 leading-tight">{label}</p>
+              <p className="text-[9px] text-white/35 uppercase tracking-widest mt-0.5">{technique}</p>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-2.5 text-[10px] text-white/30 leading-relaxed">
+          Ask a question — the orchestrator routes to the right agent automatically
+        </p>
       </div>
 
       {/* Message thread */}
