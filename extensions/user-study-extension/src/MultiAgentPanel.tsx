@@ -145,24 +145,94 @@ const ThinkingIndicator: React.FC = () => (
 );
 
 const SUGGESTIONS = [
-  'Show me similar cases',
-  'Highlight important regions',
-  'Generate a variation',
-  'What findings are visible?',
+  { text: 'Show me similar diagnosed cases', hint: 'Compare against known presentations' },
+  { text: "What regions drove the AI's prediction?", hint: 'Understand where the AI focused' },
+  { text: 'What would this look like without the finding?', hint: 'Explore a counterfactual scan' },
+  { text: "What's the main finding on this slice?", hint: 'Get an AI read of the current view' },
 ];
 
+const WORKFLOW_STEPS = [
+  { step: '1', label: 'Form a hypothesis', desc: 'Examine the scan yourself and note what you think the finding is.' },
+  { step: '2', label: 'Compare & investigate', desc: 'Use Similar Cases or Important Regions to check your read against known examples and AI attention.' },
+  { step: '3', label: 'Challenge it', desc: 'Generate a counterfactual — see what the scan looks like without the finding.' },
+  { step: '4', label: 'Ask specific questions', desc: 'Use Visual Q&A to probe anything about this specific slice.' },
+];
+
+const AGENT_DESCRIPTIONS = [
+  { name: 'Similar Cases', desc: 'Finds real cases with matching features for side-by-side comparison.' },
+  { name: 'Important Regions', desc: 'Shows which areas the AI weighted most heavily in its prediction.' },
+  { name: 'Variations', desc: 'Generates a counterfactual scan — the same patient, without the finding.' },
+  { name: 'Visual Q&A', desc: 'Answers free-form questions about the current CT slice using vision AI.' },
+];
+
+const HelpPopover: React.FC = () => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        className="flex items-center justify-center w-4 h-4 rounded-full border border-white/20
+                   text-[9px] text-white/40 hover:text-white/70 hover:border-white/40 transition"
+        aria-label="How to use this panel"
+      >
+        ?
+      </button>
+      {open && (
+        <div className="absolute left-0 top-5 z-50 w-72 rounded-xl border border-white/15 bg-[#0d1940] shadow-2xl p-4 space-y-4">
+          <div>
+            <p className="text-[11px] font-semibold text-white/80 mb-2.5">Suggested learning workflow</p>
+            <div className="space-y-2.5">
+              {WORKFLOW_STEPS.map(({ step, label, desc }) => (
+                <div key={step} className="flex gap-2.5">
+                  <span className="shrink-0 w-4 h-4 rounded-full bg-white/10 text-[9px] text-white/50 flex items-center justify-center mt-0.5">
+                    {step}
+                  </span>
+                  <div>
+                    <p className="text-[11px] font-medium text-white/70 leading-tight">{label}</p>
+                    <p className="text-[10px] text-white/35 leading-snug mt-0.5">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="border-t border-white/10 pt-3">
+            <p className="text-[11px] font-semibold text-white/80 mb-2">What each agent does</p>
+            <div className="space-y-2">
+              {AGENT_DESCRIPTIONS.map(({ name, desc }) => (
+                <div key={name}>
+                  <p className="text-[10px] font-medium text-white/60">{name}</p>
+                  <p className="text-[10px] text-white/30 leading-snug">{desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const EmptyState: React.FC<{ onSuggestion: (text: string) => void }> = ({ onSuggestion }) => (
-  <div className="flex flex-col items-center gap-4 px-2 py-8">
-    <p className="text-sm text-white/50 text-center">Ask the XAI agent system about this scan.</p>
-    <div className="grid grid-cols-2 gap-2 w-full">
-      {SUGGESTIONS.map(s => (
+  <div className="flex flex-col gap-3 px-1 py-6">
+    <div>
+      <p className="text-xs font-semibold text-white/70">Where would you like to start?</p>
+      <p className="text-[11px] text-white/35 mt-0.5 leading-snug">
+        Select a starting point or type your own question below.
+      </p>
+    </div>
+    <div className="flex flex-col gap-2 w-full">
+      {SUGGESTIONS.map(({ text, hint }) => (
         <button
-          key={s}
-          onClick={() => onSuggestion(s)}
-          className="rounded-xl border border-white/10 bg-[#0b1433] px-3 py-2 text-xs
-                     text-white/60 hover:border-white/30 hover:text-white/90 transition text-left"
+          key={text}
+          onClick={() => onSuggestion(text)}
+          className="rounded-xl border border-white/10 bg-[#0b1433] px-3 py-2.5 text-left
+                     hover:border-white/30 hover:bg-white/5 transition group"
         >
-          {s}
+          <p className="text-xs text-white/70 group-hover:text-white/90 transition leading-snug">{text}</p>
+          <p className="text-[10px] text-white/30 mt-0.5">{hint}</p>
         </button>
       ))}
     </div>
@@ -271,7 +341,10 @@ function MultiAgentPanel({ commandsManager, servicesManager, extensionManager }:
       <div className="border-b border-white/10 px-4 pt-4 pb-3 shrink-0">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm font-bold text-white leading-tight">Explainability Agent System</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-bold text-white leading-tight">Explainability Agent System</p>
+              <HelpPopover />
+            </div>
             <p className="text-[11px] text-white/50 mt-0.5 leading-snug">
               Four specialized AI agents working together
             </p>
@@ -337,7 +410,7 @@ function MultiAgentPanel({ commandsManager, servicesManager, extensionManager }:
             value={inputText}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about this CT scan..."
+            placeholder="e.g. 'Is this finding significant?' or 'Show me a case without the lesion'"
             rows={1}
             className="ohif-scrollbar flex-1 resize-none bg-transparent text-sm text-white
                        placeholder-white/30 focus:outline-none leading-relaxed px-2 py-1"
