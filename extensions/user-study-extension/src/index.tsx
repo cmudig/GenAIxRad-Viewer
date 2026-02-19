@@ -1,6 +1,6 @@
 import { id } from './id';
 import StudyQuestionComponent from './StudyQuestionComponent';
-import ExplanationComponent from './ExplanationComponent';
+import MultiAgentPanel from './MultiAgentPanel';
 import OverlayComponent from './OverlayComponent';
 
 /**
@@ -44,7 +44,7 @@ export default {
         iconName: 'tab-studies',
         iconLabel: 'AI Tools',
         label: 'AI Tools',
-        component: ExplanationComponent.bind(null, {
+        component: MultiAgentPanel.bind(null, {
           commandsManager,
           extensionManager,
           servicesManager,
