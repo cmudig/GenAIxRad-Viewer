@@ -245,6 +245,47 @@ const ErrorBanner: React.FC<{ message: string }> = ({ message }) => (
   </div>
 );
 
+const GenerateScanBanner: React.FC<{
+  hasGenerated: boolean;
+  isThinking: boolean;
+  onGenerate: () => void;
+}> = ({ hasGenerated, isThinking, onGenerate }) => (
+  <div className="shrink-0 border-b border-white/10">
+    {hasGenerated ? (
+      <div className="flex items-center justify-between px-4 py-2">
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-400/60" />
+          <p className="text-[11px] text-white/40">AI comparison scan ready</p>
+        </div>
+        <button
+          onClick={onGenerate}
+          disabled={isThinking}
+          className="text-[11px] text-white/25 hover:text-white/55 transition disabled:opacity-40"
+        >
+          Regenerate
+        </button>
+      </div>
+    ) : (
+      <div className="flex items-center gap-2 border-l-2 border-primary-main/60 bg-primary-main/[0.05] pl-3 pr-3 py-2.5">
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] leading-snug text-white/60">
+            <span className="font-semibold text-primary-main/80">Step 1 — </span>
+            Generate an AI comparison scan before using XAI tools
+          </p>
+        </div>
+        <button
+          onClick={onGenerate}
+          disabled={isThinking}
+          className="shrink-0 rounded-md bg-primary-main px-3 py-1 text-[11px] font-semibold
+                     text-black hover:bg-primary-light transition disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Generate
+        </button>
+      </div>
+    )}
+  </div>
+);
+
 // ─── Message renderer ─────────────────────────────────────────────────────────
 
 const MessageRenderer: React.FC<{
@@ -335,6 +376,14 @@ function MultiAgentPanel({ commandsManager, servicesManager, extensionManager }:
     [sendMessage]
   );
 
+  const hasGeneratedScan = state.messages.some(
+    m => m.role === 'agent' && (m as ComponentAgentMessage | TextAgentMessage).agentName === 'generate_variation'
+  );
+
+  const handleGenerateScan = useCallback(() => {
+    sendMessage('Generate an AI comparison scan');
+  }, [sendMessage]);
+
   return (
     <div className="ohif-scrollbar flex h-full flex-col bg-[#050c24] text-white">
       {/* Header */}
@@ -377,6 +426,13 @@ function MultiAgentPanel({ commandsManager, servicesManager, extensionManager }:
           Ask a question — the orchestrator routes to the right agent automatically
         </p>
       </div>
+
+      {/* Generate scan banner */}
+      <GenerateScanBanner
+        hasGenerated={hasGeneratedScan}
+        isThinking={state.isThinking}
+        onGenerate={handleGenerateScan}
+      />
 
       {/* Message thread */}
       <div
