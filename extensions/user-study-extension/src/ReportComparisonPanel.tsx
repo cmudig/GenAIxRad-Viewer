@@ -1,7 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
-
-import { db } from '../../../platform/app/src/firebase';
 
 type ReportItem = {
   aiGen: string;
@@ -9,12 +6,131 @@ type ReportItem = {
   filepath: string;
 };
 
-const ReportComparisonPanel: React.FC = () => {
+const ORTHANC_DIRECT_BASE = 'http://localhost:8042';
+
+const getUrlStudyInstanceUID = (): string | null => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const firstFromGetAll = params.getAll('StudyInstanceUIDs')?.[0];
+    const studyUid = firstFromGetAll ?? params.get('StudyInstanceUIDs');
+    return studyUid && studyUid.trim() ? studyUid.trim() : null;
+  } catch {
+    return null;
+  }
+};
+
+const getActiveStudyInstanceUID = (servicesManager: any): string | null => {
+  const { displaySetService, viewportGridService } = servicesManager?.services ?? {};
+  if (!displaySetService || !viewportGridService) {
+    return null;
+  }
+
+  const state = viewportGridService.getState?.() ?? viewportGridService.getViewportGridState?.();
+  const activeViewportId = state?.activeViewportId ?? null;
+  const viewports = state?.viewports;
+  const activeViewport =
+    viewports?.get?.(activeViewportId) ??
+    (Array.isArray(viewports) ? viewports.find(v => v?.viewportId === activeViewportId) : null) ??
+    (viewports && typeof viewports === 'object' ? (viewports[activeViewportId] ?? null) : null);
+  const activeDisplaySetUID = activeViewport?.displaySetInstanceUIDs?.[0] ?? null;
+  const activeDisplaySet = activeDisplaySetUID
+    ? displaySetService.getDisplaySetByUID?.(activeDisplaySetUID)
+    : null;
+
+  return activeDisplaySet?.StudyInstanceUID ?? null;
+};
+
+const fetchStudyMetadataValue = async (
+  studyInstanceUID: string,
+  metadataKeys: string[],
+  attemptedBases: string[] = []
+): Promise<string | null> => {
+  attemptedBases.push(ORTHANC_DIRECT_BASE);
+  const orthancStudyIds: string[] = [];
+
+  const findResponse = await fetch(`${ORTHANC_DIRECT_BASE}/tools/find`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      Level: 'Study',
+      Expand: true,
+      Query: { StudyInstanceUID: studyInstanceUID },
+    }),
+  });
+
+  if (findResponse.ok) {
+    const findResults = await findResponse.json();
+    if (Array.isArray(findResults)) {
+      findResults.forEach(item => {
+        const id = item?.ID ?? item?.ID?.toString?.();
+        if (typeof id === 'string' && id.trim()) {
+          orthancStudyIds.push(id);
+        }
+      });
+    }
+  }
+
+  if (!orthancStudyIds.length) {
+    const params = new URLSearchParams({ expand: '1', requestedTags: 'StudyInstanceUID' });
+    const studiesResponse = await fetch(`${ORTHANC_DIRECT_BASE}/studies?${params.toString()}`);
+    if (studiesResponse.ok) {
+      const studies = await studiesResponse.json();
+      if (Array.isArray(studies)) {
+        studies.forEach(item => {
+          const uid =
+            item?.RequestedTags?.StudyInstanceUID ?? item?.MainDicomTags?.StudyInstanceUID ?? null;
+          const id = item?.ID ?? null;
+          if (uid === studyInstanceUID && typeof id === 'string' && id.trim()) {
+            orthancStudyIds.push(id);
+          }
+        });
+      }
+    }
+  }
+
+  for (const orthancStudyId of Array.from(new Set(orthancStudyIds))) {
+    for (const key of metadataKeys) {
+      const metadataResponse = await fetch(
+        `${ORTHANC_DIRECT_BASE}/studies/${orthancStudyId}/metadata/${key}`
+      );
+      if (metadataResponse.ok) {
+        const value = (await metadataResponse.text())?.trim();
+        if (value) {
+          return value;
+        }
+      }
+    }
+  }
+
+  return null;
+};
+
+const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesManager }) => {
   const [reportItems, setReportItems] = useState<ReportItem[]>([]);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState('');
   const [currentReportIndex, setCurrentReportIndex] = useState(0);
+  const [displaySetVersion, setDisplaySetVersion] = useState(0);
   const totalReports = reportItems.length;
+
+  useEffect(() => {
+    const displaySetService = servicesManager?.services?.displaySetService;
+    if (!displaySetService?.subscribe) {
+      return;
+    }
+
+    const eventNames = [
+      displaySetService.EVENTS?.DISPLAY_SETS_ADDED,
+      displaySetService.EVENTS?.DISPLAY_SETS_CHANGED,
+      displaySetService.EVENTS?.DISPLAY_SET_SERIES_METADATA_INVALIDATED,
+    ].filter(Boolean);
+
+    const subs = eventNames.map(eventName =>
+      displaySetService.subscribe(eventName, () => setDisplaySetVersion(v => v + 1))
+    );
+
+    return () => subs.forEach(sub => sub?.unsubscribe?.());
+  }, [servicesManager]);
 
   useEffect(() => {
     let cancelled = false;
@@ -24,67 +140,49 @@ const ReportComparisonPanel: React.FC = () => {
       setReportError('');
 
       try {
-        const subcollectionRef = collection(db, 'mammogram-study', 'reports-data', 'reports');
-        const subcollectionSnap = await getDocs(subcollectionRef);
-        let items: ReportItem[] = subcollectionSnap.docs
-          .map(docSnap => {
-            const data = docSnap.data() || {};
-            return {
-              id: docSnap.id,
-              aiGen: String(data['ai-gen'] ?? ''),
-              groundTruth: String(data['ground-truth'] ?? ''),
-              filepath: String(data.filepath ?? ''),
-            };
-          })
-          .sort((a, b) => {
-            const aNum = Number(a.id);
-            const bNum = Number(b.id);
-            if (Number.isFinite(aNum) && Number.isFinite(bNum)) {
-              return aNum - bNum;
-            }
-            return a.id.localeCompare(b.id);
-          })
-          .map(({ aiGen, groundTruth, filepath }) => ({ aiGen, groundTruth, filepath }));
+        const activeStudyInstanceUID =
+          getUrlStudyInstanceUID() ?? getActiveStudyInstanceUID(servicesManager);
 
-        if (!items.length) {
-          const reportsDocRef = doc(db, 'mammogram-study', 'reports-data');
-          const reportsDoc = await getDoc(reportsDocRef);
-          const data = reportsDoc.exists() ? reportsDoc.data() || {} : {};
-          const reportsMap = data.reports && typeof data.reports === 'object' ? data.reports : {};
-          items = Object.entries(reportsMap)
-            .map(([key, value]) => {
-              const reportValue = value && typeof value === 'object' ? value : {};
-              return {
-                id: String(key),
-                aiGen: String((reportValue as any)['ai-gen'] ?? ''),
-                groundTruth: String((reportValue as any)['ground-truth'] ?? ''),
-                filepath: String((reportValue as any).filepath ?? ''),
-              };
-            })
-            .sort((a, b) => {
-              const aNum = Number(a.id);
-              const bNum = Number(b.id);
-              if (Number.isFinite(aNum) && Number.isFinite(bNum)) {
-                return aNum - bNum;
-              }
-              return a.id.localeCompare(b.id);
-            })
-            .map(({ aiGen, groundTruth, filepath }) => ({ aiGen, groundTruth, filepath }));
+        if (!activeStudyInstanceUID) {
+          if (!cancelled) {
+            setReportItems([]);
+            setReportError('No active study found for report metadata lookup.');
+          }
+          return;
+        }
+
+        const attemptedBases: string[] = [];
+        const [aiReport, groundTruthReport] = await Promise.all([
+          fetchStudyMetadataValue(activeStudyInstanceUID, ['mammoReport'], attemptedBases),
+          fetchStudyMetadataValue(
+            activeStudyInstanceUID,
+            ['groundTruthReport', 'groundtruthReport'],
+            attemptedBases
+          ),
+        ]);
+
+        if (!cancelled && (aiReport || groundTruthReport)) {
+          setReportItems([
+            {
+              aiGen: aiReport ?? '',
+              groundTruth: groundTruthReport ?? '',
+              filepath: '',
+            },
+          ]);
+          return;
         }
 
         if (!cancelled) {
-          if (!items.length) {
-            setReportItems([]);
-            setReportError('Report data is unavailable.');
-            return;
-          }
-          setReportItems(items);
+          setReportItems([]);
+          setReportError(
+            `Orthanc study metadata not found for StudyInstanceUID ${activeStudyInstanceUID}. Expected keys: mammoReport and groundTruthReport. Bases tried: ${Array.from(new Set(attemptedBases)).join(', ')}`
+          );
         }
       } catch (loadError) {
         console.error('ReportComparisonPanel: failed to load reports', loadError);
         if (!cancelled) {
           setReportItems([]);
-          setReportError('Unable to load report data. Please try again.');
+          setReportError('Unable to load Orthanc report metadata. Please try again.');
         }
       } finally {
         if (!cancelled) {
@@ -98,7 +196,7 @@ const ReportComparisonPanel: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [servicesManager, displaySetVersion]);
 
   useEffect(() => {
     const handler = (event: Event) => {

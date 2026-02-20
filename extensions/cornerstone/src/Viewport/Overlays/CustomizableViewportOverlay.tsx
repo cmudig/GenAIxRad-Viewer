@@ -68,7 +68,7 @@ const originBadgeItem = {
 
 const topLeftItems = {
   id: 'cornerstoneOverlayTopLeft',
-  items: [studyDateItem, originLabelItem],
+  items: [originLabelItem],
 };
 
 const topRightItems = { id: 'cornerstoneOverlayTopRight', items: [originBadgeItem] };
@@ -549,6 +549,17 @@ const isCTSeries = (displaySet: any) => {
   return modality === 'CT';
 };
 
+const getDisplaySetSeriesDescription = (displaySet: any): string => {
+  const description =
+    displaySet?.SeriesDescription ??
+    displaySet?.seriesDescription ??
+    displaySet?.metadata?.SeriesDescription ??
+    displaySet?.getAttribute?.('SeriesDescription') ??
+    '';
+
+  return String(description || '').trim();
+};
+
 function OriginLabelOverlayItem({ displaySet }: OverlayItemProps) {
   if (!displaySet) {
     return null;
@@ -558,7 +569,8 @@ function OriginLabelOverlayItem({ displaySet }: OverlayItemProps) {
   const originType = origin === 'ai' ? 'ai' : 'patient';
 
   const isAI = origin === 'ai';
-  const text = isAI ? 'AI-generated scan' : 'Patient CT scan';
+  const seriesDescription = getDisplaySetSeriesDescription(displaySet);
+  const text = isAI ? 'AI-generated scan' : seriesDescription || 'Patient CT scan';
   const baseClasses =
     'inline-flex items-center rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide';
   const palette = isAI
@@ -590,7 +602,8 @@ function OriginBadgeOverlayItem({ displaySet }: OverlayItemProps) {
   }
 
   const isAI = origin === 'ai';
-  const label = isAI ? 'AI-generated case' : 'Patient CT scan';
+  const seriesDescription = getDisplaySetSeriesDescription(displaySet);
+  const label = isAI ? 'AI-generated case' : seriesDescription || 'Patient CT scan';
   const helper = isAI ? 'Model-generated comparison' : 'Original acquisition';
   const badgeClasses = isAI
     ? 'bg-[#312e81] text-[#c4b5fd]'

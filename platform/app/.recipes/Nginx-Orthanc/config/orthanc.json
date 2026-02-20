@@ -48,11 +48,9 @@
   "HttpsVerifyPeers": true,
   "HttpsCACertificates": "",
   "UserMetadata": {
-    "SeriesPrompt": 1024,
-    "Impressions": 1025,
-    "Findings": 1026,
-    "Feedback": 1027,
-    "ShowInHistoryFlag": 1028
+    "groundTruthReport": 1024,
+    "mammoReport": 1025,
+    "medGemmaReport": 1026
   },
   "StableAge": 60,
   "StrictAetComparison": false,
