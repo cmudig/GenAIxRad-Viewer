@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   getMetadataFromOrthancStudyIdByKeys,
   getMetadataFromStudyByKeys,
@@ -8,6 +8,44 @@ type ReportItem = {
   mammoReport: string;
   comparisonReport: string;
   filepath: string;
+};
+const YELLOW_HIGHLIGHT = '#facc15';
+const RED_HIGHLIGHT = '#ef4444';
+
+const restoreSelectionRange = (range: Range) => {
+  const selection = window.getSelection();
+  if (!selection) {
+    return;
+  }
+  selection.removeAllRanges();
+  selection.addRange(range);
+};
+
+const applySelectionHighlight = (color: string, fallbackRange?: Range | null) => {
+  const selection = window.getSelection();
+  if ((!selection || selection.isCollapsed) && fallbackRange) {
+    restoreSelectionRange(fallbackRange);
+  }
+  const refreshedSelection = window.getSelection();
+  if (!refreshedSelection || refreshedSelection.isCollapsed) {
+    return;
+  }
+  document.execCommand('styleWithCSS', false, 'true');
+  document.execCommand('hiliteColor', false, color);
+};
+
+const clearSelectionHighlight = (fallbackRange?: Range | null) => {
+  const selection = window.getSelection();
+  if ((!selection || selection.isCollapsed) && fallbackRange) {
+    restoreSelectionRange(fallbackRange);
+  }
+  const refreshedSelection = window.getSelection();
+  if (!refreshedSelection || refreshedSelection.isCollapsed) {
+    return;
+  }
+  document.execCommand('styleWithCSS', false, 'true');
+  document.execCommand('hiliteColor', false, 'transparent');
+  document.execCommand('removeFormat');
 };
 
 const getUrlStudyInstanceUID = (): string | null => {
@@ -77,6 +115,8 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
   const [reportError, setReportError] = useState('');
   const [currentReportIndex, setCurrentReportIndex] = useState(0);
   const [displaySetVersion, setDisplaySetVersion] = useState(0);
+  const [activeHighlighter, setActiveHighlighter] = useState<'yellow' | 'red'>('yellow');
+  const savedSelectionRangeRef = useRef<Range | null>(null);
   const totalReports = reportItems.length;
   const isJudgeMode = window.location.pathname.includes('/judge-mode');
   const comparisonReportKey = isJudgeMode ? 'groundTruthReport' : 'medGemmaReport';
@@ -199,6 +239,57 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
     : 'Review AI-generated report (A) against AI-generated report (B).';
   const firstReportLabel = isJudgeMode ? 'Generated Report' : 'AI-Generated Report (A)';
   const secondReportLabel = isJudgeMode ? 'Ground Truth Report' : 'AI-Generated Report (B)';
+  const activeHighlightColor = activeHighlighter === 'yellow' ? YELLOW_HIGHLIGHT : RED_HIGHLIGHT;
+  useEffect(() => {
+    if (!isJudgeMode) {
+      return;
+    }
+
+    const updateSavedRange = () => {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+        return;
+      }
+      savedSelectionRangeRef.current = selection.getRangeAt(0).cloneRange();
+    };
+
+    document.addEventListener('selectionchange', updateSavedRange);
+    return () => document.removeEventListener('selectionchange', updateSavedRange);
+  }, [isJudgeMode]);
+
+  const handleReportMouseUp = () => {
+    if (!isJudgeMode) {
+      return;
+    }
+    applySelectionHighlight(activeHighlightColor, savedSelectionRangeRef.current);
+  };
+  const preventTypingInHighlightedReport = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!isJudgeMode) {
+      return;
+    }
+
+    const isModifierCommand = event.metaKey || event.ctrlKey || event.altKey;
+    const allowedKeys = new Set([
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowUp',
+      'ArrowDown',
+      'Shift',
+      'Meta',
+      'Control',
+      'Alt',
+      'Escape',
+      'Tab',
+      'PageUp',
+      'PageDown',
+      'Home',
+      'End',
+    ]);
+
+    if (!isModifierCommand && !allowedKeys.has(event.key)) {
+      event.preventDefault();
+    }
+  };
 
   useEffect(() => {
     if (!totalReports) {
@@ -258,41 +349,97 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
 
       {totalReports > 0 && !reportLoading && (
         <div className="mt-4 flex flex-col gap-3">
+          {isJudgeMode && (
+            <div className="rounded-xl border border-white/10 bg-[#0b1639] p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                Interactive Highlighting
+              </p>
+              <p className="mt-2 text-xs text-white/80">
+                Choose a color, then select text in either report to apply highlight.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                <button
+                  type="button"
+                  onMouseDown={event => {
+                    event.preventDefault();
+                    setActiveHighlighter('yellow');
+                  }}
+                  className={`rounded-md px-3 py-1 font-semibold ${
+                    activeHighlighter === 'yellow'
+                      ? 'ring-2 ring-yellow-300 bg-yellow-300/30 text-yellow-100'
+                      : 'bg-[#0f214f] text-white/80'
+                  }`}
+                >
+                  Yellow
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={event => {
+                    event.preventDefault();
+                    setActiveHighlighter('red');
+                  }}
+                  className={`rounded-md px-3 py-1 font-semibold ${
+                    activeHighlighter === 'red'
+                      ? 'ring-2 ring-red-400 bg-red-500/25 text-red-100'
+                      : 'bg-[#0f214f] text-white/80'
+                  }`}
+                >
+                  Red
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={event => {
+                    event.preventDefault();
+                    clearSelectionHighlight(savedSelectionRangeRef.current);
+                  }}
+                  className="rounded-md bg-[#0f214f] px-3 py-1 font-semibold text-white/80"
+                >
+                  Clear Selected
+                </button>
+              </div>
+            </div>
+          )}
           <div className="rounded-2xl bg-[#0d1b46] p-4 shadow-inner shadow-black/30">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
               {firstReportLabel}
             </div>
-            <p className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-white/90">
+            <div
+              contentEditable={isJudgeMode}
+              suppressContentEditableWarning={isJudgeMode}
+              onMouseUp={handleReportMouseUp}
+              onKeyDown={preventTypingInHighlightedReport}
+              className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-white/90"
+            >
               {currentMammoReport || 'No AI-generated report available for this entry.'}
-            </p>
+            </div>
           </div>
           <div className="rounded-2xl bg-[#0d1b46] p-4 shadow-inner shadow-black/30">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
               {secondReportLabel}
             </div>
-            <p className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-white/90">
-              {currentComparisonReport ||
-                (isJudgeMode
+            <div
+              contentEditable={isJudgeMode}
+              suppressContentEditableWarning={isJudgeMode}
+              onMouseUp={handleReportMouseUp}
+              onKeyDown={preventTypingInHighlightedReport}
+              className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-white/90"
+            >
+              {currentComparisonReport
+                ? currentComparisonReport
+                : isJudgeMode
                   ? 'No ground truth report available for this entry.'
-                  : 'No AI-generated report (B) available for this entry.')}
-            </p>
+                  : 'No AI-generated report (B) available for this entry.'}
+            </div>
           </div>
           {isJudgeMode && (
             <div className="rounded-2xl border border-white/10 bg-[#0b1639] p-4 shadow-inner shadow-black/30">
               <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-                Matched Findings:
+                Additional Comments
               </div>
-              <p className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-white/90">
-                Add matched findings summary here.
-              </p>
-              <div className="mt-4 text-[11px] font-semibold uppercase tracking-wide text-white/60">
-                Significant Errors:
-              </div>
-              <div className="mt-2 space-y-2 text-[14px] leading-relaxed text-white/90">
-                <p>False Reports</p>
-                <p>Mischaracterization</p>
-                <p>Location/Laterality</p>
-              </div>
+              <textarea
+                className="mt-2 min-h-[140px] w-full rounded-lg border border-white/15 bg-[#091538] p-3 text-[14px] leading-relaxed text-white outline-none placeholder:text-white/40 focus:border-white/30"
+                placeholder="Add any additional comments about this report comparison..."
+              />
             </div>
           )}
         </div>
