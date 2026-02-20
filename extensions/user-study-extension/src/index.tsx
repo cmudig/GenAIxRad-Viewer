@@ -2,6 +2,7 @@ import { id } from './id';
 import StudyQuestionComponent from './StudyQuestionComponent';
 import ReportEvaluationPanel from './ReportEvaluationPanel';
 import OverlayComponent from './OverlayComponent';
+import JudgingCriteriaPanel from './JudgingCriteriaPanel';
 
 /**
  * You can remove any of the following modules if you don't need them.
@@ -60,6 +61,13 @@ export default {
           extensionManager,
           servicesManager,
         }),
+      },
+      {
+        name: 'judging-criteria-panel',
+        iconName: 'tab-studies',
+        iconLabel: 'Judging Criteria',
+        label: 'Judging Criteria',
+        component: JudgingCriteriaPanel,
       },
     ];
 

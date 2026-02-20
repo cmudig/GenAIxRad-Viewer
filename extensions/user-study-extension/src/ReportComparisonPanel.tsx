@@ -195,7 +195,7 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
     !reportLoading && totalReports > 0 && currentReportIndex < totalReports - 1;
   const panelTitle = 'AI Report Comparison';
   const panelSubtitle = isJudgeMode
-    ? 'Review AI-generated report (A) against the ground truth report.'
+    ? 'Review AI-generated report against the ground truth report.'
     : 'Review AI-generated report (A) against AI-generated report (B).';
   const firstReportLabel = isJudgeMode ? 'Generated Report' : 'AI-Generated Report (A)';
   const secondReportLabel = isJudgeMode ? 'Ground Truth Report' : 'AI-Generated Report (B)';
@@ -277,6 +277,24 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
                   : 'No AI-generated report (B) available for this entry.')}
             </p>
           </div>
+          {isJudgeMode && (
+            <div className="rounded-2xl border border-white/10 bg-[#0b1639] p-4 shadow-inner shadow-black/30">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                Matched Findings:
+              </div>
+              <p className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-white/90">
+                Add matched findings summary here.
+              </p>
+              <div className="mt-4 text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                Significant Errors:
+              </div>
+              <div className="mt-2 space-y-2 text-[14px] leading-relaxed text-white/90">
+                <p>False Reports</p>
+                <p>Mischaracterization</p>
+                <p>Location/Laterality</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

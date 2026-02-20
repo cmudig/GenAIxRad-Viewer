@@ -1,5 +1,5 @@
 import { hotkeys } from '@ohif/core';
-import { initToolGroups, toolbarButtons } from '@ohif/mode-longitudinal';
+import { initToolGroups } from '@ohif/mode-longitudinal';
 import { id } from './id';
 
 const ohif = {
@@ -45,19 +45,8 @@ function modeFactory({ modeConfiguration }) {
       // Init Default and SR ToolGroups
       initToolGroups(extensionManager, toolGroupService, commandsManager);
 
-      const participantToolbarButtons = toolbarButtons.filter(
-        button => button?.id !== 'Capture'
-      );
-      toolbarService.addButtons(participantToolbarButtons);
-      toolbarService.createButtonSection('primary', [
-        'MeasurementTools',
-        'Zoom',
-        'WindowLevel',
-        'Pan',
-        'Layout',
-        'Crosshairs',
-        'MoreTools',
-      ]);
+      toolbarService.addButtons([]);
+      toolbarService.createButtonSection('primary', []);
     },
     onModeExit: ({ servicesManager }: withAppTypes) => {
       const {
@@ -110,7 +99,7 @@ function modeFactory({ modeConfiguration }) {
           return {
             id: ohif.layout,
             props: {
-              leftPanels: [['user-study-extension.panelModule.study-question-panel']],
+              leftPanels: [['user-study-extension.panelModule.judging-criteria-panel']],
               rightPanels: [],
               rightPanelClosed: true,
               viewports: [],

@@ -128,6 +128,11 @@ function ViewerLayout({
   }, []);
 
   const viewportComponents = viewports.map(getViewportComponentData);
+  const judgeReportPanelModuleEntry = isJudgeMode
+    ? extensionManager.getModuleEntry('user-study-extension.panelModule.study-question-panel') ||
+      extensionManager.getModuleEntry('user-study-extension.panelModule.report-comparison-panel')
+    : null;
+  const JudgeReportPanel = judgeReportPanelModuleEntry?.component;
 
   return (
     <div>
@@ -164,6 +169,19 @@ function ViewerLayout({
                   commandsManager={commandsManager}
                 />
               </div>
+            </div>
+          )}
+          {isJudgeMode && (
+            <div className="flex h-full flex-1 flex-col p-6">
+              {JudgeReportPanel ? (
+                <JudgeReportPanel servicesManager={servicesManager} />
+              ) : (
+                <div className="h-full w-full rounded-2xl border border-[#1d2d63] bg-[#050c24] p-6 text-white">
+                  <p className="text-sm text-white/80">
+                    Report comparison panel is not available.
+                  </p>
+                </div>
+              )}
             </div>
           )}
           {hasRightPanels ? (
