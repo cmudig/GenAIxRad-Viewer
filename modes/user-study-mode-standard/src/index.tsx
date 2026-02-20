@@ -58,13 +58,15 @@ function modeFactory({ modeConfiguration }) {
       // Init Default and SR ToolGroups
       initToolGroups(extensionManager, toolGroupService, commandsManager);
 
-      toolbarService.addButtons(toolbarButtons);
+      const participantToolbarButtons = toolbarButtons.filter(
+        button => button?.id !== 'Capture'
+      );
+      toolbarService.addButtons(participantToolbarButtons);
       toolbarService.createButtonSection('primary', [
         'MeasurementTools',
         'Zoom',
         'WindowLevel',
         'Pan',
-        'Capture',
         'Layout',
         'Crosshairs',
         'MoreTools',
@@ -147,7 +149,7 @@ function modeFactory({ modeConfiguration }) {
     /** List of extensions that are used by the mode */
     extensions: extensionDependencies,
     /** HangingProtocol used by the mode */
-    hangingProtocol: 'default',
+    hangingProtocol: ['@ohif/hpMammo', 'default'],
     /** SopClassHandlers used by the mode */
     sopClassHandlers: [ohif.sopClassHandler, dicomPmap.sopClassHandler],
     /** hotkeys for mode */

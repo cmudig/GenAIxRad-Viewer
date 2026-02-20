@@ -1,4 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import {
+  getMetadataFromOrthancStudyIdByKeys,
+  getMetadataFromStudyByKeys,
+} from '../../../platform/app/src/components/dicom_helpers';
 
 type ReportItem = {
   aiGen: string;
@@ -6,14 +10,34 @@ type ReportItem = {
   filepath: string;
 };
 
-const ORTHANC_DIRECT_BASE = 'http://localhost:8042';
-
 const getUrlStudyInstanceUID = (): string | null => {
   try {
     const params = new URLSearchParams(window.location.search);
     const firstFromGetAll = params.getAll('StudyInstanceUIDs')?.[0];
     const studyUid = firstFromGetAll ?? params.get('StudyInstanceUIDs');
     return studyUid && studyUid.trim() ? studyUid.trim() : null;
+  } catch {
+    return null;
+  }
+};
+
+const looksLikeOrthancId = (value: string | null): boolean => {
+  if (!value) {
+    return false;
+  }
+  return /^[a-f0-9]{8}-[a-f0-9]{8}-[a-f0-9]{8}-[a-f0-9]{8}-[a-f0-9]{8}$/i.test(value.trim());
+};
+
+const getUrlOrthancStudyId = (): string | null => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const value =
+      params.get('orthancStudyId') ||
+      params.get('OrthancStudyId') ||
+      params.get('studyId') ||
+      params.get('OrthancID') ||
+      null;
+    return value && value.trim() ? value.trim() : null;
   } catch {
     return null;
   }
@@ -40,69 +64,11 @@ const getActiveStudyInstanceUID = (servicesManager: any): string | null => {
   return activeDisplaySet?.StudyInstanceUID ?? null;
 };
 
-const fetchStudyMetadataValue = async (
+const fetchStudyMetadataValueByUid = async (
   studyInstanceUID: string,
-  metadataKeys: string[],
-  attemptedBases: string[] = []
+  metadataKeys: string[]
 ): Promise<string | null> => {
-  attemptedBases.push(ORTHANC_DIRECT_BASE);
-  const orthancStudyIds: string[] = [];
-
-  const findResponse = await fetch(`${ORTHANC_DIRECT_BASE}/tools/find`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      Level: 'Study',
-      Expand: true,
-      Query: { StudyInstanceUID: studyInstanceUID },
-    }),
-  });
-
-  if (findResponse.ok) {
-    const findResults = await findResponse.json();
-    if (Array.isArray(findResults)) {
-      findResults.forEach(item => {
-        const id = item?.ID ?? item?.ID?.toString?.();
-        if (typeof id === 'string' && id.trim()) {
-          orthancStudyIds.push(id);
-        }
-      });
-    }
-  }
-
-  if (!orthancStudyIds.length) {
-    const params = new URLSearchParams({ expand: '1', requestedTags: 'StudyInstanceUID' });
-    const studiesResponse = await fetch(`${ORTHANC_DIRECT_BASE}/studies?${params.toString()}`);
-    if (studiesResponse.ok) {
-      const studies = await studiesResponse.json();
-      if (Array.isArray(studies)) {
-        studies.forEach(item => {
-          const uid =
-            item?.RequestedTags?.StudyInstanceUID ?? item?.MainDicomTags?.StudyInstanceUID ?? null;
-          const id = item?.ID ?? null;
-          if (uid === studyInstanceUID && typeof id === 'string' && id.trim()) {
-            orthancStudyIds.push(id);
-          }
-        });
-      }
-    }
-  }
-
-  for (const orthancStudyId of Array.from(new Set(orthancStudyIds))) {
-    for (const key of metadataKeys) {
-      const metadataResponse = await fetch(
-        `${ORTHANC_DIRECT_BASE}/studies/${orthancStudyId}/metadata/${key}`
-      );
-      if (metadataResponse.ok) {
-        const value = (await metadataResponse.text())?.trim();
-        if (value) {
-          return value;
-        }
-      }
-    }
-  }
-
-  return null;
+  return getMetadataFromStudyByKeys(studyInstanceUID, metadataKeys);
 };
 
 const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesManager }) => {
@@ -140,25 +106,27 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
       setReportError('');
 
       try {
+        const urlStudyInstanceUID = getUrlStudyInstanceUID();
+        const orthancStudyId = getUrlOrthancStudyId() ?? (looksLikeOrthancId(urlStudyInstanceUID) ? urlStudyInstanceUID : null);
         const activeStudyInstanceUID =
-          getUrlStudyInstanceUID() ?? getActiveStudyInstanceUID(servicesManager);
+          orthancStudyId ? null : (urlStudyInstanceUID ?? getActiveStudyInstanceUID(servicesManager));
 
-        if (!activeStudyInstanceUID) {
+        if (!orthancStudyId && !activeStudyInstanceUID) {
           if (!cancelled) {
             setReportItems([]);
-            setReportError('No active study found for report metadata lookup.');
+            setReportError('No active study found for report metadata lookup (missing StudyInstanceUID and orthancStudyId).');
           }
           return;
         }
 
-        const attemptedBases: string[] = [];
+        const getByKeys = (keys: string[]) =>
+          orthancStudyId
+            ? getMetadataFromOrthancStudyIdByKeys(orthancStudyId, keys)
+            : fetchStudyMetadataValueByUid(activeStudyInstanceUID!, keys);
+
         const [aiReport, groundTruthReport] = await Promise.all([
-          fetchStudyMetadataValue(activeStudyInstanceUID, ['mammoReport'], attemptedBases),
-          fetchStudyMetadataValue(
-            activeStudyInstanceUID,
-            ['groundTruthReport', 'groundtruthReport'],
-            attemptedBases
-          ),
+          getByKeys(['mammoReport']),
+          getByKeys(['groundTruthReport', 'groundtruthReport']),
         ]);
 
         if (!cancelled && (aiReport || groundTruthReport)) {
@@ -175,7 +143,9 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
         if (!cancelled) {
           setReportItems([]);
           setReportError(
-            `Orthanc study metadata not found for StudyInstanceUID ${activeStudyInstanceUID}. Expected keys: mammoReport and groundTruthReport. Bases tried: ${Array.from(new Set(attemptedBases)).join(', ')}`
+            orthancStudyId
+              ? `Orthanc study metadata not found for OrthancStudyId ${orthancStudyId}. Expected keys: mammoReport and groundTruthReport.`
+              : `Orthanc study metadata not found for StudyInstanceUID ${activeStudyInstanceUID}. Expected keys: mammoReport and groundTruthReport.`
           );
         }
       } catch (loadError) {

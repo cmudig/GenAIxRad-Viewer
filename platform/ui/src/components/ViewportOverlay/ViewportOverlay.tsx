@@ -37,6 +37,7 @@ const ViewportOverlay = ({
     cornerstoneViewportService,
   } = servicesManager.services;
   const [isCopying, setIsCopying] = useState(false);
+  const hideCaptureButton = window.location.pathname.includes('/user-study-mode');
 
   const waitForViewportVolumes = viewportId =>
     new Promise<void>(resolve => {
@@ -558,14 +559,16 @@ const ViewportOverlay = ({
       >
         {topRight}
 
-        <button
-          data-cy="viewport-capture"
-          className="pointer-events-auto ml-2 rounded-md bg-black/60 px-3 py-1 text-xs font-semibold text-white transition hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-60"
-          onClick={copyViewportToClipboard}
-          disabled={isCopying}
-        >
-          {isCopying ? 'Capturing…' : 'Capture'}
-        </button>
+        {!hideCaptureButton && (
+          <button
+            data-cy="viewport-capture"
+            className="pointer-events-auto ml-2 rounded-md bg-black/60 px-3 py-1 text-xs font-semibold text-white transition hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={copyViewportToClipboard}
+            disabled={isCopying}
+          >
+            {isCopying ? 'Capturing…' : 'Capture'}
+          </button>
+        )}
 
         {/* 🔹 Updated Explain Button */}
         {/* <button

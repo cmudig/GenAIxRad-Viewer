@@ -97,7 +97,7 @@ const hpMammography = {
           },
           displaySets: [
             {
-              id: 'LCC',
+              id: 'RMLO',
             },
           ],
         },
@@ -111,7 +111,7 @@ const hpMammography = {
           },
           displaySets: [
             {
-              id: 'RMLO',
+              id: 'LCC',
             },
           ],
         },

@@ -127,13 +127,6 @@ const RMLOSeriesMatchingRules = [
     required: true,
   },
   {
-    attribute: 'PatientOrientation',
-    constraint: {
-      doesNotContain: ['P', 'FL'],
-    },
-    required: true,
-  },
-  {
     weight: 5,
     attribute: 'PatientOrientation',
     constraint: {
@@ -160,14 +153,6 @@ const RMLOSeriesMatchingRules = [
     constraint: {
       doesNotContain: 'CC',
     },
-  },
-  {
-    attribute: 'SeriesDescription',
-    required: true,
-    constraint: {
-      doesNotEqual: 'L MLO',
-    },
-    required: true,
   },
 ];
 

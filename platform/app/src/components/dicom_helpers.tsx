@@ -5,8 +5,62 @@ import axios from 'axios';
 
 const orthancUrl =
   window.location.hostname === 'localhost'
-    ? 'http://localhost/pacs'
+    ? '/dicom-web'
     : 'https://orthanc.katelyncmorrison.com/pacs';
+
+const normalizeBaseUrl = (baseUrl: string) => (baseUrl || '').replace(/\/+$/, '');
+
+const toOrthancUrl = (baseUrl: string, path: string) => {
+  const normalizedBase = normalizeBaseUrl(baseUrl);
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return normalizedBase ? `${normalizedBase}${normalizedPath}` : normalizedPath;
+};
+
+const dedupeStrings = (values: string[]) => {
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+  for (const value of values) {
+    if (!value || seen.has(value)) {
+      continue;
+    }
+    seen.add(value);
+    deduped.push(value);
+  }
+  return deduped;
+};
+
+const getOrthancBaseCandidates = () => {
+  if (window.location.hostname === 'localhost') {
+    // Local dev needs to support:
+    // 1) Reverse-proxy paths (/pacs, /api, /studies)
+    // 2) Direct Orthanc access as used in the notebook (http://localhost:8042/studies/...).
+    return dedupeStrings([
+      '/dicom-web',
+      '/pacs',
+      '',
+      '/api',
+      'http://localhost:8042',
+      'http://127.0.0.1:8042',
+      'http://localhost',
+      'http://127.0.0.1',
+    ]);
+  }
+  return dedupeStrings(['/api', orthancUrl]);
+};
+
+const requestWithOrthancBaseFallback = async (
+  requestFn: (baseUrl: string) => Promise<any>
+) => {
+  let lastError: any = null;
+  for (const baseUrl of getOrthancBaseCandidates()) {
+    try {
+      return await requestFn(baseUrl);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
+};
 
 export const deleteSeries = async (seriesToDelete: string) => {
   const seriesUrl = `${orthancUrl}/series/`;
@@ -90,27 +144,127 @@ export const storeMetadata = async (
   console.log(`Entry with study_instance_uid ${seriesInstanceUid} added or updated.`);
 };
 
-const getOrthancStudyId = async (studyInstanceUid: string) => {
-  const params = {
-    expand: 1,
-    requestedTags: 'StudyInstanceUID',
-  };
+export const getOrthancStudyId = async (studyInstanceUid: string) => {
+  if (!studyInstanceUid) {
+    return null;
+  }
 
   try {
-    const response = await axios.get(`${orthancUrl}/studies`, { params });
-    if (response.status !== 200) {
+    // Fast path: Orthanc supports filtering by StudyInstanceUID.
+    const findByFilter = await requestWithOrthancBaseFallback(baseUrl =>
+      axios.get(toOrthancUrl(baseUrl, '/studies'), {
+        params: { StudyInstanceUID: studyInstanceUid },
+      })
+    );
+    if (findByFilter.status === 200 && Array.isArray(findByFilter.data) && findByFilter.data.length) {
+      const firstMatch = findByFilter.data[0];
+      if (typeof firstMatch === 'string') {
+        return firstMatch;
+      }
+      if (firstMatch?.ID) {
+        return firstMatch.ID;
+      }
+    }
+
+    const params = {
+      expand: 1,
+      requestedTags: 'StudyInstanceUID',
+    };
+    const response = await requestWithOrthancBaseFallback(baseUrl =>
+      axios.get(toOrthancUrl(baseUrl, '/studies'), { params })
+    );
+    if (response.status !== 200 || !Array.isArray(response.data)) {
       console.error(`Network response was not ok. Status: ${response.status}`);
       return null;
     }
 
-    const study = response.data.find(
-      (item: any) => item.RequestedTags.StudyInstanceUID === studyInstanceUid
-    );
-    return study ? study.ID : null;
+    const expandedMatch = response.data.find((item: any) => {
+      if (!item || typeof item !== 'object') {
+        return false;
+      }
+      const requestedTagsUid = item?.RequestedTags?.StudyInstanceUID;
+      const mainDicomTagsUid = item?.MainDicomTags?.StudyInstanceUID;
+      return requestedTagsUid === studyInstanceUid || mainDicomTagsUid === studyInstanceUid;
+    });
+    if (expandedMatch?.ID) {
+      return expandedMatch.ID;
+    }
+
+    // Some Orthanc setups ignore expand and return a plain ID array.
+    const idOnlyStudies = response.data.filter((item: any) => typeof item === 'string');
+    for (const orthancStudyId of idOnlyStudies) {
+      try {
+        const studyResponse = await requestWithOrthancBaseFallback(baseUrl =>
+          axios.get(toOrthancUrl(baseUrl, `/studies/${orthancStudyId}`))
+        );
+        const studyUid =
+          studyResponse?.data?.RequestedTags?.StudyInstanceUID ??
+          studyResponse?.data?.MainDicomTags?.StudyInstanceUID;
+        if (studyUid === studyInstanceUid) {
+          return orthancStudyId;
+        }
+      } catch (error) {
+        // Keep iterating IDs.
+      }
+    }
+
+    return null;
   } catch (error) {
     console.error('Error fetching study ID:', error);
     return null;
   }
+};
+
+export const getMetadataFromStudyByKeys = async (
+  studyInstanceUid: string,
+  keys: string[]
+): Promise<string | null> => {
+  if (!Array.isArray(keys) || !keys.length) {
+    return null;
+  }
+
+  const studyId = await getOrthancStudyId(studyInstanceUid);
+  if (!studyId) {
+    console.log(`No study found for StudyInstanceUID: ${studyInstanceUid}`);
+    return null;
+  }
+
+  return getMetadataFromOrthancStudyIdByKeys(studyId, keys);
+};
+
+export const getMetadataFromOrthancStudyIdByKeys = async (
+  studyId: string,
+  keys: string[]
+): Promise<string | null> => {
+  if (!studyId || !Array.isArray(keys) || !keys.length) {
+    return null;
+  }
+
+  for (const key of keys) {
+    if (!key) {
+      continue;
+    }
+    try {
+      const response = await requestWithOrthancBaseFallback(baseUrl =>
+        axios.get(toOrthancUrl(baseUrl, `/studies/${studyId}/metadata/${key}`), {
+          headers: {
+            'Content-Type': 'text/plain',
+          },
+        })
+      );
+
+      if (response.status === 200) {
+        const value = String(response.data ?? '').trim();
+        if (value) {
+          return value;
+        }
+      }
+    } catch (error) {
+      // Keep trying additional keys.
+    }
+  }
+
+  return null;
 };
 
 export const addMetadataToStudy = async (studyInstanceUid: string, data: string, type: string) => {
