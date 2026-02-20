@@ -5,8 +5,8 @@ import {
 } from '../../../platform/app/src/components/dicom_helpers';
 
 type ReportItem = {
-  aiGen: string;
-  groundTruth: string;
+  mammoReport: string;
+  comparisonReport: string;
   filepath: string;
 };
 
@@ -78,6 +78,11 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
   const [currentReportIndex, setCurrentReportIndex] = useState(0);
   const [displaySetVersion, setDisplaySetVersion] = useState(0);
   const totalReports = reportItems.length;
+  const isJudgeMode = window.location.pathname.includes('/judge-mode');
+  const comparisonReportKey = isJudgeMode ? 'groundTruthReport' : 'medGemmaReport';
+  const comparisonReportKeys = isJudgeMode
+    ? ['groundTruthReport', 'groundtruthReport']
+    : ['medGemmaReport', 'medgemmaReport'];
 
   useEffect(() => {
     const displaySetService = servicesManager?.services?.displaySetService;
@@ -124,16 +129,16 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
             ? getMetadataFromOrthancStudyIdByKeys(orthancStudyId, keys)
             : fetchStudyMetadataValueByUid(activeStudyInstanceUID!, keys);
 
-        const [aiReport, groundTruthReport] = await Promise.all([
+        const [mammoReport, comparisonReport] = await Promise.all([
           getByKeys(['mammoReport']),
-          getByKeys(['groundTruthReport', 'groundtruthReport']),
+          getByKeys(comparisonReportKeys),
         ]);
 
-        if (!cancelled && (aiReport || groundTruthReport)) {
+        if (!cancelled && (mammoReport || comparisonReport)) {
           setReportItems([
             {
-              aiGen: aiReport ?? '',
-              groundTruth: groundTruthReport ?? '',
+              mammoReport: mammoReport ?? '',
+              comparisonReport: comparisonReport ?? '',
               filepath: '',
             },
           ]);
@@ -144,8 +149,8 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
           setReportItems([]);
           setReportError(
             orthancStudyId
-              ? `Orthanc study metadata not found for OrthancStudyId ${orthancStudyId}. Expected keys: mammoReport and groundTruthReport.`
-              : `Orthanc study metadata not found for StudyInstanceUID ${activeStudyInstanceUID}. Expected keys: mammoReport and groundTruthReport.`
+              ? `Orthanc study metadata not found for OrthancStudyId ${orthancStudyId}. Expected keys: mammoReport and ${comparisonReportKey}.`
+              : `Orthanc study metadata not found for StudyInstanceUID ${activeStudyInstanceUID}. Expected keys: mammoReport and ${comparisonReportKey}.`
           );
         }
       } catch (loadError) {
@@ -184,11 +189,16 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
     return () => document.removeEventListener('reportAdvance', handler);
   }, [totalReports]);
   const reportIndexLabel = totalReports > 0 ? `${currentReportIndex + 1}/${totalReports}` : '0/0';
-  const currentAiReport = reportItems[currentReportIndex]?.aiGen || '';
-  const currentGroundTruthReport = reportItems[currentReportIndex]?.groundTruth || '';
-  const canGoPrev = !reportLoading && totalReports > 0 && currentReportIndex > 0;
+  const currentMammoReport = reportItems[currentReportIndex]?.mammoReport || '';
+  const currentComparisonReport = reportItems[currentReportIndex]?.comparisonReport || '';
   const canGoNext =
     !reportLoading && totalReports > 0 && currentReportIndex < totalReports - 1;
+  const panelTitle = 'AI Report Comparison';
+  const panelSubtitle = isJudgeMode
+    ? 'Review AI-generated report (A) against the ground truth report.'
+    : 'Review AI-generated report (A) against AI-generated report (B).';
+  const firstReportLabel = isJudgeMode ? 'Generated Report' : 'AI-Generated Report (A)';
+  const secondReportLabel = isJudgeMode ? 'Ground Truth Report' : 'AI-Generated Report (B)';
 
   useEffect(() => {
     if (!totalReports) {
@@ -211,37 +221,20 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
     <div className="shadow-primary-main/10 flex h-full flex-col rounded-2xl bg-[#050c24] p-4 text-white shadow-lg">
       <div className="flex flex-wrap items-start gap-3">
         <div>
-          <p className="text-base font-semibold">Report Comparison</p>
-          <p className="text-sm text-white/80">
-            Review the AI-generated report against the ground truth report.
-          </p>
+          <p className="text-base font-semibold">{panelTitle}</p>
+          <p className="text-sm text-white/80">{panelSubtitle}</p>
         </div>
         <div className="ml-auto flex items-center gap-3">
           <span className="text-sm text-white/70">{reportIndexLabel}</span>
-          <button
-            type="button"
-            onClick={() => setCurrentReportIndex(prev => Math.max(0, prev - 1))}
-            disabled={!canGoPrev}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-              canGoPrev
-                ? 'border border-white/30 text-white hover:border-white'
-                : 'cursor-not-allowed border border-white/10 text-white/40'
-            }`}
-          >
-            Prev
-          </button>
-          <button
-            type="button"
-            onClick={() => setCurrentReportIndex(prev => Math.min(totalReports - 1, prev + 1))}
-            disabled={!canGoNext}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-              canGoNext
-                ? 'bg-primary-light text-black hover:bg-white'
-                : 'cursor-not-allowed bg-white/10 text-white/40'
-            }`}
-          >
-            Next
-          </button>
+          {canGoNext && (
+            <button
+              type="button"
+              onClick={() => setCurrentReportIndex(prev => Math.min(totalReports - 1, prev + 1))}
+              className="rounded-full bg-primary-light px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-white"
+            >
+              Next
+            </button>
+          )}
         </div>
       </div>
 
@@ -267,18 +260,21 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
         <div className="mt-4 flex flex-col gap-3">
           <div className="rounded-2xl bg-[#0d1b46] p-4 shadow-inner shadow-black/30">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-              AI-Generated Report
+              {firstReportLabel}
             </div>
             <p className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-white/90">
-              {currentAiReport || 'No AI-generated report available for this entry.'}
+              {currentMammoReport || 'No AI-generated report available for this entry.'}
             </p>
           </div>
           <div className="rounded-2xl bg-[#0d1b46] p-4 shadow-inner shadow-black/30">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-              Ground Truth Report
+              {secondReportLabel}
             </div>
             <p className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-white/90">
-              {currentGroundTruthReport || 'No ground truth report available for this entry.'}
+              {currentComparisonReport ||
+                (isJudgeMode
+                  ? 'No ground truth report available for this entry.'
+                  : 'No AI-generated report (B) available for this entry.')}
             </p>
           </div>
         </div>

@@ -77,21 +77,6 @@ const hpMammography = {
         {
           viewportOptions: {
             toolGroupId: 'default',
-            displayArea: leftDisplayArea,
-            // flipHorizontal: true,
-            // rotation: 180,
-            allowUnmatchedView: true,
-          },
-          displaySets: [
-            {
-              id: 'RCC',
-            },
-          ],
-        },
-        {
-          viewportOptions: {
-            toolGroupId: 'default',
-            // flipHorizontal: true,
             displayArea: rightDisplayArea,
             allowUnmatchedView: true,
           },
@@ -105,13 +90,11 @@ const hpMammography = {
           viewportOptions: {
             toolGroupId: 'default',
             displayArea: leftDisplayArea,
-            // rotation: 180,
-            // flipHorizontal: true,
             allowUnmatchedView: true,
           },
           displaySets: [
             {
-              id: 'LCC',
+              id: 'LMLO',
             },
           ],
         },
@@ -119,12 +102,24 @@ const hpMammography = {
           viewportOptions: {
             toolGroupId: 'default',
             displayArea: rightDisplayArea,
-            // flipHorizontal: true,
             allowUnmatchedView: true,
           },
           displaySets: [
             {
-              id: 'LMLO',
+              id: 'RCC',
+            },
+          ],
+        },
+        {
+          viewportOptions: {
+            toolGroupId: 'default',
+            displayArea: leftDisplayArea,
+            flipHorizontal: true,
+            allowUnmatchedView: true,
+          },
+          displaySets: [
+            {
+              id: 'LCC',
             },
           ],
         },

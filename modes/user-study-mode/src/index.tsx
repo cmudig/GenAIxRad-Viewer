@@ -125,7 +125,7 @@ function modeFactory({ modeConfiguration }) {
         'MoreTools',
       ]);
 
-      const { viewportGridService, cornerstoneViewportService, displaySetService } =
+      const { viewportGridService, cornerstoneViewportService, displaySetService, hangingProtocolService } =
         servicesManager.services;
 
       const cleanupFns: Array<() => void> = [];
@@ -148,6 +148,40 @@ function modeFactory({ modeConfiguration }) {
       };
 
       let hasAppliedDefaultSlice = false;
+
+      const enforceMammoHorizontalFlipByCell = () => {
+        const state =
+          viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
+        const viewports = getViewportsArray(state);
+
+        let updated = false;
+
+        for (let index = 0; index < viewports.length; index++) {
+          const vp = viewports[index];
+          const viewportId = vp?.viewportId;
+          if (!viewportId) {
+            continue;
+          }
+          // Force the 2nd and 4th cells (indexes 1 and 3) to be flipped horizontally.
+          const shouldFlipHorizontal = index === 1 || index === 3;
+
+          const viewport = cornerstoneViewportService.getCornerstoneViewport?.(viewportId);
+          if (!viewport?.getCamera || !viewport?.setCamera) {
+            continue;
+          }
+
+          const camera = viewport.getCamera();
+          if (camera?.flipHorizontal === shouldFlipHorizontal) {
+            continue;
+          }
+
+          viewport.setCamera({ flipHorizontal: shouldFlipHorizontal });
+          viewport.render?.();
+          updated = true;
+        }
+
+        return updated;
+      };
 
       const applyDefaultSlice = () => {
         if (hasAppliedDefaultSlice) {
@@ -196,13 +230,13 @@ function modeFactory({ modeConfiguration }) {
 
         if (applied) {
           hasAppliedDefaultSlice = true;
-          dispose();
         }
 
         return applied;
       };
 
       const handleViewportEvent = () => {
+        enforceMammoHorizontalFlipByCell();
         applyDefaultSlice();
       };
 
@@ -227,15 +261,27 @@ function modeFactory({ modeConfiguration }) {
         ) || null;
       registerCleanup(() => displaySetSub?.unsubscribe?.());
 
+      const protocolChangedSub =
+        hangingProtocolService?.subscribe?.(
+          hangingProtocolService.EVENTS?.PROTOCOL_CHANGED || 'event::hangingProtocol:protocolchanged',
+          handleViewportEvent
+        ) || null;
+      registerCleanup(() => protocolChangedSub?.unsubscribe?.());
+
       const timeouts: Array<number> = [];
       const scheduleAttempt = (delay: number) => {
         const timeoutId = window.setTimeout(() => {
+          enforceMammoHorizontalFlipByCell();
           applyDefaultSlice();
         }, delay);
         timeouts.push(timeoutId);
       };
 
       [0, 200, 500, 1000].forEach(scheduleAttempt);
+      const flipIntervalId = window.setInterval(() => {
+        enforceMammoHorizontalFlipByCell();
+      }, 500);
+      registerCleanup(() => window.clearInterval(flipIntervalId));
       registerCleanup(() => {
         timeouts.forEach(id => window.clearTimeout(id));
       });

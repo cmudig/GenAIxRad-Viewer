@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 
 import LegacyButton from '../LegacyButton';
 import Icon from '../Icon';
@@ -15,7 +14,6 @@ const StudyListFilter = ({
   clearFilters,
   isFiltering,
   numOfStudies,
-  onUploadClick,
   getDataSourceConfigurationComponent,
 }) => {
   const { t } = useTranslation('StudyList');
@@ -28,7 +26,6 @@ const StudyListFilter = ({
     });
   };
   const isSortingEnabled = numOfStudies > 0 && numOfStudies <= 100;
-  const navigate = useNavigate();
 
   return (
     <React.Fragment>
@@ -44,27 +41,6 @@ const StudyListFilter = ({
                   {t('StudyList')}
                 </Typography>
                 {getDataSourceConfigurationComponent && getDataSourceConfigurationComponent()}
-                {onUploadClick && (
-                  <div
-                    className="text-primary-active flex cursor-pointer items-center gap-2 self-center text-lg font-semibold"
-                    onClick={onUploadClick}
-                  >
-                    <Icon name="icon-upload"></Icon>
-                    <span>{t('Upload')}</span>
-                  </div>
-                )}
-                {/* New Generation Button */}
-                <div>
-
-                  <LegacyButton
-                    variant="contained"
-                    color="primary"
-                    onClick={() => navigate('/search')}
-                    startIcon={<Icon name="icon-new-generation" />}
-                  >
-                    New Generation
-                  </LegacyButton>
-                </div>
               </div>
               <div className="flex h-[34px] flex-row items-center">
                 {/* TODO revisit the completely rounded style of button used for clearing the study list filter - for now use LegacyButton*/}
@@ -151,7 +127,6 @@ StudyListFilter.propTypes = {
   onChange: PropTypes.func.isRequired,
   clearFilters: PropTypes.func.isRequired,
   isFiltering: PropTypes.bool.isRequired,
-  onUploadClick: PropTypes.func,
   getDataSourceConfigurationComponent: PropTypes.func,
 };
 

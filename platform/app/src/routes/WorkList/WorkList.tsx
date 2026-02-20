@@ -15,7 +15,6 @@ import { getMetadataFromStudy } from '../../components/dicom_helpers';
 
 import {
   Icon,
-  StudyListExpandedRow,
   EmptyStudies,
   StudyListTable,
   StudyListPagination,
@@ -316,70 +315,18 @@ function WorkList({
     const isExpanded = expandedRows.some(k => k === rowKey);
     const {
       studyInstanceUid,
-      accession,
       modalities,
       instances,
-      description,
-      mrn,
-      patientName,
-      date,
-      time,
     } = study;
-    const studyDate =
-      date &&
-      moment(date, ['YYYYMMDD', 'YYYY.MM.DD'], true).isValid() &&
-      moment(date, ['YYYYMMDD', 'YYYY.MM.DD']).format(t('Common:localDateFormat', 'MMM-DD-YYYY'));
-    const studyTime =
-      time &&
-      moment(time, ['HH', 'HHmm', 'HHmmss', 'HHmmss.SSS']).isValid() &&
-      moment(time, ['HH', 'HHmm', 'HHmmss', 'HHmmss.SSS']).format(
-        t('Common:localTimeFormat', 'hh:mm A')
-      );
 
     return {
       dataCY: `studyRow-${studyInstanceUid}`,
       clickableCY: studyInstanceUid,
       row: [
         {
-          key: 'patientName',
-          content: patientName ? (
-            <TooltipClipboard>{patientName}</TooltipClipboard>
-          ) : (
-            <span className="text-gray-700">(Empty)</span>
-          ),
-          gridCol: 4,
-        },
-        {
-          key: 'mrn',
-          content: <TooltipClipboard>{mrn}</TooltipClipboard>,
-          gridCol: 3,
-        },
-        {
-          key: 'studyDate',
-          content: (
-            <>
-              {studyDate && <span className="mr-4">{studyDate}</span>}
-              {studyTime && <span>{studyTime}</span>}
-            </>
-          ),
-          title: `${studyDate || ''} ${studyTime || ''}`,
-          gridCol: 5,
-        },
-        {
           key: 'description',
-          content: <TooltipClipboard>{description}</TooltipClipboard>,
+          content: <TooltipClipboard>Completed</TooltipClipboard>,
           gridCol: 4,
-        },
-        {
-          key: 'modality',
-          content: modalities,
-          title: modalities,
-          gridCol: 3,
-        },
-        {
-          key: 'accession',
-          content: <TooltipClipboard>{accession}</TooltipClipboard>,
-          gridCol: 3,
         },
         {
           key: 'instances',
@@ -402,26 +349,7 @@ function WorkList({
       // Todo: This is actually running for all rows, even if they are
       // not clicked on.
       expandedContent: (
-        <StudyListExpandedRow
-          seriesTableColumns={{
-            description: t('StudyList:Description'),
-            seriesNumber: t('StudyList:Series'),
-            modality: t('StudyList:Modality'),
-            instances: t('StudyList:Instances'),
-          }}
-          seriesTableDataSource={
-            seriesInStudiesMap.has(studyInstanceUid)
-              ? seriesInStudiesMap.get(studyInstanceUid).map(s => {
-                  return {
-                    description: s.description || '(empty)',
-                    seriesNumber: s.seriesNumber ?? '',
-                    modality: s.modality || '',
-                    instances: s.numSeriesInstances || '',
-                  };
-                })
-              : []
-          }
-        >
+        <div className="w-full bg-black py-4 pl-12 pr-2">
           <div className="flex flex-row gap-2">
             {(appConfig.groupEnabledModesFirst
               ? appConfig.loadedModes.sort((a, b) => {
@@ -519,7 +447,7 @@ function WorkList({
               );
             })}
           </div>
-        </StudyListExpandedRow>
+        </div>
       ),
       onClickRow: () =>
         setExpandedRows(s => (isExpanded ? s.filter(n => rowKey !== n) : [...s, rowKey])),
@@ -686,15 +614,7 @@ WorkList.propTypes = {
 };
 
 const defaultFilterValues = {
-  patientName: '',
-  mrn: '',
-  studyDate: {
-    startDate: null,
-    endDate: null,
-  },
   description: '',
-  modalities: [],
-  accession: '',
   sortBy: '',
   sortDirection: 'none',
   pageNumber: 1,
@@ -721,15 +641,7 @@ function _getQueryFilterValues(params) {
   params = newParams;
 
   const queryFilterValues = {
-    patientName: params.get('patientname'),
-    mrn: params.get('mrn'),
-    studyDate: {
-      startDate: params.get('startdate') || null,
-      endDate: params.get('enddate') || null,
-    },
     description: params.get('description'),
-    modalities: params.get('modalities') ? params.get('modalities').split(',') : [],
-    accession: params.get('accession'),
     sortBy: params.get('sortby'),
     sortDirection: params.get('sortdirection'),
     pageNumber: _tryParseInt(params.get('pagenumber'), undefined),

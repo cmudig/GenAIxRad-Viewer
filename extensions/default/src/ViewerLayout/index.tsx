@@ -21,6 +21,7 @@ function ViewerLayout({
   rightPanelClosed = true,
 }: withAppTypes): React.FunctionComponent {
   const [appConfig] = useAppConfig();
+  const isJudgeMode = window.location.pathname.includes('/judge-mode');
 
   const { panelService, hangingProtocolService } = servicesManager.services;
   const [showLoadingIndicator, setShowLoadingIndicator] = useState(appConfig.showLoadingIndicator);
@@ -77,6 +78,12 @@ function ViewerLayout({
       unsubscribe();
     };
   }, [hangingProtocolService]);
+
+  useEffect(() => {
+    if (isJudgeMode) {
+      setShowLoadingIndicator(false);
+    }
+  }, [isJudgeMode]);
 
   const getViewportComponentData = viewportComponent => {
     const { entry } = getComponent(viewportComponent.namespace);
@@ -148,15 +155,17 @@ function ViewerLayout({
             </ErrorBoundary>
           ) : null}
           {/* TOOLBAR + GRID */}
-          <div className="flex h-full flex-1 flex-col">
-            <div className="relative flex h-full flex-1 items-center justify-center overflow-hidden bg-black">
-              <ViewportGridComp
-                servicesManager={servicesManager}
-                viewportComponents={viewportComponents}
-                commandsManager={commandsManager}
-              />
+          {!isJudgeMode && (
+            <div className="flex h-full flex-1 flex-col">
+              <div className="relative flex h-full flex-1 items-center justify-center overflow-hidden bg-black">
+                <ViewportGridComp
+                  servicesManager={servicesManager}
+                  viewportComponents={viewportComponents}
+                  commandsManager={commandsManager}
+                />
+              </div>
             </div>
-          </div>
+          )}
           {hasRightPanels ? (
             <ErrorBoundary context="Right Panel">
               <SidePanelWithServices
