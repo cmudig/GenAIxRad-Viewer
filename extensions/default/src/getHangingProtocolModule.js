@@ -77,8 +77,8 @@ const defaultProtocol = {
       viewportStructure: {
         layoutType: 'grid',
         properties: {
-          rows: 1,
-          columns: 1,
+          rows: 2,
+          columns: 2,
         },
       },
       viewports: [
@@ -112,6 +112,69 @@ const defaultProtocol = {
           displaySets: [
             {
               id: 'defaultDisplaySetId',
+            },
+          ],
+        },
+        {
+          viewportOptions: {
+            viewportType: 'stack',
+            toolGroupId: 'default',
+            allowUnmatchedView: true,
+            syncGroups: [
+              {
+                type: 'hydrateseg',
+                id: 'sameFORId',
+                source: true,
+                target: true,
+              },
+            ],
+          },
+          displaySets: [
+            {
+              id: 'defaultDisplaySetId',
+              matchedDisplaySetsIndex: 1,
+            },
+          ],
+        },
+        {
+          viewportOptions: {
+            viewportType: 'stack',
+            toolGroupId: 'default',
+            allowUnmatchedView: true,
+            syncGroups: [
+              {
+                type: 'hydrateseg',
+                id: 'sameFORId',
+                source: true,
+                target: true,
+              },
+            ],
+          },
+          displaySets: [
+            {
+              id: 'defaultDisplaySetId',
+              matchedDisplaySetsIndex: 2,
+            },
+          ],
+        },
+        {
+          viewportOptions: {
+            viewportType: 'stack',
+            toolGroupId: 'default',
+            allowUnmatchedView: true,
+            syncGroups: [
+              {
+                type: 'hydrateseg',
+                id: 'sameFORId',
+                source: true,
+                target: true,
+              },
+            ],
+          },
+          displaySets: [
+            {
+              id: 'defaultDisplaySetId',
+              matchedDisplaySetsIndex: 3,
             },
           ],
         },
