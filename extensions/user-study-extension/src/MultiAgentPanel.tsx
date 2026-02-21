@@ -82,7 +82,7 @@ const AGENT_SELECTOR_OPTIONS: {
   model: string;
   requiresScan?: boolean;
 }[] = [
-  { value: 'auto',               label: 'Smart',         icon: '[◆]', desc: 'Routes your question to the right agent automatically', model: 'Gemini 2.0 Flash' },
+  { value: 'auto',               label: 'Smart',         icon: '[◆]', desc: 'Routes your question to the right agent automatically', model: 'Gemini 2.5 Flash' },
   { value: 'generate_variation', label: 'Variations',    icon: '[+]', desc: 'Generate a counterfactual AI comparison scan',          model: 'Counterfactual AI' },
   { value: 'similar_cases',      label: 'Similar Cases', icon: '[~]', desc: 'Compare against similar diagnosed cases side-by-side',   model: 'Retrieval' },
   { value: 'saliency_overlay',   label: 'Saliency Maps', icon: '[*]', desc: 'Heat map of AI attention regions',                       model: 'PMAP', requiresScan: true },
@@ -116,21 +116,35 @@ const AgentTileHelpPopover: React.FC<{
   requiresScan: boolean;
 }> = ({ desc, when, requiresScan }) => {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  const handleMouseEnter = () => {
+    if (btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      // Position below the button, clamped so it doesn't overflow right edge
+      const popoverWidth = 208; // w-52 = 13rem = 208px
+      const left = Math.min(rect.right - popoverWidth, window.innerWidth - popoverWidth - 8);
+      setPos({ top: rect.bottom + 6, left: Math.max(8, left) });
+    }
+    setOpen(true);
+  };
+
   return (
-    <div
-      className="relative"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-    >
+    <div onMouseEnter={handleMouseEnter} onMouseLeave={() => setOpen(false)}>
       <button
+        ref={btnRef}
         className="flex items-center justify-center w-3.5 h-3.5 rounded-full border border-white/15
                    text-[8px] text-white/30 hover:text-white/60 hover:border-white/35 transition"
         aria-label="Agent info"
       >
         ?
       </button>
-      {open && (
-        <div className="absolute right-0 top-5 z-50 w-52 rounded-xl border border-white/15 bg-[#0d1940] shadow-2xl p-3 space-y-1.5">
+      {open && createPortal(
+        <div
+          className="fixed z-[9999] w-52 rounded-xl border border-white/15 bg-[#0d1940] shadow-2xl p-3 space-y-1.5"
+          style={{ top: pos.top, left: pos.left }}
+        >
           <p className="text-[10px] text-white/65 leading-snug">{desc}</p>
           <p className="text-[10px] text-white/40 leading-snug italic">{when}</p>
           {requiresScan && (
@@ -138,7 +152,8 @@ const AgentTileHelpPopover: React.FC<{
               Requires an AI comparison scan first
             </p>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -208,19 +223,30 @@ const AgentSelectorPopup: React.FC<{
 
 const AgentCardHeader: React.FC<{
   agentName: AgentToolName;
+  label?: string;
   hasError?: boolean;
   collapsed?: boolean;
   onToggle?: () => void;
-}> = ({ agentName, hasError, collapsed, onToggle }) => (
+  onDismiss?: () => void;
+}> = ({ agentName, label, hasError, collapsed, onToggle, onDismiss }) => (
   <div
     className={`flex items-center gap-2 px-4 py-3 border-b border-white/10 ${onToggle ? 'cursor-pointer select-none hover:bg-white/[0.02] transition' : ''}`}
     onClick={onToggle}
   >
     <span className="font-mono text-xs text-white/40">{AGENT_ICONS[agentName]}</span>
     <span className="text-[10px] font-semibold uppercase tracking-widest text-white/50 flex-1">
-      {AGENT_LABELS[agentName]}
+      {label ?? AGENT_LABELS[agentName]}
     </span>
     {hasError && <span className="text-[10px] text-red-400">Error</span>}
+    {onDismiss && (
+      <button
+        onClick={e => { e.stopPropagation(); onDismiss(); }}
+        className="rounded border border-white/10 px-2 py-0.5 text-[10px] text-white/30
+                   hover:border-white/30 hover:text-white/60 transition select-none"
+      >
+        Done
+      </button>
+    )}
     {onToggle !== undefined && (
       <span className="text-[9px] text-white/25 ml-1">{collapsed ? '▼' : '▲'}</span>
     )}
@@ -248,18 +274,32 @@ const ComponentAgentCard: React.FC<
     commandsManager: any;
     servicesManager: any;
     extensionManager: any;
+    variationIndex?: number;
+    onDismiss?: () => void;
   }
-> = ({ agentName, userMessageId, status, errorMessage, commandsManager, servicesManager, extensionManager }) => {
+> = ({ agentName, userMessageId, status, errorMessage, commandsManager, servicesManager, extensionManager, variationIndex, onDismiss }) => {
   const [collapsed, setCollapsed] = useState(agentName === 'generate_variation');
   const EmbeddedComponent = AGENT_COMPONENTS[agentName as ComponentAgentName];
+
+  const isVariation = agentName === 'generate_variation';
+  const cardLabel = isVariation && variationIndex !== undefined
+    ? `Variation ${variationIndex}`
+    : undefined;
+
+  const handleDismiss = isVariation && onDismiss ? () => {
+    document.dispatchEvent(new CustomEvent('variationReset'));
+    onDismiss();
+  } : undefined;
 
   return (
     <div className="rounded-2xl border border-white/10 bg-[#0b1433] overflow-hidden">
       <AgentCardHeader
         agentName={agentName}
+        label={cardLabel}
         hasError={status === 'error'}
         collapsed={collapsed}
         onToggle={() => setCollapsed(c => !c)}
+        onDismiss={handleDismiss}
       />
       <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${collapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'}`}>
         <div className="overflow-hidden">
@@ -383,7 +423,9 @@ const MessageRenderer: React.FC<{
   commandsManager: any;
   servicesManager: any;
   extensionManager: any;
-}> = ({ message, commandsManager, servicesManager, extensionManager }) => {
+  variationIndex?: number;
+  onDismiss?: (id: string) => void;
+}> = ({ message, commandsManager, servicesManager, extensionManager, variationIndex, onDismiss }) => {
   if (message.role === 'user') {
     return <UserBubble content={message.content} />;
   }
@@ -398,6 +440,8 @@ const MessageRenderer: React.FC<{
           commandsManager={commandsManager}
           servicesManager={servicesManager}
           extensionManager={extensionManager}
+          variationIndex={variationIndex}
+          onDismiss={onDismiss ? () => onDismiss(message.id) : undefined}
         />
       );
     }
@@ -415,12 +459,12 @@ type MultiAgentPanelProps = {
 };
 
 function MultiAgentPanel({ commandsManager, servicesManager, extensionManager }: MultiAgentPanelProps) {
-  const { state, sendMessage, clearThread } = useOrchestrator({ servicesManager });
+  const { state, sendMessage, clearThread, dismissMessage } = useOrchestrator({ servicesManager });
 
   const [inputText, setInputText] = useState('');
   const [selectedAgent, setSelectedAgent] = useState<'auto' | AgentToolName>('auto');
   const [selectorOpen, setSelectorOpen] = useState(false);
-  const [tilesExpanded, setTilesExpanded] = useState(true);
+  const [headerExpanded, setHeaderExpanded] = useState(true);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -467,42 +511,54 @@ function MultiAgentPanel({ commandsManager, servicesManager, extensionManager }:
     [sendMessage]
   );
 
-  const selectedLabel = AGENT_SELECTOR_OPTIONS.find(o => o.value === selectedAgent)?.label ?? 'Auto';
+  const selectedLabel = AGENT_SELECTOR_OPTIONS.find(o => o.value === selectedAgent)?.label ?? 'Smart';
+
+  // Pre-compute sequential index for each generate_variation card
+  const variationIndexMap = React.useMemo(() => {
+    const map = new Map<string, number>();
+    let count = 0;
+    state.messages.forEach(msg => {
+      if (msg.role === 'agent' && (msg as AgentMessage).agentName === 'generate_variation') {
+        map.set(msg.id, ++count);
+      }
+    });
+    return map;
+  }, [state.messages]);
 
   return (
     <div className="ohif-scrollbar flex h-full flex-col bg-[#050c24] text-white">
       {/* Header */}
-      <div className="border-b border-white/10 px-4 pt-4 pb-3 shrink-0">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm font-bold text-white leading-tight">Explainability Agent System</p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <p className="text-[11px] text-white/50 leading-snug">
-                Four specialized AI agents working together
-              </p>
+      <div className="border-b border-white/10 px-4 pt-3 shrink-0">
+        {/* Always-visible title bar */}
+        <div className="flex items-center justify-between pb-2">
+          <p className="text-sm font-bold text-white leading-tight">Explainability Agent System</p>
+          <div className="flex items-center gap-2">
+            {state.messages.length > 0 && (
               <button
-                onClick={() => setTilesExpanded(e => !e)}
-                className="text-[9px] text-white/25 hover:text-white/50 transition select-none"
-                aria-label="Toggle agent tiles"
+                onClick={clearThread}
+                className="rounded-full px-3 py-1 text-xs text-white/40 hover:text-white/70 transition border border-white/10 hover:border-white/30"
               >
-                {tilesExpanded ? '▲' : '▼'}
+                Clear
               </button>
-            </div>
-          </div>
-          {state.messages.length > 0 && (
+            )}
             <button
-              onClick={clearThread}
-              className="rounded-full px-3 py-1 text-xs text-white/40 hover:text-white/70 transition border border-white/10 hover:border-white/30 shrink-0 ml-2"
+              onClick={() => setHeaderExpanded(e => !e)}
+              className="flex items-center justify-center w-6 h-6 rounded-full border border-white/10
+                         text-[10px] text-white/30 hover:text-white/60 hover:border-white/30 transition select-none"
+              aria-label="Toggle header"
             >
-              Clear
+              {headerExpanded ? '▲' : '▼'}
             </button>
-          )}
+          </div>
         </div>
 
-        {/* Collapsible tile grid */}
-        <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${tilesExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+        {/* Collapsible header body: subtitle + tile grid + note */}
+        <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${headerExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
           <div className="overflow-hidden">
-            <div className="mt-3 grid grid-cols-2 gap-1.5">
+            <p className="text-[11px] text-white/50 leading-snug mb-2">
+              Four specialized AI agents working together
+            </p>
+            <div className="grid grid-cols-2 gap-1.5">
               {AGENT_TILE_INFO.map(({ label, technique, desc, when, requiresScan }) => (
                 <div key={label} className="relative rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 pr-6">
                   <p className="text-[11px] font-medium text-white/80 leading-tight">{label}</p>
@@ -513,8 +569,8 @@ function MultiAgentPanel({ commandsManager, servicesManager, extensionManager }:
                 </div>
               ))}
             </div>
-            <p className="mt-2.5 text-[10px] text-white/30 leading-relaxed">
-              Auto mode routes your message — or pick an agent from the selector below
+            <p className="mt-2 mb-1 text-[10px] text-white/30 leading-relaxed">
+              Smart mode routes your message — or pick an agent from the selector below
             </p>
           </div>
         </div>
@@ -536,6 +592,8 @@ function MultiAgentPanel({ commandsManager, servicesManager, extensionManager }:
             commandsManager={commandsManager}
             servicesManager={servicesManager}
             extensionManager={extensionManager}
+            variationIndex={msg.role === 'agent' ? variationIndexMap.get(msg.id) : undefined}
+            onDismiss={dismissMessage}
           />
         ))}
 

@@ -211,16 +211,13 @@ const VariationPanel = ({
   }, [restoreInitialViewport]);
 
   useEffect(() => {
-    const handleTabChange = (event: Event) => {
-      const detail = (event as CustomEvent<{ tab?: string }>).detail;
-      if (detail?.tab === 'example' || detail?.tab === 'assistant') {
-        handleCancelClick();
-      }
+    const handleVariationReset = () => {
+      handleCancelClick();
     };
 
-    document.addEventListener('tabChanged', handleTabChange);
+    document.addEventListener('variationReset', handleVariationReset);
     return () => {
-      document.removeEventListener('tabChanged', handleTabChange);
+      document.removeEventListener('variationReset', handleVariationReset);
     };
   }, [handleCancelClick]);
 

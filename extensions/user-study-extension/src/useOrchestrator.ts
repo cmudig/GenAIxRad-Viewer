@@ -67,6 +67,7 @@ export interface UseOrchestratorReturn {
   state: OrchestratorState;
   sendMessage: (userText: string, directAgent?: AgentToolName) => Promise<void>;
   clearThread: () => void;
+  dismissMessage: (id: string) => void;
 }
 
 // ─── Gemini wire types ────────────────────────────────────────────────────────
@@ -89,7 +90,7 @@ const GEMINI_LOCAL_STORAGE_KEY = 'gemini-api-key';
 const OPENAI_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 const OPENAI_VISION_MODEL = 'gpt-4o';
 
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 const ORCHESTRATOR_SYSTEM_PROMPT = `You are an XAI (Explainable AI) orchestration assistant embedded in a medical CT imaging viewer called OHIF. You help medical students and clinicians explore AI diagnostic decisions for chest CT scans, with a focus on pleural effusion.
 
@@ -211,6 +212,10 @@ export function useOrchestrator({
     setError(null);
   }, []);
 
+  const dismissMessage = useCallback((id: string) => {
+    setMessages(prev => prev.filter(m => m.id !== id));
+  }, []);
+
   const updateAgentMessage = useCallback(
     (id: string, patch: Partial<AgentMessage>) => {
       setMessages(prev =>
@@ -284,7 +289,6 @@ export function useOrchestrator({
       openAIKey: string
     ) => {
       document.dispatchEvent(new CustomEvent('examplesReset'));
-      document.dispatchEvent(new CustomEvent('tabChanged', { detail: { tab: 'assistant' } }));
 
       const base = {
         id: makeId(),
@@ -441,9 +445,8 @@ export function useOrchestrator({
           return;
         }
 
-        // 7. Fire reset events so embedded components start fresh
+        // 7. Fire reset event so ExampleComponent starts fresh each turn
         document.dispatchEvent(new CustomEvent('examplesReset'));
-        document.dispatchEvent(new CustomEvent('tabChanged', { detail: { tab: 'assistant' } }));
 
         // 8. Create pending agent messages for all function calls
         const pendingAgentMsgs: AgentMessage[] = functionCalls.map(fc => {
@@ -557,5 +560,6 @@ export function useOrchestrator({
     state: { messages, isThinking, error },
     sendMessage,
     clearThread,
+    dismissMessage,
   };
 }
