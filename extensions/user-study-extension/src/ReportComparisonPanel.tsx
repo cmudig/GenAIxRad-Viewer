@@ -473,81 +473,83 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
           </div>
           {isJudgeMode && (
             <div className="rounded-2xl border border-white/10 bg-[#0b1639] p-4 shadow-inner shadow-black/30 xl:col-span-2">
-              <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-wide text-white/60">
-                <span>LLM-as-a-Judge Report</span>
-                <span>{`${completedJudgeCriteriaCount}/${JUDGING_CRITERIA.length} Completed`}</span>
-              </div>
-              <div className="mt-3 space-y-3">
-                {JUDGING_CRITERIA.map((criterion, index) => (
-                  <div
-                    key={`${criterion.title}-${index}`}
-                    className="rounded-xl border border-white/10 bg-[#091538] px-4 py-3"
-                  >
-                    <div className="flex flex-wrap items-center gap-3">
-                      <p className="text-sm font-semibold text-white/90">
-                        {index + 1}. {criterion.title}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setCriterionStatus(currentReportIndex, criterion.metadataKey, 'correct')
-                          }
-                          className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                            currentCriterionFeedback[criterion.metadataKey]?.status === 'correct'
-                              ? 'bg-emerald-500 text-white ring-2 ring-emerald-300'
-                              : 'bg-[#0d1b46] text-white/80 hover:bg-[#12245a]'
-                          }`}
-                        >
-                          Correct
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setCriterionStatus(currentReportIndex, criterion.metadataKey, 'incorrect')
-                          }
-                          className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                            currentCriterionFeedback[criterion.metadataKey]?.status === 'incorrect'
-                              ? 'bg-red-500/25 text-red-100 ring-1 ring-red-300'
-                              : 'bg-[#0d1b46] text-white/80 hover:bg-[#12245a]'
-                          }`}
-                        >
-                          Incorrect
-                        </button>
+              <div className="max-h-[34rem] overflow-y-auto pr-1">
+                <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                  <span>LLM-as-a-Judge Report</span>
+                  <span>{`${completedJudgeCriteriaCount}/${JUDGING_CRITERIA.length} Completed`}</span>
+                </div>
+                <div className="mt-3 space-y-3">
+                  {JUDGING_CRITERIA.map((criterion, index) => (
+                    <div
+                      key={`${criterion.title}-${index}`}
+                      className="rounded-xl border border-white/10 bg-[#091538] px-4 py-3"
+                    >
+                      <div className="flex flex-wrap items-center gap-3">
+                        <p className="text-sm font-semibold text-white/90">
+                          {index + 1}. {criterion.title}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCriterionStatus(currentReportIndex, criterion.metadataKey, 'correct')
+                            }
+                            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                              currentCriterionFeedback[criterion.metadataKey]?.status === 'correct'
+                                ? 'bg-emerald-500 text-white ring-2 ring-emerald-300'
+                                : 'bg-[#0d1b46] text-white/80 hover:bg-[#12245a]'
+                            }`}
+                          >
+                            Correct
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCriterionStatus(currentReportIndex, criterion.metadataKey, 'incorrect')
+                            }
+                            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                              currentCriterionFeedback[criterion.metadataKey]?.status === 'incorrect'
+                                ? 'bg-red-500/25 text-red-100 ring-1 ring-red-300'
+                                : 'bg-[#0d1b46] text-white/80 hover:bg-[#12245a]'
+                            }`}
+                          >
+                            Incorrect
+                          </button>
+                        </div>
                       </div>
+                      <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-white/75">
+                        {`${formatJudgeMetadataValue(currentJudgeMetadata[criterion.metadataKey])}: ${formatJudgeExplanationValue(
+                          currentJudgeMetadata[criterion.explanationMetadataKey]
+                        )}`}
+                      </p>
+                      {currentCriterionFeedback[criterion.metadataKey]?.status === 'incorrect' && (
+                        <textarea
+                          rows={2}
+                          value={currentCriterionFeedback[criterion.metadataKey]?.correction || ''}
+                          onChange={event =>
+                            setCriterionCorrection(
+                              currentReportIndex,
+                              criterion.metadataKey,
+                              event.target.value
+                            )
+                          }
+                          className="mt-3 min-h-[56px] w-full rounded-lg border border-white/15 bg-[#0d1b46] p-3 text-sm leading-relaxed text-white outline-none placeholder:text-white/40 focus:border-white/30"
+                          placeholder="Describe what is incorrect and provide the corrected assessment..."
+                        />
+                      )}
                     </div>
-                    <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-white/75">
-                      {`${formatJudgeMetadataValue(currentJudgeMetadata[criterion.metadataKey])}: ${formatJudgeExplanationValue(
-                        currentJudgeMetadata[criterion.explanationMetadataKey]
-                      )}`}
-                    </p>
-                    {currentCriterionFeedback[criterion.metadataKey]?.status === 'incorrect' && (
-                      <textarea
-                        rows={2}
-                        value={currentCriterionFeedback[criterion.metadataKey]?.correction || ''}
-                        onChange={event =>
-                          setCriterionCorrection(
-                            currentReportIndex,
-                            criterion.metadataKey,
-                            event.target.value
-                          )
-                        }
-                        className="mt-3 min-h-[56px] w-full rounded-lg border border-white/15 bg-[#0d1b46] p-3 text-sm leading-relaxed text-white outline-none placeholder:text-white/40 focus:border-white/30"
-                        placeholder="Describe what is incorrect and provide the corrected assessment..."
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleSubmitJudgeReport}
-                  disabled={isSubmittingJudgeReport}
-                  className="rounded-full bg-primary-light px-5 py-2 text-sm font-semibold text-black transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isSubmittingJudgeReport ? 'Submitting...' : 'Submit Report'}
-                </button>
+                  ))}
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleSubmitJudgeReport}
+                    disabled={isSubmittingJudgeReport}
+                    className="rounded-full bg-primary-light px-5 py-2 text-sm font-semibold text-black transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSubmittingJudgeReport ? 'Submitting...' : 'Submit Report'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
