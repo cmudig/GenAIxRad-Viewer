@@ -50,7 +50,19 @@
   "UserMetadata": {
     "groundTruthReport": 1024,
     "mammoReport": 1025,
-    "medGemmaReport": 1026
+    "medGemmaReport": 1026,
+    "false_report_finding": 1027,
+    "false_report_finding_explanation": 1028,
+    "missing_finding": 1029,
+    "missing_finding_explanation": 1030,
+    "mischaracterization_finding": 1031,
+    "mischaracterization_finding_explanation": 1032,
+    "misidentification_finding": 1033,
+    "misidentification_finding_explanation": 1034,
+    "incorrect_birads_assessment_finding": 1035,
+    "incorrect_birads_assessment_finding_explanation": 1036,
+    "breast_denstity_mismatch": 1037,
+    "breast_denstity_mismatch_explanation": 1038
   },
   "StableAge": 60,
   "StrictAetComparison": false,
