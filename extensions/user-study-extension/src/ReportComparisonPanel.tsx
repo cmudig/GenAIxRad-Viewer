@@ -496,7 +496,7 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
                             }
                             className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
                               currentCriterionFeedback[criterion.metadataKey]?.status === 'correct'
-                                ? 'bg-emerald-500 text-white ring-2 ring-emerald-300'
+                                ? 'border border-[#86efac] bg-[#16a34a] text-white shadow-sm'
                                 : 'bg-[#0d1b46] text-white/80 hover:bg-[#12245a]'
                             }`}
                           >
