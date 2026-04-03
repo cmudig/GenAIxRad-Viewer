@@ -258,8 +258,12 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
   const panelSubtitle = isJudgeMode
     ? 'Review AI-generated report against the ground truth report.'
     : 'Review AI-generated report (A) against AI-generated report (B).';
-  const firstReportLabel = isJudgeMode ? 'Generated Report' : 'AI-Generated Report (A)';
-  const secondReportLabel = isJudgeMode ? 'Ground Truth Report' : 'AI-Generated Report (B)';
+  const firstReportLabel = isJudgeMode
+    ? 'Generated Report (Candidate Report)'
+    : 'AI-Generated Report (A)';
+  const secondReportLabel = isJudgeMode
+    ? 'Ground Truth Report (Reference Report)'
+    : 'AI-Generated Report (B)';
 
   useEffect(() => {
     if (!totalReports) {
