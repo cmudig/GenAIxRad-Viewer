@@ -9,7 +9,9 @@ const STUDY_USERNAME = defineSecret('STUDY_USERNAME');
 const STUDY_PASSWORD = defineSecret('STUDY_PASSWORD');
 const SESSION_SECRET = defineSecret('SESSION_SECRET');
 
-const SESSION_COOKIE_NAME = 'study_session';
+// Firebase Hosting rewrites only forward the "__session" cookie to backends.
+const SESSION_COOKIE_NAME = '__session';
+const LEGACY_SESSION_COOKIE_NAME = 'study_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 8; // 8 hours
 
 function safeEqual(a, b) {
@@ -69,10 +71,11 @@ function setSessionCookie(res, token) {
 }
 
 function clearSessionCookie(res) {
-  res.setHeader(
-    'Set-Cookie',
-    `${SESSION_COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`
-  );
+  // Clear both the current and legacy cookie names.
+  res.setHeader('Set-Cookie', [
+    `${SESSION_COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
+    `${LEGACY_SESSION_COOKIE_NAME}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
+  ]);
 }
 
 function getJsonBody(req) {
@@ -96,7 +99,7 @@ function getUpstreamUrl(req, baseUrl) {
 
 function validateSession(req, sessionSecret) {
   const cookies = parseCookies(req);
-  const token = cookies[SESSION_COOKIE_NAME];
+  const token = cookies[SESSION_COOKIE_NAME] || cookies[LEGACY_SESSION_COOKIE_NAME];
   if (!token) {
     return null;
   }

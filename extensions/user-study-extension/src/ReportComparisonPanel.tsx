@@ -151,14 +151,19 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
 
       try {
         const urlStudyInstanceUID = getUrlStudyInstanceUID();
-        const orthancStudyId = getUrlOrthancStudyId() ?? (looksLikeOrthancId(urlStudyInstanceUID) ? urlStudyInstanceUID : null);
-        const activeStudyInstanceUID =
-          orthancStudyId ? null : (urlStudyInstanceUID ?? getActiveStudyInstanceUID(servicesManager));
+        const orthancStudyId =
+          getUrlOrthancStudyId() ??
+          (looksLikeOrthancId(urlStudyInstanceUID) ? urlStudyInstanceUID : null);
+        const activeStudyInstanceUID = orthancStudyId
+          ? null
+          : (urlStudyInstanceUID ?? getActiveStudyInstanceUID(servicesManager));
 
         if (!orthancStudyId && !activeStudyInstanceUID) {
           if (!cancelled) {
             setReportItems([]);
-            setReportError('No active study found for report metadata lookup (missing StudyInstanceUID and orthancStudyId).');
+            setReportError(
+              'No active study found for report metadata lookup (missing StudyInstanceUID and orthancStudyId).'
+            );
           }
           return;
         }
@@ -252,8 +257,7 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
   const completedJudgeCriteriaCount = JUDGING_CRITERIA.filter(
     criterion => !!currentCriterionFeedback[criterion.metadataKey]?.status
   ).length;
-  const canGoNext =
-    !reportLoading && totalReports > 0 && currentReportIndex < totalReports - 1;
+  const canGoNext = !reportLoading && totalReports > 0 && currentReportIndex < totalReports - 1;
   const panelTitle = 'AI Report Comparison';
   const panelSubtitle = isJudgeMode
     ? 'Review AI-generated report against the ground truth report.'
@@ -357,9 +361,11 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
     try {
       const urlStudyInstanceUID = getUrlStudyInstanceUID();
       const orthancStudyId =
-        getUrlOrthancStudyId() ?? (looksLikeOrthancId(urlStudyInstanceUID) ? urlStudyInstanceUID : null);
-      const activeStudyInstanceUID =
-        orthancStudyId ? null : (urlStudyInstanceUID ?? getActiveStudyInstanceUID(servicesManager));
+        getUrlOrthancStudyId() ??
+        (looksLikeOrthancId(urlStudyInstanceUID) ? urlStudyInstanceUID : null);
+      const activeStudyInstanceUID = orthancStudyId
+        ? null
+        : (urlStudyInstanceUID ?? getActiveStudyInstanceUID(servicesManager));
 
       const criteriaResponses = Object.fromEntries(
         JUDGING_CRITERIA.map(criterion => {
@@ -411,7 +417,7 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
   };
 
   return (
-    <div className="shadow-primary-main/10 flex h-full flex-col rounded-2xl bg-[#050c24] p-4 text-white shadow-lg">
+    <div className="shadow-primary-main/10 flex h-full min-h-0 flex-col rounded-2xl bg-[#050c24] p-4 text-white shadow-lg">
       <div className="flex flex-wrap items-start gap-3">
         <div>
           <p className="text-base font-semibold">{panelTitle}</p>
@@ -423,7 +429,7 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
             <button
               type="button"
               onClick={() => setCurrentReportIndex(prev => Math.min(totalReports - 1, prev + 1))}
-              className="rounded-full bg-primary-light px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-white"
+              className="bg-primary-light rounded-full px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-white"
             >
               Next
             </button>
@@ -431,134 +437,149 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
         </div>
       </div>
 
-      {reportError && (
-        <div className="mt-3 rounded-xl border border-white/10 bg-[#0b1639] p-3 text-xs text-white/70">
-          {reportError}
-        </div>
-      )}
-
-      {!reportLoading && !reportError && totalReports === 0 && (
-        <div className="mt-3 rounded-xl border border-white/10 bg-[#0b1639] p-3 text-xs text-white/70">
-          No reports available yet.
-        </div>
-      )}
-
-      {reportLoading && (
-        <div className="mt-3 rounded-xl border border-white/10 bg-[#0b1639] p-3 text-xs text-white/70">
-          Loading report data...
-        </div>
-      )}
-
-      {totalReports > 0 && !reportLoading && (
-        <div
-          className={`mt-4 grid gap-3 ${
-            isJudgeMode ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'
-          }`}
-        >
-          <div className="rounded-2xl bg-[#0d1b46] p-4 shadow-inner shadow-black/30">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-              {firstReportLabel}
-            </div>
-            <div className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-white/90">
-              {currentMammoReport || 'No AI-generated report available for this entry.'}
-            </div>
+      <div className="mt-3 min-h-0 flex-1 overflow-y-auto pb-10 pr-1">
+        {reportError && (
+          <div className="rounded-xl border border-white/10 bg-[#0b1639] p-3 text-xs text-white/70">
+            {reportError}
           </div>
-          <div className="rounded-2xl bg-[#0d1b46] p-4 shadow-inner shadow-black/30">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
-              {secondReportLabel}
-            </div>
-            <div className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-white/90">
-              {currentComparisonReport
-                ? currentComparisonReport
-                : isJudgeMode
-                  ? 'No ground truth report available for this entry.'
-                  : 'No AI-generated report (B) available for this entry.'}
-            </div>
+        )}
+
+        {!reportLoading && !reportError && totalReports === 0 && (
+          <div className="rounded-xl border border-white/10 bg-[#0b1639] p-3 text-xs text-white/70">
+            No reports available yet.
           </div>
-          {isJudgeMode && (
-            <div className="rounded-2xl border border-white/10 bg-[#0b1639] p-4 shadow-inner shadow-black/30 xl:col-span-2">
-              <div className="max-h-[34rem] overflow-y-auto pr-1">
-                <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-wide text-white/60">
-                  <span>LLM-as-a-Judge Report</span>
-                  <span>{`${completedJudgeCriteriaCount}/${JUDGING_CRITERIA.length} Completed`}</span>
-                </div>
-                <div className="mt-3 space-y-3">
-                  {JUDGING_CRITERIA.map((criterion, index) => (
-                    <div
-                      key={`${criterion.title}-${index}`}
-                      className="rounded-xl border border-white/10 bg-[#091538] px-4 py-3"
-                    >
-                      <div className="flex flex-wrap items-center gap-3">
-                        <p className="text-sm font-semibold text-white/90">
-                          {index + 1}. {criterion.title}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setCriterionStatus(currentReportIndex, criterion.metadataKey, 'correct')
-                            }
-                            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                              currentCriterionFeedback[criterion.metadataKey]?.status === 'correct'
-                                ? 'border border-[#86efac] bg-[#16a34a] text-white shadow-sm'
-                                : 'bg-[#0d1b46] text-white/80 hover:bg-[#12245a]'
-                            }`}
-                          >
-                            Correct
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setCriterionStatus(currentReportIndex, criterion.metadataKey, 'incorrect')
-                            }
-                            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                              currentCriterionFeedback[criterion.metadataKey]?.status === 'incorrect'
-                                ? 'bg-red-500/25 text-red-100 ring-1 ring-red-300'
-                                : 'bg-[#0d1b46] text-white/80 hover:bg-[#12245a]'
-                            }`}
-                          >
-                            Incorrect
-                          </button>
-                        </div>
-                      </div>
-                      <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-white/75">
-                        {`${formatJudgeMetadataValue(currentJudgeMetadata[criterion.metadataKey])}: ${formatJudgeExplanationValue(
-                          currentJudgeMetadata[criterion.explanationMetadataKey]
-                        )}`}
-                      </p>
-                      {currentCriterionFeedback[criterion.metadataKey]?.status === 'incorrect' && (
-                        <textarea
-                          rows={2}
-                          value={currentCriterionFeedback[criterion.metadataKey]?.correction || ''}
-                          onChange={event =>
-                            setCriterionCorrection(
-                              currentReportIndex,
-                              criterion.metadataKey,
-                              event.target.value
-                            )
-                          }
-                          className="mt-3 min-h-[56px] w-full rounded-lg border border-white/15 bg-[#0d1b46] p-3 text-sm leading-relaxed text-white outline-none placeholder:text-white/40 focus:border-white/30"
-                          placeholder="Describe what is incorrect and provide the corrected assessment..."
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={handleSubmitJudgeReport}
-                    disabled={isSubmittingJudgeReport}
-                    className="rounded-full bg-primary-light px-5 py-2 text-sm font-semibold text-black transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isSubmittingJudgeReport ? 'Submitting...' : 'Submit Report'}
-                  </button>
-                </div>
+        )}
+
+        {reportLoading && (
+          <div className="rounded-xl border border-white/10 bg-[#0b1639] p-3 text-xs text-white/70">
+            Loading report data...
+          </div>
+        )}
+
+        {totalReports > 0 && !reportLoading && (
+          <div
+            className={`mt-4 grid gap-3 ${
+              isJudgeMode ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'
+            }`}
+          >
+            <div className="rounded-2xl bg-[#0d1b46] p-4 shadow-inner shadow-black/30">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                {firstReportLabel}
+              </div>
+              <div className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-white/90">
+                {currentMammoReport || 'No AI-generated report available for this entry.'}
               </div>
             </div>
-          )}
-        </div>
-      )}
+            <div className="rounded-2xl bg-[#0d1b46] p-4 shadow-inner shadow-black/30">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                {secondReportLabel}
+              </div>
+              <div className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-white/90">
+                {currentComparisonReport
+                  ? currentComparisonReport
+                  : isJudgeMode
+                    ? 'No ground truth report available for this entry.'
+                    : 'No AI-generated report (B) available for this entry.'}
+              </div>
+            </div>
+            {isJudgeMode && (
+              <div className="rounded-2xl border border-white/10 bg-[#0b1639] p-4 shadow-inner shadow-black/30 xl:col-span-2">
+                <div className="max-h-[34rem] overflow-y-auto pb-6 pr-1">
+                  <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-wide text-white/60">
+                    <span>LLM-as-a-Judge Report</span>
+                    <span>{`${completedJudgeCriteriaCount}/${JUDGING_CRITERIA.length} Completed`}</span>
+                  </div>
+                  <div className="mt-3 space-y-3">
+                    {JUDGING_CRITERIA.map((criterion, index) => (
+                      <div
+                        key={`${criterion.title}-${index}`}
+                        className="rounded-xl border border-white/10 bg-[#091538] px-4 py-3"
+                      >
+                        <div className="flex flex-wrap items-center gap-3">
+                          <p className="text-sm font-semibold text-white/90">
+                            {index + 1}. {criterion.title}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCriterionStatus(
+                                  currentReportIndex,
+                                  criterion.metadataKey,
+                                  'correct'
+                                )
+                              }
+                              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                currentCriterionFeedback[criterion.metadataKey]?.status ===
+                                'correct'
+                                  ? 'border border-[#86efac] bg-[#16a34a] text-white shadow-sm'
+                                  : 'bg-[#0d1b46] text-white/80 hover:bg-[#12245a]'
+                              }`}
+                            >
+                              Correct
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCriterionStatus(
+                                  currentReportIndex,
+                                  criterion.metadataKey,
+                                  'incorrect'
+                                )
+                              }
+                              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                currentCriterionFeedback[criterion.metadataKey]?.status ===
+                                'incorrect'
+                                  ? 'bg-red-500/25 text-red-100 ring-1 ring-red-300'
+                                  : 'bg-[#0d1b46] text-white/80 hover:bg-[#12245a]'
+                              }`}
+                            >
+                              Incorrect
+                            </button>
+                          </div>
+                        </div>
+                        <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-white/75">
+                          {`${formatJudgeMetadataValue(currentJudgeMetadata[criterion.metadataKey])}: ${formatJudgeExplanationValue(
+                            currentJudgeMetadata[criterion.explanationMetadataKey]
+                          )}`}
+                        </p>
+                        {currentCriterionFeedback[criterion.metadataKey]?.status ===
+                          'incorrect' && (
+                          <textarea
+                            rows={2}
+                            value={
+                              currentCriterionFeedback[criterion.metadataKey]?.correction || ''
+                            }
+                            onChange={event =>
+                              setCriterionCorrection(
+                                currentReportIndex,
+                                criterion.metadataKey,
+                                event.target.value
+                              )
+                            }
+                            className="border-white/15 mt-3 min-h-[56px] w-full rounded-lg border bg-[#0d1b46] p-3 text-sm leading-relaxed text-white outline-none placeholder:text-white/40 focus:border-white/30"
+                            placeholder="Describe what is incorrect and provide the corrected assessment..."
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleSubmitJudgeReport}
+                      disabled={isSubmittingJudgeReport}
+                      className="bg-primary-light rounded-full px-5 py-2 text-sm font-semibold text-black transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isSubmittingJudgeReport ? 'Submitting...' : 'Submit Report'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
