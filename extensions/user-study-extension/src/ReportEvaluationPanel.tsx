@@ -13,13 +13,13 @@ const QUESTIONS = [
   {
     id: 'clinicalAccuracy',
     type: 'multiple-choice' as const,
-    label: 'Which report is more clinically accurate?',
+    label: 'Which AI-generated report is more clinically accurate?',
     options: ['(A)', '(B)'],
   },
   {
     id: 'structureAlignment',
     type: 'multiple-choice' as const,
-    label: 'Which report is more aligned with existing report structures?',
+    label: 'Which AI-generated report is more aligned with existing report structures?',
     options: ['(A)', '(B)'],
   },
 ];
