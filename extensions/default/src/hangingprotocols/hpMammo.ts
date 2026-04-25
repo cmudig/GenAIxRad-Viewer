@@ -9,21 +9,23 @@ import {
   LMLOPrior,
 } from './mammoDisplaySetSelector';
 
-const rightDisplayArea = {
+const leftColumnDisplayArea = {
   storeAsInitialCamera: true,
-  imageArea: [0.8, 0.8],
+  imageArea: [0.92, 0.92],
   imageCanvasPoint: {
     imagePoint: [0, 0.5],
-    canvasPoint: [0, 0.5],
+    // Shift left-column images further toward the center seam (to the right).
+    canvasPoint: [0.2, 0.5],
   },
 };
 
-const leftDisplayArea = {
+const rightColumnDisplayArea = {
   storeAsInitialCamera: true,
-  imageArea: [0.8, 0.8],
+  imageArea: [0.92, 0.92],
   imageCanvasPoint: {
     imagePoint: [1, 0.5],
-    canvasPoint: [1, 0.5],
+    // Shift right-column images further toward the center seam (to the left).
+    canvasPoint: [0.64, 0.5],
   },
 };
 
@@ -77,7 +79,7 @@ const hpMammography = {
         {
           viewportOptions: {
             toolGroupId: 'default',
-            displayArea: rightDisplayArea,
+            displayArea: leftColumnDisplayArea,
             allowUnmatchedView: true,
           },
           displaySets: [
@@ -89,7 +91,7 @@ const hpMammography = {
         {
           viewportOptions: {
             toolGroupId: 'default',
-            displayArea: leftDisplayArea,
+            displayArea: rightColumnDisplayArea,
             allowUnmatchedView: true,
           },
           displaySets: [
@@ -101,7 +103,7 @@ const hpMammography = {
         {
           viewportOptions: {
             toolGroupId: 'default',
-            displayArea: rightDisplayArea,
+            displayArea: leftColumnDisplayArea,
             allowUnmatchedView: true,
           },
           displaySets: [
@@ -113,7 +115,7 @@ const hpMammography = {
         {
           viewportOptions: {
             toolGroupId: 'default',
-            displayArea: leftDisplayArea,
+            displayArea: rightColumnDisplayArea,
             flipHorizontal: true,
             allowUnmatchedView: true,
           },
@@ -141,7 +143,7 @@ const hpMammography = {
         {
           viewportOptions: {
             toolGroupId: 'default',
-            displayArea: leftDisplayArea,
+            displayArea: leftColumnDisplayArea,
             flipHorizontal: true,
             rotation: 180,
           },
@@ -155,7 +157,7 @@ const hpMammography = {
           viewportOptions: {
             toolGroupId: 'default',
             flipHorizontal: true,
-            displayArea: rightDisplayArea,
+            displayArea: rightColumnDisplayArea,
           },
           displaySets: [
             {
@@ -166,7 +168,7 @@ const hpMammography = {
         {
           viewportOptions: {
             toolGroupId: 'default',
-            displayArea: leftDisplayArea,
+            displayArea: leftColumnDisplayArea,
             flipHorizontal: true,
           },
           displaySets: [
@@ -178,7 +180,7 @@ const hpMammography = {
         {
           viewportOptions: {
             toolGroupId: 'default',
-            displayArea: rightDisplayArea,
+            displayArea: rightColumnDisplayArea,
           },
           displaySets: [
             {
