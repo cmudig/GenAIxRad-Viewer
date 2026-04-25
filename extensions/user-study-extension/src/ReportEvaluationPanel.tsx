@@ -3,14 +3,29 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 import { auth, db } from '../../../platform/app/src/firebase';
 
-const QUESTIONS = {
-  preference: {
+const QUESTIONS = [
+  {
     id: 'preference',
     type: 'multiple-choice' as const,
     label: 'Which AI-generated report do you prefer?',
     options: ['(A)', '(B)'],
   },
-};
+  {
+    id: 'clinicalAccuracy',
+    type: 'multiple-choice' as const,
+    label: 'Which report is more clinically accurate?',
+    options: ['(A)', '(B)'],
+  },
+  {
+    id: 'structureAlignment',
+    type: 'multiple-choice' as const,
+    label: 'Which report is more aligned with existing report structures?',
+    options: ['(A)', '(B)'],
+  },
+];
+
+type QuestionId = (typeof QUESTIONS)[number]['id'];
+type Responses = Partial<Record<QuestionId, string>>;
 
 const ReportEvaluationPanel: React.FC = () => {
   const [currentReportIndex, setCurrentReportIndex] = useState(0);
@@ -18,7 +33,7 @@ const ReportEvaluationPanel: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [selectedOption, setSelectedOption] = useState('');
+  const [responses, setResponses] = useState<Responses>({});
   const participantId = auth.currentUser?.uid || 'anonymous';
 
   useEffect(() => {
@@ -37,14 +52,15 @@ const ReportEvaluationPanel: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    setSelectedOption('');
+    setResponses({});
     setError('');
     setSuccessMessage('');
   }, [currentReportIndex]);
 
   const handleSubmit = async () => {
-    if (!selectedOption) {
-      setError('Please select an option.');
+    const unansweredQuestions = QUESTIONS.filter(question => !responses[question.id]);
+    if (unansweredQuestions.length > 0) {
+      setError('Please answer all questions before submitting.');
       return;
     }
 
@@ -56,7 +72,9 @@ const ReportEvaluationPanel: React.FC = () => {
         participants: {
           [participantId]: {
             [String(currentReportIndex)]: {
-              preferredReport: selectedOption,
+              preferredReport: responses.preference,
+              clinicallyAccurateReport: responses.clinicalAccuracy,
+              structureAlignedReport: responses.structureAlignment,
               updatedAt: serverTimestamp(),
             },
           },
@@ -93,7 +111,7 @@ const ReportEvaluationPanel: React.FC = () => {
         <div>
           <p className="text-base font-semibold">Report Evaluation</p>
           <p className="text-sm text-white/80">
-            Select which AI-generated report you prefer for the current case.
+            Compare the two reports and answer all evaluation questions for the current case.
           </p>
         </div>
         <div className="ml-auto text-sm text-white/70">
@@ -114,24 +132,34 @@ const ReportEvaluationPanel: React.FC = () => {
       )}
 
       <div className="ohif-scrollbar mt-4 flex-1 space-y-4 overflow-y-auto pr-1">
-        <div className="rounded-2xl bg-[#0d1b46] p-4 shadow-inner shadow-black/30">
-          <p className="text-sm font-semibold text-white/90">{QUESTIONS.preference.label}</p>
-          <div className="mt-3 space-y-2">
-            {QUESTIONS.preference.options.map(option => (
-              <label key={option} className="flex cursor-pointer items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="report-preference"
-                  value={option}
-                  checked={selectedOption === option}
-                  onChange={() => setSelectedOption(option)}
-                  className="h-3 w-3 appearance-none rounded-full border border-white/50 bg-transparent checked:border-primary-light checked:bg-primary-light"
-                />
-                <span className="text-white/90">{option}</span>
-              </label>
-            ))}
+        {QUESTIONS.map(question => (
+          <div
+            key={question.id}
+            className="rounded-2xl bg-[#0d1b46] p-4 shadow-inner shadow-black/30"
+          >
+            <p className="text-sm font-semibold text-white/90">{question.label}</p>
+            <div className="mt-3 space-y-2">
+              {question.options.map(option => (
+                <label key={option} className="flex cursor-pointer items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name={`report-eval-${question.id}`}
+                    value={option}
+                    checked={responses[question.id] === option}
+                    onChange={() =>
+                      setResponses(prev => ({
+                        ...prev,
+                        [question.id]: option,
+                      }))
+                    }
+                    className="h-3 w-3 appearance-none rounded-full border border-white/50 bg-transparent checked:border-primary-light checked:bg-primary-light"
+                  />
+                  <span className="text-white/90">{option}</span>
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
+        ))}
       </div>
 
       <div className="mt-4 flex items-center gap-2">
