@@ -1,25 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { FieldPath, doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 
 import { auth, db } from '../../../platform/app/src/firebase';
+import {
+  getMetadataFromStudyByKeys,
+  getPatientIdFromStudyInstanceUid,
+} from '../../../platform/app/src/components/dicom_helpers';
 
 const QUESTIONS = [
   {
-    id: 'preference',
+    id: 'overallPreference',
     type: 'multiple-choice' as const,
-    label: 'Which AI-generated report do you prefer?',
+    label: 'Which report do you prefer overall?',
     options: ['(A)', '(B)'],
   },
   {
-    id: 'clinicalAccuracy',
+    id: 'radiologicAccuracy',
     type: 'multiple-choice' as const,
-    label: 'Which AI-generated report is more clinically accurate?',
+    label: 'Which report is a more radiologically accurate representation of this mammogram?',
     options: ['(A)', '(B)'],
   },
   {
-    id: 'structureAlignment',
+    id: 'usefulness',
     type: 'multiple-choice' as const,
-    label: 'Which AI-generated report is more aligned with existing report structures?',
+    label: 'Which report is more useful for clinical decision-making?',
     options: ['(A)', '(B)'],
   },
 ];
@@ -27,14 +32,131 @@ const QUESTIONS = [
 type QuestionId = (typeof QUESTIONS)[number]['id'];
 type Responses = Partial<Record<QuestionId, string>>;
 
-const ReportEvaluationPanel: React.FC = () => {
+type ModeProgress = {
+  participantCode: string;
+  modeId: 'participant' | 'judge';
+  route: '/user-study-mode' | '/judge-mode';
+  targetCount: number;
+  studyUIDs: string[];
+  completedStudyUIDs: string[];
+  isComplete: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const getModeProgressKey = (participantCode: string, modeId: 'participant' | 'judge') =>
+  `studyModeProgress:${participantCode}:${modeId}`;
+
+const readModeProgress = (
+  participantCode: string,
+  modeId: 'participant' | 'judge'
+): ModeProgress | null => {
+  try {
+    const raw = window.sessionStorage.getItem(getModeProgressKey(participantCode, modeId));
+    if (!raw) {
+      return null;
+    }
+    return JSON.parse(raw) as ModeProgress;
+  } catch {
+    return null;
+  }
+};
+
+const writeModeProgress = (progress: ModeProgress) => {
+  window.sessionStorage.setItem(
+    getModeProgressKey(progress.participantCode, progress.modeId),
+    JSON.stringify(progress)
+  );
+};
+
+const getCurrentStudyUIDFromUrl = (): string | null => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const firstFromGetAll = params.getAll('StudyInstanceUIDs')?.[0];
+    const studyUid = firstFromGetAll ?? params.get('StudyInstanceUIDs');
+    return studyUid && studyUid.trim() ? studyUid.trim() : null;
+  } catch {
+    return null;
+  }
+};
+
+const getReviewedStudyParticipantId = async (studyInstanceUID: string | null): Promise<string | null> => {
+  if (!studyInstanceUID) {
+    return null;
+  }
+
+  const patientIdFromDicom = await getPatientIdFromStudyInstanceUid(studyInstanceUID);
+  if (patientIdFromDicom) {
+    return patientIdFromDicom;
+  }
+
+  const metadataKeys = ['participantID', 'participantId', 'participant_id'];
+  const value = await getMetadataFromStudyByKeys(studyInstanceUID, metadataKeys);
+  const normalized = value?.trim();
+  return normalized || null;
+};
+
+const getParticipantCodeFromContext = (): string | null => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const fromQuery = params.get('participantCode');
+    if (fromQuery && fromQuery.trim()) {
+      return fromQuery.trim();
+    }
+  } catch {
+    // Ignore URL parsing errors.
+  }
+
+  try {
+    const stored = window.sessionStorage.getItem('participantDemographics');
+    if (!stored) {
+      return null;
+    }
+    const parsed = JSON.parse(stored);
+    const fromSession = parsed?.participantCode;
+    if (typeof fromSession === 'string' && fromSession.trim()) {
+      return fromSession.trim();
+    }
+  } catch {
+    // Ignore session parsing errors.
+  }
+
+  return null;
+};
+
+const getParticipantDemographicsFromSession = (): Record<string, any> | null => {
+  try {
+    const stored = window.sessionStorage.getItem('participantDemographics');
+    if (!stored) {
+      return null;
+    }
+    const parsed = JSON.parse(stored);
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
+    return {
+      participantCode: parsed.participantCode || null,
+      role: parsed.role || null,
+      mammogramReviewExperienceYears: parsed.mammogramReviewExperienceYears || null,
+      aiHealthcarePerspective: parsed.aiHealthcarePerspective || null,
+      capturedAt: parsed.createdAt || null,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const ReportEvaluationPanel: React.FC<{ servicesManager?: any }> = ({ servicesManager }) => {
+  const { uiNotificationService } = servicesManager?.services ?? {};
+  const navigate = useNavigate();
   const [currentReportIndex, setCurrentReportIndex] = useState(0);
   const [totalReports, setTotalReports] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [responses, setResponses] = useState<Responses>({});
-  const participantId = auth.currentUser?.uid || 'anonymous';
+  const [overallComment, setOverallComment] = useState('');
+  const participantId = getParticipantCodeFromContext() || auth.currentUser?.uid || 'anonymous';
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -53,6 +175,7 @@ const ReportEvaluationPanel: React.FC = () => {
 
   useEffect(() => {
     setResponses({});
+    setOverallComment('');
     setError('');
     setSuccessMessage('');
   }, [currentReportIndex]);
@@ -68,35 +191,106 @@ const ReportEvaluationPanel: React.FC = () => {
     setSubmitting(true);
 
     try {
-      const payload = {
-        participants: {
-          [participantId]: {
-            [String(currentReportIndex)]: {
-              preferredReport: responses.preference,
-              clinicallyAccurateReport: responses.clinicalAccuracy,
-              structureAlignedReport: responses.structureAlignment,
-              updatedAt: serverTimestamp(),
-            },
-          },
-        },
+      const showEvaluationSavedNotification = () => {
+        uiNotificationService?.show?.({
+          title: 'Comparison Evaluation Submitted',
+          message: 'Your report-comparison evaluation has been saved.',
+          type: 'success',
+          duration: 2800,
+        });
       };
 
-      await setDoc(doc(db, 'mammogram-study', 'participant-eval'), payload, { merge: true });
-      if (totalReports > 0 && currentReportIndex >= totalReports - 1) {
-        setSuccessMessage('Evaluation complete. You have reached the final case.');
-        window.sessionStorage.setItem('reportComparisonPhase', 'aiPair');
-        document.dispatchEvent(
-          new CustomEvent('reportComparisonPhaseChange', {
-            detail: { phase: 'aiPair' },
-          })
-        );
-      } else {
+      const currentStudyUID = getCurrentStudyUIDFromUrl();
+      const reviewedStudyParticipantId = await getReviewedStudyParticipantId(currentStudyUID);
+      const demographics = getParticipantDemographicsFromSession();
+      const comparisonKey = currentStudyUID || `case-${currentReportIndex}`;
+
+      const comparisonPayload = {
+        participantCode: getParticipantCodeFromContext(),
+        reviewedStudyParticipantId,
+        reviewedStudyInstanceUID: currentStudyUID,
+        overallComment: overallComment.trim(),
+        evaluationResponses: responses,
+        updatedAt: serverTimestamp(),
+      };
+
+      const evalDocRef = doc(db, 'mammogram-study', 'participant-eval');
+      try {
+        const updates: any[] = [
+          new FieldPath('participants', participantId, 'comparison', comparisonKey),
+          comparisonPayload,
+        ];
+        if (demographics) {
+          updates.push(new FieldPath('participants', participantId, 'demographics'), demographics);
+        }
+        await updateDoc(evalDocRef, ...updates);
+      } catch (updateError: any) {
+        // If the document does not exist yet, create it with merge as fallback.
+        if (updateError?.code === 'not-found') {
+          const payload = {
+            participants: {
+              [participantId]: {
+                demographics: demographics || null,
+                comparison: {
+                  [comparisonKey]: comparisonPayload,
+                },
+              },
+            },
+          };
+          await setDoc(evalDocRef, payload, { merge: true });
+        } else {
+          throw updateError;
+        }
+      }
+      const participantCode = getParticipantCodeFromContext();
+      const progress = participantCode ? readModeProgress(participantCode, 'participant') : null;
+
+      if (!participantCode || !progress) {
+        showEvaluationSavedNotification();
         document.dispatchEvent(
           new CustomEvent('reportAdvance', {
             detail: { delta: 1 },
           })
         );
+        return;
       }
+
+      const completedSet = new Set(progress.completedStudyUIDs);
+      if (currentStudyUID) {
+        completedSet.add(currentStudyUID);
+      }
+
+      const completedStudyUIDs = Array.from(completedSet);
+      const isComplete = completedStudyUIDs.length >= progress.targetCount;
+      const nextStudyUID = progress.studyUIDs.find(uid => !completedSet.has(uid)) || null;
+
+      const nextProgress: ModeProgress = {
+        ...progress,
+        completedStudyUIDs,
+        isComplete: isComplete || !nextStudyUID,
+        updatedAt: new Date().toISOString(),
+      };
+      writeModeProgress(nextProgress);
+
+      if (nextProgress.isComplete) {
+        showEvaluationSavedNotification();
+        setSuccessMessage('Evaluation complete. Returning to study launcher...');
+        navigate(`/?participantCode=${encodeURIComponent(participantCode)}`);
+        return;
+      }
+
+      if (nextStudyUID) {
+        showEvaluationSavedNotification();
+        navigate(
+          `/user-study-mode?StudyInstanceUIDs=${encodeURIComponent(
+            nextStudyUID
+          )}&participantCode=${encodeURIComponent(participantCode)}`
+        );
+        return;
+      }
+
+      showEvaluationSavedNotification();
+      navigate(`/?participantCode=${encodeURIComponent(participantCode)}`);
     } catch (submitError) {
       console.error('ReportEvaluationPanel: failed to save responses', submitError);
       setError('Unable to save responses. Please try again.');
@@ -160,6 +354,22 @@ const ReportEvaluationPanel: React.FC = () => {
             </div>
           </div>
         ))}
+
+        <div className="rounded-2xl bg-[#0d1b46] p-4 shadow-inner shadow-black/30">
+          <p className="text-sm font-semibold text-white/90">
+            Additional comments (optional)
+          </p>
+          <p className="mt-1 text-xs text-white/70">
+            Share any reasoning, concerns, or observations about this comparison.
+          </p>
+          <textarea
+            value={overallComment}
+            onChange={event => setOverallComment(event.target.value)}
+            rows={4}
+            className="border-white/20 mt-3 w-full rounded-xl border bg-[#07112b] p-3 text-sm text-white outline-none placeholder:text-white/45 focus:border-[#60a5fa]"
+            placeholder="Optional: add your comments here..."
+          />
+        </div>
       </div>
 
       <div className="mt-4 flex items-center gap-2">

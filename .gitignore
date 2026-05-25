@@ -61,3 +61,4 @@ tests/playwright-report/
 /blob-report/
 /playwright/.cache/
 
+backend/upmc_joined_zs_mammo_clip_medgemma.csv

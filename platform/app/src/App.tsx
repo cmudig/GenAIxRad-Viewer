@@ -168,6 +168,14 @@ function App({
                 }
               />
               <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <SearchHomePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/*"
                 element={<ProtectedRoute>{appRoutes}</ProtectedRoute>}
               />
@@ -176,6 +184,10 @@ function App({
             <>
               <Route
                 path="/search"
+                element={<SearchHomePage />}
+              />
+              <Route
+                path="/"
                 element={<SearchHomePage />}
               />
               <Route

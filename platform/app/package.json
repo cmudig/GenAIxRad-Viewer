@@ -33,6 +33,7 @@
     "dev:orthanc:no:cache": "cross-env NODE_ENV=development PROXY_TARGET=/pacs PROXY_DOMAIN=http://localhost:8042 PROXY_PATH_REWRITE_FROM=/pacs PROXY_PATH_REWRITE_TO= APP_CONFIG=config/docker-nginx-orthanc.js webpack serve --no-cache --config .webpack/webpack.pwa.js",
     "dev:dcm4chee": "cross-env NODE_ENV=development APP_CONFIG=config/local_dcm4chee.js webpack serve --config .webpack/webpack.pwa.js",
     "dev:static": "cross-env NODE_ENV=development APP_CONFIG=config/local_static.js webpack serve --config .webpack/webpack.pwa.js",
+    "dev:ngrok": "cross-env NODE_ENV=development APP_CONFIG=config/ngrok.js webpack serve --config .webpack/webpack.pwa.js",
     "dev:viewer": "yarn run dev",
     "start": "yarn run dev",
     "test:e2e": "cypress open",

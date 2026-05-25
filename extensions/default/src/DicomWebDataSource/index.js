@@ -1,5 +1,5 @@
 import { api } from 'dicomweb-client';
-import { DicomMetadataStore, IWebApiDataSource, utils, errorHandler, classes } from '@ohif/core';
+import { DicomMetadataStore, IWebApiDataSource, utils, errorHandler, classes, DICOMWeb } from '@ohif/core';
 
 import {
   mapParams,
@@ -80,12 +80,13 @@ function createDicomWebApi(dicomWebConfig, servicesManager) {
       dicomWebConfigCopy = JSON.parse(JSON.stringify(dicomWebConfig));
 
       getAuthrorizationHeader = () => {
-        const xhrRequestHeaders = {};
-        const authHeaders = userAuthenticationService.getAuthorizationHeader();
-        if (authHeaders && authHeaders.Authorization) {
-          xhrRequestHeaders.Authorization = authHeaders.Authorization;
-        }
-        return xhrRequestHeaders;
+        const serviceHeaders = userAuthenticationService.getAuthorizationHeader() || {};
+        const configurationHeaders = DICOMWeb.getAuthorizationHeader(dicomWebConfig) || {};
+
+        return {
+          ...serviceHeaders,
+          ...configurationHeaders,
+        };
       };
 
       generateWadoHeader = () => {
@@ -107,7 +108,7 @@ function createDicomWebApi(dicomWebConfig, servicesManager) {
         url: dicomWebConfig.qidoRoot,
         staticWado: dicomWebConfig.staticWado,
         singlepart: dicomWebConfig.singlepart,
-        headers: userAuthenticationService.getAuthorizationHeader(),
+        headers: getAuthrorizationHeader(),
         errorInterceptor: errorHandler.getHTTPErrorHandler(),
       };
 
@@ -115,7 +116,7 @@ function createDicomWebApi(dicomWebConfig, servicesManager) {
         url: dicomWebConfig.wadoRoot,
         staticWado: dicomWebConfig.staticWado,
         singlepart: dicomWebConfig.singlepart,
-        headers: userAuthenticationService.getAuthorizationHeader(),
+        headers: getAuthrorizationHeader(),
         errorInterceptor: errorHandler.getHTTPErrorHandler(),
       };
 

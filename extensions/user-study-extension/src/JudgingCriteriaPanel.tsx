@@ -25,9 +25,9 @@ export const JUDGING_CRITERIA = [
   {
     metadataKey: 'misidentification_finding',
     explanationMetadataKey: 'misidentification_finding_explanation',
-    title: 'Misidentification of lcoation/laterality',
+    title: 'Misidentification of location/laterality',
     description:
-      'A finding is. correctly identified, but its location (e.g., "upper outer quadrant", retroareolar, depth) or laterality (left/right/bilateral) is wrong.',
+      'A finding is correctly identified, but its location (e.g., "upper outer quadrant", retroareolar, depth) or laterality (left/right/bilateral) is wrong.',
   },
   {
     metadataKey: 'incorrect_birads_assessment_finding',
@@ -46,7 +46,26 @@ export const JUDGING_CRITERIA = [
 const JudgingCriteriaPanel: React.FC = () => {
   return (
     <div className="shadow-primary-main/10 flex h-full flex-col rounded-2xl bg-[#050c24] p-4 text-white shadow-lg">
-      <p className="text-base font-semibold">Criterions of Judging the Original and AI-Generated Report</p>
+      <p className="text-base font-semibold">Criteria for Judging the Reports</p>
+      <div className="mt-3 rounded-2xl border-2 border-[#facc15] bg-[#1a1330] p-4 shadow-lg shadow-black/30">
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#fde68a]">
+          Task Instructions
+        </p>
+        <div className="mt-3 space-y-2 text-sm leading-relaxed text-white">
+          <p>
+            <span className="font-semibold text-[#fde68a]">Same patient:</span> This is one
+            patient case, even if images appear different across views.
+          </p>
+          <p>
+            <span className="font-semibold text-[#fde68a]">Judge these reports:</span> Compare
+            Report A (LLM-generated) against Report B (reference report).
+          </p>
+          <p>
+            <span className="font-semibold text-[#fde68a]">Scope:</span> Judge report content only
+            in this step.
+          </p>
+        </div>
+      </div>
       <div className="mt-3 rounded-xl border border-white/10 bg-[#0b1639] p-3">
         <div className="space-y-2 text-sm text-white/90">
           {JUDGING_CRITERIA.map((criterion, index) => (

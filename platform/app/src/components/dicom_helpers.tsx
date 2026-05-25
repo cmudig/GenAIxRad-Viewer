@@ -232,6 +232,51 @@ export const getMetadataFromStudyByKeys = async (
   return getMetadataFromOrthancStudyIdByKeys(studyId, keys);
 };
 
+export const getPatientIdFromStudyInstanceUid = async (
+  studyInstanceUid: string
+): Promise<string | null> => {
+  const studyId = await getOrthancStudyId(studyInstanceUid);
+  if (!studyId) {
+    return null;
+  }
+
+  const normalize = (value: any): string | null => {
+    const text = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+    return text || null;
+  };
+
+  try {
+    const studyResponse = await requestWithOrthancBaseFallback(baseUrl =>
+      axios.get(toOrthancUrl(baseUrl, `/studies/${studyId}`))
+    );
+    const studyData = studyResponse?.data || {};
+
+    const patientId =
+      normalize(studyData?.PatientMainDicomTags?.PatientID) ||
+      normalize(studyData?.MainDicomTags?.PatientID) ||
+      normalize(studyData?.RequestedTags?.PatientID);
+
+    if (patientId) {
+      return patientId;
+    }
+
+    const parentPatientId = normalize(studyData?.ParentPatient);
+    if (!parentPatientId) {
+      return null;
+    }
+
+    const patientResponse = await requestWithOrthancBaseFallback(baseUrl =>
+      axios.get(toOrthancUrl(baseUrl, `/patients/${parentPatientId}`))
+    );
+    const patientData = patientResponse?.data || {};
+
+    return normalize(patientData?.MainDicomTags?.PatientID);
+  } catch (error) {
+    console.error('Error fetching PatientID from study:', error);
+    return null;
+  }
+};
+
 export const getMetadataFromOrthancStudyIdByKeys = async (
   studyId: string,
   keys: string[]

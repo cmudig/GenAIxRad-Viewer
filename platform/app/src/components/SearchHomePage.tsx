@@ -1,599 +1,481 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import dicomParser from 'dicom-parser';
-import { uploadDicomFolder, addMetadataToStudy } from './dicom_helpers';
-import { auth } from '../firebase';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 
+type StudyOption = {
+  id: 'participant' | 'judge';
+  title: string;
+  subtitle: string;
+  route: '/user-study-mode' | '/judge-mode';
+  badgeClassName: string;
+};
 
+type Demographics = {
+  participantCode: string;
+  role: string;
+  mammogramReviewExperienceYears: string;
+  aiHealthcarePerspective: string;
+};
 
-const serverUrl =
-  window.location.hostname === 'localhost'
-    ? 'https://localhost:3443' // Local development
-    : 'https://medsyn.katelyncmorrison.com'; // Deployed server
-const orthancServerUrl =
-  window.location.hostname === 'localhost'
-    ? 'http://localhost'
-    : 'https://orthanc.katelyncmorrison.com';
+type DicomWebStudy = {
+  [tag: string]: {
+    Value?: string[];
+  };
+};
+
+type ModeProgress = {
+  participantCode: string;
+  modeId: StudyOption['id'];
+  route: StudyOption['route'];
+  targetCount: number;
+  studyUIDs: string[];
+  completedStudyUIDs: string[];
+  isComplete: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const STUDY_OPTIONS: StudyOption[] = [
+  {
+    id: 'participant',
+    title: 'Participant Study',
+    subtitle: 'Review two report drafts and choose which one reads better and is more accurate.',
+    route: '/user-study-mode',
+    badgeClassName:
+      'border-[#3b82f6] bg-gradient-to-br from-[#102a64] to-[#0b1b45] hover:border-[#60a5fa] hover:shadow-[#3b82f6]/30',
+  },
+  {
+    id: 'judge',
+    title: 'Judge Mode',
+    subtitle:
+      'Compare a generated report with the reference report and mark where findings are correct or incorrect.',
+    route: '/judge-mode',
+    badgeClassName:
+      'border-[#f59e0b] bg-gradient-to-br from-[#4a2a07] to-[#241405] hover:border-[#fbbf24] hover:shadow-[#f59e0b]/30',
+  },
+];
+
+const STUDY_ENDPOINTS = ['/dicom-web/studies', '/pacs/dicom-web/studies', '/api/dicom-web/studies'];
+
+const MODE_TARGET_CASES: Record<StudyOption['id'], number> = {
+  participant: 8,
+  judge: 5,
+};
+
+const getModeProgressKey = (participantCode: string, modeId: StudyOption['id']) =>
+  `studyModeProgress:${participantCode}:${modeId}`;
+
+const shuffle = <T,>(items: T[]) => {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
+
+const getNextStudyUID = (progress: ModeProgress): string | null => {
+  const next = progress.studyUIDs.find(uid => !progress.completedStudyUIDs.includes(uid));
+  return next || null;
+};
+
+const readModeProgress = (
+  participantCode: string,
+  modeId: StudyOption['id']
+): ModeProgress | null => {
+  try {
+    const raw = window.sessionStorage.getItem(getModeProgressKey(participantCode, modeId));
+    if (!raw) {
+      return null;
+    }
+    return JSON.parse(raw) as ModeProgress;
+  } catch {
+    return null;
+  }
+};
+
+const writeModeProgress = (progress: ModeProgress) => {
+  window.sessionStorage.setItem(
+    getModeProgressKey(progress.participantCode, progress.modeId),
+    JSON.stringify(progress)
+  );
+};
+
+const extractStudyInstanceUID = (study: DicomWebStudy): string | null => {
+  const tagUid = study?.['0020000D']?.Value?.[0];
+  return tagUid ? String(tagUid) : null;
+};
+
+const fetchAvailableStudyUIDs = async (): Promise<string[]> => {
+  for (const basePath of STUDY_ENDPOINTS) {
+    try {
+      const params = new URLSearchParams({
+        limit: '50',
+        offset: '0',
+        fuzzymatching: 'false',
+        includefield: '0020000D,00080020',
+      });
+      const response = await fetch(`${basePath}?${params.toString()}`);
+      if (!response.ok) {
+        continue;
+      }
+
+      const studies = (await response.json()) as DicomWebStudy[];
+      if (!Array.isArray(studies)) {
+        continue;
+      }
+
+      const uids = studies.map(extractStudyInstanceUID).filter((uid): uid is string => !!uid);
+      if (uids.length) {
+        return Array.from(new Set(uids));
+      }
+    } catch {
+      // Try next base path.
+    }
+  }
+
+  return [];
+};
 
 const SearchHomePage = () => {
-  const [inputValue, setInputValue] = useState('');
-  const [isModelRunning, setIsModelRunning] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [logs, setLogs] = useState<string[]>([]);
-  const [oldModelIsRunning, setOldModelIsRunning] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [dataIsUploading, setDataIsUploading] = useState(false);
-  const [generateClicked, setGenerateClicked] = useState(false);
-  const [isServerRunning, setIsServerRunning] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatingFileSeriesInstanceUID, setGeneratingFileSeriesInstanceUID] = useState('');
-  const [generatingFilePrompt, setGeneratingFilePrompt] = useState('');
-  const [generatedFileID, setGeneratedFileID] = useState(''); // Store the generated file ID
-  const [studyID, setStudyId] = useState('');
   const navigate = useNavigate();
+  const [demographics, setDemographics] = useState<Demographics>({
+    participantCode: '',
+    role: '',
+    mammogramReviewExperienceYears: '',
+    aiHealthcarePerspective: '',
+  });
+  const [demographicsSaved, setDemographicsSaved] = useState(false);
+  const [entryError, setEntryError] = useState('');
+  const [isSubmittingDemographics, setIsSubmittingDemographics] = useState(false);
+  const [selectedModeId, setSelectedModeId] = useState<string | null>(null);
+  const [modeCompletion, setModeCompletion] = useState<Record<StudyOption['id'], boolean>>({
+    participant: false,
+    judge: false,
+  });
+
+  const canSubmitDemographics = useMemo(() => {
+    return (
+      demographics.participantCode.trim() &&
+      demographics.role.trim() &&
+      demographics.mammogramReviewExperienceYears.trim() &&
+      demographics.aiHealthcarePerspective.trim()
+    );
+  }, [demographics]);
+
+  const refreshModeCompletion = (participantCode: string) => {
+    if (!participantCode) {
+      setModeCompletion({ participant: false, judge: false });
+      return;
+    }
+
+    setModeCompletion({
+      participant: !!readModeProgress(participantCode, 'participant')?.isComplete,
+      judge: !!readModeProgress(participantCode, 'judge')?.isComplete,
+    });
+  };
 
   useEffect(() => {
-    const checkModelIsRunning = async () => {
-      try {
-        const response = await axios.get(`${serverUrl}/status`);
+    try {
+      const fromQuery = new URLSearchParams(window.location.search).get('participantCode')?.trim() || '';
+      const stored = window.sessionStorage.getItem('participantDemographics');
+      const parsed = stored ? JSON.parse(stored) : null;
 
-        if (response.status === 200) {
-          const processIsRunning = response.data['process_is_running'];
-          const progressPercentage = response.data['progress'] || 0;
-          console.log('CHECK MODEL IS RUNNING: ', response.data);
-          setProgress(progressPercentage);
-          setIsModelRunning(prevModelIsRunning => {
-            if (prevModelIsRunning === false && processIsRunning === true) {
-              console.log('Model started');
-            } else if (prevModelIsRunning === true && processIsRunning === false) {
-              console.log('Model ended');
-              console.log('Try to download data');
-              console.log('Generated File ID:', generatedFileID);
-              executeDownloadAndUpload(studyID);
-            }
-            setOldModelIsRunning(prevModelIsRunning);
-            return processIsRunning;
-          });
-        }
-      } catch (error) {
-        console.log('Error checking for model status:', error);
-        setLogs(prevLogs => [...prevLogs, `Error checking for model status: ${error.message}`]);
+      if (parsed?.participantCode) {
+        setDemographics({
+          participantCode: parsed.participantCode,
+          role: parsed.role || '',
+          mammogramReviewExperienceYears: parsed.mammogramReviewExperienceYears || '',
+          aiHealthcarePerspective: parsed.aiHealthcarePerspective || '',
+        });
+        setDemographicsSaved(true);
+        refreshModeCompletion(parsed.participantCode);
       }
-    };
-    checkModelIsRunning();
-    const interval = setInterval(() => {
-      checkModelIsRunning();
-    }, 5000); // Check every 5 seconds
 
-    return () => clearInterval(interval); // Cleanup on component unmount
-  }, [studyID]); // Add generatedFileID as a dependency
-
-  useEffect(() => {
-    const checkServerStatus = async () => {
-      try {
-        const response = await axios.get(serverUrl);
-        console.log('Server status response:', response.data);
-        if (response.data['server_running'] === true) {
-          setIsServerRunning(true);
-          console.log('Server is running');
-        } else {
-          setIsServerRunning(false);
-        }
-      } catch (error) {
-        console.error('Error checking server status:', error);
-        setIsServerRunning(false);
+      if (fromQuery) {
+        setDemographics(prev => ({ ...prev, participantCode: fromQuery }));
+        const matchesStored = parsed?.participantCode === fromQuery;
+        setDemographicsSaved(matchesStored);
+        refreshModeCompletion(fromQuery);
       }
-    };
-
-    checkServerStatus();
-    const interval = setInterval(() => {
-      checkServerStatus();
-    }, 60000); // Check every 60 seconds
-
-    return () => clearInterval(interval); // Cleanup on component unmount
+    } catch {
+      // No-op if storage is unavailable.
+    }
   }, []);
 
-  useEffect(() => {
-    const getServerLog = async () => {
-      if (isModelRunning) {
-        try {
-          const response = await axios.get(`${serverUrl}/progress`);
-          if (response.status === 200) {
-            setLogs(prevLogs => [...prevLogs, `Model progress: ${response.data}`]);
-          }
-        } catch (error) {
-          console.log('Error when getting server log:', error);
-        }
-      }
-    };
+  const updateDemographicsField = (field: keyof Demographics, value: string) => {
+    setDemographics(prev => ({ ...prev, [field]: value }));
+    setDemographicsSaved(false);
+    if (field === 'participantCode') {
+      refreshModeCompletion(value.trim());
+    }
+  };
 
-    const interval = setInterval(getServerLog, 3000); // Check every 5 seconds
-
-    return () => clearInterval(interval); // Cleanup on component unmount
-  }, [isModelRunning]);
-
-  // Trigger model generation and wait until completion
-  const handleGenerateClick = async () => {
-    if (isGenerating) {
-      setIsGenerating(false);
-      setIsLoading(false);
-      setGenerateClicked(false);
-      setLogs(prevLogs => [...prevLogs, 'Generation process stopped.']);
+  const persistDemographics = async () => {
+    if (!canSubmitDemographics) {
+      setEntryError('Please fill out all demographic fields before selecting a study mode.');
       return;
     }
 
-    setIsLoading(true);
-    setGenerateClicked(true); // Flag generation started
-    setIsGenerating(true); // Set generating state to true
-    setLogs(['Starting CT scan generation...']);
-
-    const formattedDate = generateUniqueTimestamp();
-    const firstTenLetters = inputValue.replace(/[^a-zA-Z]/g, '').slice(0, 10);
-    const newGeneratedFileID = `${formattedDate}${firstTenLetters}`;
-    setGeneratedFileID(newGeneratedFileID);
-    const newStudyId = generateUniqueId(); // Generate a new unique ID
-    setStudyId(newStudyId); // Set the new unique ID to the state
-
-    console.log('OUR INPUT VALUE:', inputValue);
-    const payload = {
-      filename: `${newStudyId}.npy`,
-      prompt: inputValue || null,
-      description: inputValue || null,
-      studyID: newStudyId, // Use the new unique ID
-      studyInstanceUID: newStudyId, // Use the new unique ID
-      patient_name: `Generated Patient ${newStudyId}`,
-      seriesInstanceUID: newStudyId + '.0',
-      patient_id: newStudyId,
-      read_img_flag: false,
-      num_series_in_study: 0,
-    };
-
-    const headers = {
-      'Content-Type': 'application/json',
-    };
-
-    const url = `${serverUrl}/files/${newStudyId}`;
-
-    console.log('🔵 Sending POST request to:', url);
-    console.log('🟢 Payload:', payload);
+    setEntryError('');
+    setIsSubmittingDemographics(true);
 
     try {
-      const response = await axios.post(url, payload, { headers });
-      console.log('✅ Response:', response.data);
-      setGeneratingFilePrompt(response.data.prompt);
-      setGeneratingFileSeriesInstanceUID(response.data.seriesInstanceUID);
-    } catch (error) {
-      setLogs(prevLogs => [...prevLogs, `Error generating CT scan: ${error.message}`]);
-    } finally {
-      setIsLoading(false);
-      setIsGenerating(false); // Reset the generating state
-    }
-  };
-
-  const waitForStudyID = async () => {
-    let retries = 20; // Maximum retries
-    while (!studyID && retries > 0) {
-      console.log('⏳ Waiting for `studyID` to be set...');
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s
-      retries--;
-    }
-
-    if (!studyID) {
-      console.error('❌ Timed out waiting for `studyID` to be set.');
-      return;
-    }
-
-    console.log('✅ Study ID available:', studyID);
-
-    // 🛠 NEW: Wait for Orthanc to confirm study exists before navigating
-    const studyExists = await checkOrthancForStudy(studyID);
-    if (studyExists) {
-      console.log(`✅ Study ${studyID} found in Orthanc! Navigating...`);
-      navigate(`/generative-ai?StudyInstanceUIDs=${studyID}`);
-    } else {
-      console.error('❌ Study still not available in Orthanc. Navigation aborted.');
-    }
-  };
-
-  // Function to check if a study exists in Orthanc using `_getOrthancStudyByID`
-  const checkOrthancForStudy = async studyInstanceUID => {
-    let retries = 20; // Max retries to check if Orthanc has indexed the study
-    while (retries > 0) {
-      console.log(`🔍 Checking if study ${studyInstanceUID} exists in Orthanc...`);
-
-      const study = await _getOrthancStudyByID(studyInstanceUID);
-
-      if (study) {
-        console.log('✅ Study found in Orthanc:', study);
-        return true;
-      }
-
-      console.warn('⏳ Study not found yet, retrying...');
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retrying
-      retries--;
-    }
-
-    console.error(`🚨 Study ${studyInstanceUID} not found after multiple attempts.`);
-    return false;
-  };
-
-  const _getOrthancStudyByID = async studyInstanceUID => {
-    try {
-      // Parameters to include in the request
-      const params = new URLSearchParams({ expand: 1, requestedTags: 'StudyInstanceUID' });
-      const response = await fetch(orthancServerUrl + `/pacs/studies?${params.toString()}`);
-
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-
-      const data = await response.json();
-      // Filter the data to find the study with the given StudyInstanceUID
-      const study = data.find(item => item.RequestedTags.StudyInstanceUID === studyInstanceUID);
-
-      if (study) {
-        console.log('We found study: ', study);
-        return study;
-      } else {
-        console.error('No study found with studyInstanceUID: ', studyInstanceUID);
-        return null;
-      }
-    } catch (error) {
-      console.error('There has been a problem with _getOrthancStudyByID:', error);
-      return null;
-    }
-  };
-
-  // Function to download and upload images only after model is done generating
-  const executeDownloadAndUpload = async generatedfileID => {
-    try {
-      console.log('Download and upload started for fileID: ', generatedfileID);
-      const files = await _getFilesFromFolder(generatedfileID, 0);
-
-      setDataIsUploading(true);
-
-      const uploadPromises = files.map(async filename => {
-        try {
-          const blob = await _fetchDicomFile(generatedfileID, filename, 0);
-          if (blob) {
-            await _uploadDicomToOrthanc(blob);
-          }
-        } catch (innerError) {
-          console.error('Error processing file:', filename, innerError);
-          throw innerError;
-        }
-      });
-
-      await Promise.all(uploadPromises); // Wait for all uploads to complete
-      setDataIsUploading(false); // After all uploads are finished, set the uploading status to false
-      console.log('All files uploaded successfully!');
-      setLogs(prevLogs => [...prevLogs, 'All files uploaded successfully']);
-
-      // const metadataPromise = await addDummyMetadata(studyID);
-      setLogs(prevLogs => [...prevLogs, 'Navigating you to your generation.']);
-      // Ensure studyID is correctly set before navigating
-      const response = await addMetadataToStudy(studyID, '', 'Findings');
-      console.log('Findings metadata response,', response);
-      const response_impressions = await addMetadataToStudy(studyID, '', 'Impressions');
-      console.log('Impressions metadata response,', response_impressions);
-    } catch (error) {
-      console.error('Error in downloading and uploading images:', error);
-      setLogs(prevLogs => [...prevLogs, 'ERROR IN NAVIGATION.']);
-      setDataIsUploading(false); // Ensure uploading status is updated in case of an error
-      throw error;
-    } finally {
-      console.log('OUR STUDY ID TO NAVIGATE TO IS', studyID);
-      waitForStudyID();
-    }
-  };
-
-  const _getFilesFromFolder = async (foldername, sampleNumber) => {
-    setLogs(prevLogs => [...prevLogs, `Fetching files from folder: ${foldername}`]);
-    try {
-      const response = await axios.get(`${serverUrl}/files/${foldername}/${sampleNumber}`);
-      console.log('GET FILES RESPONSE:', response.data);
-      return response.data; // Assuming the response contains a list of file names
-    } catch (error) {
-      console.error('Error fetching files:', error);
-      setLogs(prevLogs => [...prevLogs, `Could not fetch files from folder: ${foldername}`]);
-      throw error;
-    }
-  };
-
-  const _fetchDicomFile = async (foldername, filename, sampleNumber) => {
-    try {
-      const response = await axios.post(
-        `${serverUrl}/files/${foldername}/${filename}/${sampleNumber}`,
-        { data: 'example' },
-        { responseType: 'arraybuffer' }
-      );
-
-      const arrayBuffer = response.data;
-      const blob = new Blob([arrayBuffer], { type: 'application/dicom' });
-      return blob;
-    } catch (error) {
-      console.error('Error fetching DICOM file:', error);
-      return null;
-    }
-  };
-
-  const _uploadDicomToOrthanc = async blob => {
-    try {
-      const formData = new FormData();
-      formData.append('file', blob, 'example.dcm');
-
-      const uploadResponse = await axios.post(orthancServerUrl + '/pacs/instances', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      console.log('uploaded successfully', uploadResponse.data);
-
-      const instanceId = uploadResponse.data['ID'];
-      if (!instanceId) {
-        console.log('Error uploading DICOM file to Orthanc:', uploadResponse.data);
-        return;
-      }
-
-      const instanceReponse = await axios.get(`${orthancServerUrl}/pacs/instances/${instanceId}`);
-      const studyInstanceUid = instanceReponse.data['ParentStudy'];
-
-      console.log(`our study instance UID is: `, studyInstanceUid);
-
-      if (studyInstanceUid) {
-        // Step 4: Trigger metadata reconstruction for the study
-        await axios.post(`${orthancServerUrl}/pacs/studies/${studyInstanceUid}/reconstruct`);
-        console.log(`🔄 Reconstructing metadata for study: ${studyInstanceUid}`);
-      } else {
-        console.error('Error fetching study instance UID:', instanceReponse.data);
-      }
-    } catch (error) {
-      console.error('Error uploading DICOM file to Orthanc:', error);
-    }
-  };
-
-  const _getOrthancStudyId = async (studyInstanceUid, sampleNumber) => {
-    try {
-      const response = await axios.get(
-        `${orthancServerUrl}/pacs/studies?StudyInstanceUID=${studyInstanceUid}/${sampleNumber}`
-      );
-      if (response.data && response.data.length > 0) {
-        return response.data[0].ID; // Assuming the response contains a list with the study ID
-      } else {
-        console.log('Study not found.');
-        return null;
-      }
-    } catch (error) {
-      console.log(`Error fetching study ID: ${error}`);
-      return null;
-    }
-  };
-
-  const _addMetadataToStudy = async (studyInstanceUid, data, type) => {
-    // Validate the metadata type
-    if (type !== 'Findings' && type !== 'Impressions') {
-      console.log(`Invalid metadata type: ${type}. Must be either 'Findings' or 'Impressions'.`);
-      return;
-    }
-
-    try {
-      // Step 1: Get the Study ID
-      const studyId = await _getOrthancStudyId(studyInstanceUid, 0);
-      if (!studyId) {
-        console.log(`Study with UID ${studyInstanceUid} not found.`);
-        return;
-      }
-
-      // Step 2: Prepare the metadata URL
-      const url = `${orthancServerUrl}/pacs/studies/${studyId}/metadata/${type}`;
-
-      // Step 3: Set headers
-      const headers = {
-        'Content-Type': 'text/plain', // Ensure text content type
+      const participantCode = demographics.participantCode.trim();
+      const payload = {
+        ...demographics,
+        participantCode,
+        uid: auth.currentUser?.uid || null,
+        email: auth.currentUser?.email || null,
+        createdAt: serverTimestamp(),
       };
 
-      // Step 4: Send the PUT request with the data
-      const response = await axios.put(url, data, { headers });
+      await setDoc(doc(db, 'participant-demographics', participantCode), payload, { merge: true });
 
-      // Step 5: Check if the request was successful
-      if (response.status !== 200) {
-        console.log(
-          `Failed to add metadata. Status: ${response.status}, Response: ${response.statusText}`
-        );
-      } else {
-        console.log(`Successfully added metadata for ${type}.`);
-        return response.data;
-      }
+      window.sessionStorage.setItem(
+        'participantDemographics',
+        JSON.stringify({
+          ...demographics,
+          participantCode,
+          createdAt: new Date().toISOString(),
+        })
+      );
+
+      setDemographicsSaved(true);
+      refreshModeCompletion(participantCode);
     } catch (error) {
-      console.log(`Error in adding metadata: ${error}`);
+      console.error('SearchHomePage: failed to save participant demographics', error);
+      setEntryError('Unable to save demographics right now. Please try again.');
+    } finally {
+      setIsSubmittingDemographics(false);
     }
   };
 
-  const generateUniqueTimestamp = () => {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    return `${year}${month}${day}${hours}${minutes}${seconds}`;
-  };
+  const handleStudyEntry = async (studyOption: StudyOption) => {
+    if (!demographicsSaved) {
+      setEntryError('Save demographics first, then choose a study mode.');
+      return;
+    }
 
-  const generateUniqueId = () => {
-    // return Math.random().toString(11).substr(2, 9);
-    //generate a random string with 15 numbers - no letters
-    return Math.floor(Math.random() * 1000000000000000).toString();
-  };
+    setSelectedModeId(studyOption.id);
+    setEntryError('');
 
-  const styles = {
-    searchHomepage: {
-      display: 'flex',
-      flexDirection: 'column' as const,
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '100vh',
-      background:
-        'linear-gradient(190deg, rgb(220, 220, 220), rgb(240, 240, 240), rgb(210, 210, 210))',
-      animation: 'gradient 15s ease infinite',
-    },
-    title: {
-      fontSize: '4rem',
-      color: 'indigo',
-      marginBottom: '20px',
-      fontWeight: 'bold',
-      textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
-    },
-    subtitle: {
-      fontSize: '1.5rem',
-      color: 'indigo',
-      marginBottom: '20px',
-      fontWeight: '300',
-      fontStyle: 'italic',
-    },
-    searchBar: {
-      width: '50%',
-      padding: '15px',
-      border: 'none',
-      borderRadius: '25px',
-      fontSize: '1.2rem',
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-      outline: 'none',
-      marginBottom: '20px',
-    },
-    searchButton: {
-      padding: '10px 20px',
-      fontSize: '1.2rem',
-      border: 'none',
-      borderRadius: '25px',
-      backgroundColor: 'indigo',
-      color: 'white',
-      cursor: 'pointer',
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-    },
-    modelStatus: {
-      display: 'flex',
-      alignItems: 'center',
-      marginTop: '10px',
-    },
-    statusDot: {
-      width: '10px',
-      height: '10px',
-      borderRadius: '50%',
-      marginRight: '10px',
-      backgroundColor: isServerRunning ? 'green' : 'red',
-    },
-    logs: {
-      marginTop: '20px',
-      color: 'indigo',
-      fontSize: '1rem',
-      textAlign: 'left' as const,
-      width: '40%', // Adjusted size
-      maxHeight: '15vh', // Adjusted height
-      overflowY: 'auto' as const,
-      backgroundColor: 'rgba(255, 255, 255, 0.8)',
-      padding: '10px',
-      borderRadius: '10px',
-    },
-    logo: {
-      width: '20vw', // Adjust the width as needed
-      marginBottom: '20px',
-    },
-    '@keyframes gradient': {
-      '0%': {
-        background:
-          'linear-gradient(190deg, rgb(220, 220, 220), rgb(240, 240, 240), rgb(210, 210, 210))',
-      },
-      '50%': {
-        background:
-          'linear-gradient(190deg, rgb(220, 220, 220), rgb(240, 240, 240), rgb(210, 210, 210))',
-      },
-      '100%': {
-        background:
-          'linear-gradient(190deg, rgb(220, 220, 220), rgb(240, 240, 240), rgb(210, 210, 210))',
-      },
-    },
-    cornerContainer: {
-      position: 'absolute' as const,
-      top: '10px',
-      right: '10px',
-      display: 'flex',
-      alignItems: 'right',
-    },
-    cornerIcon: {
-      width: '30px',
-      height: '30px',
-      marginTop: '10px',
-      marginRight: '25px',
-    },
+    try {
+      const studyUIDs = await fetchAvailableStudyUIDs();
+      if (!studyUIDs.length) {
+        setEntryError('No available studies were found. Please verify your Orthanc data source.');
+        return;
+      }
+
+      const participantCode = demographics.participantCode.trim();
+      const existingProgress = readModeProgress(participantCode, studyOption.id);
+      let progress: ModeProgress;
+
+      if (existingProgress) {
+        progress = existingProgress;
+      } else {
+        const targetCount = Math.min(MODE_TARGET_CASES[studyOption.id], studyUIDs.length);
+        progress = {
+          participantCode,
+          modeId: studyOption.id,
+          route: studyOption.route,
+          targetCount,
+          studyUIDs: shuffle(studyUIDs).slice(0, targetCount),
+          completedStudyUIDs: [],
+          isComplete: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      }
+
+      if (progress.isComplete) {
+        refreshModeCompletion(participantCode);
+        setEntryError(`${studyOption.title} is already complete for participant ${participantCode}.`);
+        return;
+      }
+
+      const nextStudyUID = getNextStudyUID(progress);
+      if (!nextStudyUID) {
+        const completedProgress: ModeProgress = {
+          ...progress,
+          isComplete: true,
+          updatedAt: new Date().toISOString(),
+        };
+        writeModeProgress(completedProgress);
+        refreshModeCompletion(participantCode);
+        setEntryError(`${studyOption.title} is complete for participant ${participantCode}.`);
+        return;
+      }
+
+      writeModeProgress({ ...progress, updatedAt: new Date().toISOString() });
+      navigate(
+        `${studyOption.route}?StudyInstanceUIDs=${encodeURIComponent(
+          nextStudyUID
+        )}&participantCode=${encodeURIComponent(participantCode)}`
+      );
+    } catch (error) {
+      console.error('SearchHomePage: failed to enter study mode', error);
+      setEntryError('Could not launch study mode right now. Please try again.');
+    } finally {
+      setSelectedModeId(null);
+    }
   };
 
   return (
-    <div style={styles.searchHomepage}>
-      <div style={styles.cornerContainer}>
-        <img
-          style={styles.cornerIcon}
-          src="../../assets/stack-icon.png"
-          alt="stack icon"
-          onClick={() => {
-            if (auth.currentUser) {
-              console.log("logged in");
-            }
-            else {console.log("logged out");}
-            navigate('/');}}
-        ></img>
-        <img
-          style={styles.cornerIcon}
-          src="../../assets/message-icon.png"
-          alt="profile icon"
-          onClick={() => navigate('/')}
-        ></img>
-        <img
-          style={styles.cornerIcon}
-          src="../../assets/profile-icon.png"
-          alt="stack icon"
-          onClick={() => navigate('/search')}
-        ></img>
-      </div>
-      <img
-        src={'/assets/logo.png'} // Ensure the path is correct relative to the public directory
-        alt="Logo"
-        style={styles.logo}
-      />
-      <h1 style={styles.title}>IndaigoMed</h1>
-      <h3 style={styles.subtitle}>
-        bringing AI-powered medical image search and generation to your finger tips
-      </h3>
-      <input
-        type="text"
-        style={styles.searchBar}
-        placeholder="What do you want to generate...?"
-        value={inputValue}
-        onChange={e => setInputValue(e.target.value)} // Add this line
-      />
-      <button
-        style={styles.searchButton}
-        onClick={handleGenerateClick}
-        disabled={isModelRunning || dataIsUploading}
-      >
-        {isGenerating ? 'Stop Generation' : isLoading ? 'Generating...' : 'Generate'}
-      </button>
-      <div style={styles.modelStatus}>
-        <div style={styles.statusDot}></div>
-        <span>{isServerRunning ? 'Server is running' : 'Server is off'}</span>
-      </div>
-      {isGenerating && (
-        <div style={{ width: '50%', marginTop: '20px' }}>
-          <div style={{ width: `${progress}%`, height: '20px', backgroundColor: 'indigo' }}></div>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#1e3a8a_0%,#0b1025_45%,#050816_100%)] px-6 py-10 text-white">
+      <div className="mx-auto w-full max-w-6xl">
+        <div className="mb-8 rounded-2xl border border-white/15 bg-[#091534]/80 p-6 shadow-xl shadow-black/30">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#93c5fd]">User Study Entry</p>
+          <h1 className="mt-2 text-3xl font-black leading-tight text-white">Radiology Study Launcher</h1>
+          <p className="mt-2 max-w-3xl text-sm text-white/80">
+            Complete participant demographics, then select a mode option to enter either Participant
+            Study or Judge Mode.
+          </p>
         </div>
-      )}
-      {logs.length > 0 && (
-        <div style={styles.logs}>
-          {/* Only show the latest log */}
-          <div>{logs[logs.length - 1]}</div>
+
+        <div className="grid gap-6 lg:grid-cols-[1.05fr_1fr]">
+          <section className="rounded-2xl border border-white/15 bg-[#0a1738]/85 p-6 shadow-lg shadow-black/30">
+            <h2 className="text-lg font-bold text-white">Participant Demographics</h2>
+            <p className="mt-1 text-sm text-white/75">All fields are required before mode selection.</p>
+
+            <div className="mt-5 space-y-4">
+              <label className="block">
+                <span className="text-sm font-semibold text-white/90">Participant Code</span>
+                <input
+                  type="text"
+                  value={demographics.participantCode}
+                  onChange={event => updateDemographicsField('participantCode', event.target.value)}
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-[#07112b] px-3 py-2 text-sm text-white outline-none focus:border-[#60a5fa]"
+                  placeholder="e.g., UPMC-001"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-semibold text-white/90">Clinical Role</span>
+                <select
+                  value={demographics.role}
+                  onChange={event => updateDemographicsField('role', event.target.value)}
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-[#07112b] px-3 py-2 text-sm text-white outline-none focus:border-[#60a5fa]"
+                >
+                  <option value="">Select role</option>
+                  <option value="radiologist">Radiologist</option>
+                  <option value="resident">Resident/Fellow</option>
+                  <option value="student">Student</option>
+                  <option value="other">Other</option>
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-semibold text-white/90">
+                  Years of Experience Reviewing Mammograms
+                </span>
+                <select
+                  value={demographics.mammogramReviewExperienceYears}
+                  onChange={event =>
+                    updateDemographicsField('mammogramReviewExperienceYears', event.target.value)
+                  }
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-[#07112b] px-3 py-2 text-sm text-white outline-none focus:border-[#60a5fa]"
+                >
+                  <option value="">Select years</option>
+                  <option value="0-2 years">0-2 years</option>
+                  <option value="3-5 years">3-5 years</option>
+                  <option value="6-10 years">6-10 years</option>
+                  <option value="10+ years">10+ years</option>
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-semibold text-white/90">
+                  Perspective Towards AI Assistance in Healthcare
+                </span>
+                <select
+                  value={demographics.aiHealthcarePerspective}
+                  onChange={event =>
+                    updateDemographicsField('aiHealthcarePerspective', event.target.value)
+                  }
+                  className="mt-2 w-full rounded-xl border border-white/20 bg-[#07112b] px-3 py-2 text-sm text-white outline-none focus:border-[#60a5fa]"
+                >
+                  <option value="">Select one</option>
+                  <option value="very-positive">Very positive</option>
+                  <option value="somewhat-positive">Somewhat positive</option>
+                  <option value="neutral">Neutral</option>
+                  <option value="somewhat-negative">Somewhat negative</option>
+                  <option value="very-negative">Very negative</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="mt-5 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={persistDemographics}
+                disabled={!canSubmitDemographics || isSubmittingDemographics || demographicsSaved}
+                className={`rounded-full px-5 py-2 text-sm font-bold transition-colors ${
+                  demographicsSaved
+                    ? 'cursor-default bg-emerald-600 text-white'
+                    : !canSubmitDemographics || isSubmittingDemographics
+                      ? 'cursor-not-allowed bg-white/15 text-white/50'
+                      : 'bg-[#60a5fa] text-black hover:bg-[#93c5fd]'
+                }`}
+              >
+                {demographicsSaved
+                  ? 'Demographics Saved'
+                  : isSubmittingDemographics
+                    ? 'Saving...'
+                    : 'Save Demographics'}
+              </button>
+              {demographicsSaved && (
+                <span className="text-xs font-semibold text-emerald-300">Ready to select a study mode.</span>
+              )}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-white/15 bg-[#0a1738]/85 p-6 shadow-lg shadow-black/30">
+            <h2 className="text-lg font-bold text-white">Select Study Mode</h2>
+            <p className="mt-1 text-sm text-white/75">
+              Click a mode option to enter the selected mode with the next available study.
+            </p>
+
+            <div className="mt-5 grid gap-4">
+              {STUDY_OPTIONS.map(option => {
+                const isLoading = selectedModeId === option.id;
+                const isComplete = modeCompletion[option.id];
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => handleStudyEntry(option)}
+                    disabled={!demographicsSaved || !!selectedModeId || isComplete}
+                    className={`w-full rounded-2xl border p-5 text-left shadow-md transition-all ${option.badgeClassName} ${
+                      !demographicsSaved || (!!selectedModeId && !isLoading) || isComplete
+                        ? 'cursor-not-allowed opacity-50'
+                        : 'hover:-translate-y-0.5 hover:shadow-xl'
+                    }`}
+                  >
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-white/70">Mode Option</p>
+                    <p className="mt-2 text-xl font-black text-white">{option.title}</p>
+                    <p className="mt-2 text-sm text-white/80">{option.subtitle}</p>
+                    <p className="mt-4 text-xs font-semibold text-white/70">
+                      {isComplete
+                        ? 'Complete'
+                        : isLoading
+                          ? 'Opening selected study...'
+                          : 'Click to launch'}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
         </div>
-      )}
+
+        {entryError && (
+          <div className="mt-6 rounded-xl border border-red-300/40 bg-red-500/20 p-3 text-sm text-red-100">
+            {entryError}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
