@@ -10,6 +10,17 @@ window.config = {
   showLoadingIndicator: true,
   experimentalStudyBrowserSort: false,
   strictZSpacingForVolumeViewport: true,
+  maxNumRequests: {
+    interaction: 20,
+    thumbnail: 12,
+    prefetch: 2,
+  },
+  studyPrefetcher: {
+    enabled: false,
+    displaySetsCount: 1,
+    maxNumPrefetchRequests: 2,
+    order: 'closest',
+  },
   investigationalUseDialog: { option: 'never' },
   defaultDataSourceName: 'dicomweb',
   dataSources: [
@@ -27,6 +38,7 @@ window.config = {
         thumbnailRendering: 'wadors',
         dicomUploadEnabled: true,
         omitQuotationForMultipartRequest: true,
+        enableStudyLazyLoad: true,
       },
     },
     {

@@ -18,6 +18,7 @@ const extensionDependencies = {
   '@ohif/extension-default': '^3.0.0',
   '@ohif/extension-cornerstone': '^3.0.0',
   '@ohif/extension-cornerstone-dicom-pmap': '^3.0.0',
+  'user-study-extension': '^0.0.1',
 };
 
 function modeFactory({ modeConfiguration }) {

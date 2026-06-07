@@ -7,6 +7,9 @@ import {
   getMetadataFromStudyByKeys,
   getPatientIdFromStudyInstanceUid,
 } from '../../../platform/app/src/components/dicom_helpers';
+import { recordCompletedModeCaseCount } from './studyViewCounts';
+import StudyLoadingOverlay from './StudyLoadingOverlay';
+import { useStudyViewportImagesReady } from './studyViewportReadiness';
 
 const QUESTIONS = [
   {
@@ -44,6 +47,7 @@ type ModeProgress = {
   updatedAt: string;
 };
 
+
 const getModeProgressKey = (participantCode: string, modeId: 'participant' | 'judge') =>
   `studyModeProgress:${participantCode}:${modeId}`;
 
@@ -69,6 +73,35 @@ const writeModeProgress = (progress: ModeProgress) => {
   );
 };
 
+const getModeCaseProgressLabel = ({
+  participantCode,
+  modeId,
+  currentStudyUID,
+}: {
+  participantCode: string | null;
+  modeId: 'participant' | 'judge';
+  currentStudyUID: string | null;
+}): string | null => {
+  if (!participantCode) {
+    return null;
+  }
+
+  const progress = readModeProgress(participantCode, modeId);
+  if (!progress || !progress.targetCount) {
+    return null;
+  }
+
+  const total = Math.max(1, progress.targetCount);
+  const completedSet = new Set(progress.completedStudyUIDs || []);
+  const isCurrentAlreadyCompleted = currentStudyUID ? completedSet.has(currentStudyUID) : false;
+  const current = Math.max(
+    1,
+    Math.min(total, completedSet.size + (isCurrentAlreadyCompleted ? 0 : 1))
+  );
+
+  return `${current}/${total}`;
+};
+
 const getCurrentStudyUIDFromUrl = (): string | null => {
   try {
     const params = new URLSearchParams(window.location.search);
@@ -80,20 +113,28 @@ const getCurrentStudyUIDFromUrl = (): string | null => {
   }
 };
 
+const normalizeReviewedStudyParticipantId = (value: string | null): string | null => {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return null;
+  }
+  return normalized;
+};
+
 const getReviewedStudyParticipantId = async (studyInstanceUID: string | null): Promise<string | null> => {
   if (!studyInstanceUID) {
     return null;
   }
 
   const patientIdFromDicom = await getPatientIdFromStudyInstanceUid(studyInstanceUID);
-  if (patientIdFromDicom) {
-    return patientIdFromDicom;
+  const normalizedPatientIdFromDicom = normalizeReviewedStudyParticipantId(patientIdFromDicom);
+  if (normalizedPatientIdFromDicom) {
+    return normalizedPatientIdFromDicom;
   }
 
   const metadataKeys = ['participantID', 'participantId', 'participant_id'];
   const value = await getMetadataFromStudyByKeys(studyInstanceUID, metadataKeys);
-  const normalized = value?.trim();
-  return normalized || null;
+  return normalizeReviewedStudyParticipantId(value);
 };
 
 const getParticipantCodeFromContext = (): string | null => {
@@ -146,6 +187,8 @@ const getParticipantDemographicsFromSession = (): Record<string, any> | null => 
   }
 };
 
+const toSafeMapKey = (value: string): string => encodeURIComponent(value.trim()).replace(/\./g, '%2E');
+
 const ReportEvaluationPanel: React.FC<{ servicesManager?: any }> = ({ servicesManager }) => {
   const { uiNotificationService } = servicesManager?.services ?? {};
   const navigate = useNavigate();
@@ -156,7 +199,20 @@ const ReportEvaluationPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
   const [successMessage, setSuccessMessage] = useState('');
   const [responses, setResponses] = useState<Responses>({});
   const [overallComment, setOverallComment] = useState('');
+  const imagesReady = useStudyViewportImagesReady(servicesManager, window.location.search);
   const participantId = getParticipantCodeFromContext() || auth.currentUser?.uid || 'anonymous';
+  const participantCodeForCaseProgress = getParticipantCodeFromContext();
+  const currentStudyUIDForCaseProgress = getCurrentStudyUIDFromUrl();
+  const modeCaseProgressLabel = getModeCaseProgressLabel({
+    participantCode: participantCodeForCaseProgress,
+    modeId: 'participant',
+    currentStudyUID: currentStudyUIDForCaseProgress,
+  });
+  const caseProgressLabel = modeCaseProgressLabel
+    ? `Case ${modeCaseProgressLabel.replace('/', ' of ')}`
+    : totalReports > 0
+      ? `Case ${currentReportIndex + 1} of ${totalReports}`
+      : 'Case 1 of 1';
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -180,6 +236,10 @@ const ReportEvaluationPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
     setSuccessMessage('');
   }, [currentReportIndex]);
 
+  if (!imagesReady) {
+    return <StudyLoadingOverlay message="Loading mammogram images for this case..." />;
+  }
+
   const handleSubmit = async () => {
     const unansweredQuestions = QUESTIONS.filter(question => !responses[question.id]);
     if (unansweredQuestions.length > 0) {
@@ -202,8 +262,13 @@ const ReportEvaluationPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
 
       const currentStudyUID = getCurrentStudyUIDFromUrl();
       const reviewedStudyParticipantId = await getReviewedStudyParticipantId(currentStudyUID);
+      const participantCode = getParticipantCodeFromContext();
       const demographics = getParticipantDemographicsFromSession();
-      const comparisonKey = currentStudyUID || `case-${currentReportIndex}`;
+      const comparisonPatientKey = reviewedStudyParticipantId
+        ? toSafeMapKey(reviewedStudyParticipantId)
+        : currentStudyUID
+        ? toSafeMapKey(`patient:${currentStudyUID}`)
+        : `case-${currentReportIndex}`;
 
       const comparisonPayload = {
         participantCode: getParticipantCodeFromContext(),
@@ -216,14 +281,13 @@ const ReportEvaluationPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
 
       const evalDocRef = doc(db, 'mammogram-study', 'participant-eval');
       try {
-        const updates: any[] = [
-          new FieldPath('participants', participantId, 'comparison', comparisonKey),
-          comparisonPayload,
-        ];
+        const updates: Record<string, any> = {
+          [`participants.${participantId}.comparison.${comparisonPatientKey}`]: comparisonPayload,
+        };
         if (demographics) {
-          updates.push(new FieldPath('participants', participantId, 'demographics'), demographics);
+          updates[`participants.${participantId}.demographics`] = demographics;
         }
-        await updateDoc(evalDocRef, ...updates);
+        await updateDoc(evalDocRef, updates);
       } catch (updateError: any) {
         // If the document does not exist yet, create it with merge as fallback.
         if (updateError?.code === 'not-found') {
@@ -232,7 +296,7 @@ const ReportEvaluationPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
               [participantId]: {
                 demographics: demographics || null,
                 comparison: {
-                  [comparisonKey]: comparisonPayload,
+                  [comparisonPatientKey]: comparisonPayload,
                 },
               },
             },
@@ -242,7 +306,21 @@ const ReportEvaluationPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
           throw updateError;
         }
       }
-      const participantCode = getParticipantCodeFromContext();
+      if (reviewedStudyParticipantId) {
+        await recordCompletedModeCaseCount({
+          participantId,
+          participantCode,
+          modeId: 'participant',
+          patientId: reviewedStudyParticipantId,
+          studyInstanceUID: currentStudyUID,
+        });
+      }
+      console.info('[ComparisonMode] Submit completed for case', {
+        participantId,
+        participantCode,
+        currentStudyUID,
+        reviewedStudyParticipantId: reviewedStudyParticipantId || 'unknown',
+      });
       const progress = participantCode ? readModeProgress(participantCode, 'participant') : null;
 
       if (!participantCode || !progress) {
@@ -256,8 +334,12 @@ const ReportEvaluationPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
       }
 
       const completedSet = new Set(progress.completedStudyUIDs);
-      if (currentStudyUID) {
-        completedSet.add(currentStudyUID);
+      const assignedCurrentStudyUID =
+        (currentStudyUID && progress.studyUIDs.includes(currentStudyUID) && currentStudyUID) ||
+        progress.studyUIDs.find(uid => !completedSet.has(uid)) ||
+        null;
+      if (assignedCurrentStudyUID) {
+        completedSet.add(assignedCurrentStudyUID);
       }
 
       const completedStudyUIDs = Array.from(completedSet);
@@ -271,6 +353,13 @@ const ReportEvaluationPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
         updatedAt: new Date().toISOString(),
       };
       writeModeProgress(nextProgress);
+
+      console.info('[ComparisonMode] Case progression', {
+        participantCode,
+        completedStudyUIDs,
+        nextStudyUID,
+        isComplete: nextProgress.isComplete,
+      });
 
       if (nextProgress.isComplete) {
         showEvaluationSavedNotification();
@@ -309,7 +398,7 @@ const ReportEvaluationPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
           </p>
         </div>
         <div className="ml-auto text-sm text-white/70">
-          {totalReports > 0 ? `Case ${currentReportIndex + 1} of ${totalReports}` : 'Case 1 of 1'}
+          {caseProgressLabel}
         </div>
       </div>
 
@@ -324,7 +413,6 @@ const ReportEvaluationPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
           {successMessage}
         </div>
       )}
-
       <div className="ohif-scrollbar mt-4 flex-1 space-y-4 overflow-y-auto pr-1">
         {QUESTIONS.map(question => (
           <div

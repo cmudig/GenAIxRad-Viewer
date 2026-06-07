@@ -48,6 +48,9 @@ const getOrthancBaseCandidates = () => {
   return dedupeStrings(['/api', orthancUrl]);
 };
 
+const orthancStudyIdCache = new Map<string, string | null>();
+const orthancStudyIdInFlight = new Map<string, Promise<string | null>>();
+
 const requestWithOrthancBaseFallback = async (
   requestFn: (baseUrl: string) => Promise<any>
 ) => {
@@ -149,21 +152,41 @@ export const getOrthancStudyId = async (studyInstanceUid: string) => {
     return null;
   }
 
+  const normalizedStudyInstanceUid = studyInstanceUid.trim();
+  if (!normalizedStudyInstanceUid) {
+    return null;
+  }
+
+  if (orthancStudyIdCache.has(normalizedStudyInstanceUid)) {
+    return orthancStudyIdCache.get(normalizedStudyInstanceUid) ?? null;
+  }
+
+  const existingInFlight = orthancStudyIdInFlight.get(normalizedStudyInstanceUid);
+  if (existingInFlight) {
+    return existingInFlight;
+  }
+
+  const lookupPromise = (async (): Promise<string | null> => {
   try {
-    // Fast path: Orthanc supports filtering by StudyInstanceUID.
-    const findByFilter = await requestWithOrthancBaseFallback(baseUrl =>
-      axios.get(toOrthancUrl(baseUrl, '/studies'), {
-        params: { StudyInstanceUID: studyInstanceUid },
-      })
-    );
-    if (findByFilter.status === 200 && Array.isArray(findByFilter.data) && findByFilter.data.length) {
-      const firstMatch = findByFilter.data[0];
-      if (typeof firstMatch === 'string') {
-        return firstMatch;
+    // Fast path: Orthanc UID lookup endpoint.
+    try {
+      const lookupResponse = await requestWithOrthancBaseFallback(baseUrl =>
+        axios.post(toOrthancUrl(baseUrl, '/tools/lookup'), normalizedStudyInstanceUid, {
+          headers: {
+            'Content-Type': 'text/plain',
+          },
+        })
+      );
+      if (lookupResponse.status === 200 && Array.isArray(lookupResponse.data)) {
+        const studyMatch = lookupResponse.data.find(
+          (item: any) => item?.Type === 'Study' && typeof item?.ID === 'string'
+        );
+        if (studyMatch?.ID) {
+          return studyMatch.ID;
+        }
       }
-      if (firstMatch?.ID) {
-        return firstMatch.ID;
-      }
+    } catch {
+      // Fall through to legacy scan path.
     }
 
     const params = {
@@ -184,7 +207,10 @@ export const getOrthancStudyId = async (studyInstanceUid: string) => {
       }
       const requestedTagsUid = item?.RequestedTags?.StudyInstanceUID;
       const mainDicomTagsUid = item?.MainDicomTags?.StudyInstanceUID;
-      return requestedTagsUid === studyInstanceUid || mainDicomTagsUid === studyInstanceUid;
+      return (
+        requestedTagsUid === normalizedStudyInstanceUid ||
+        mainDicomTagsUid === normalizedStudyInstanceUid
+      );
     });
     if (expandedMatch?.ID) {
       return expandedMatch.ID;
@@ -200,7 +226,7 @@ export const getOrthancStudyId = async (studyInstanceUid: string) => {
         const studyUid =
           studyResponse?.data?.RequestedTags?.StudyInstanceUID ??
           studyResponse?.data?.MainDicomTags?.StudyInstanceUID;
-        if (studyUid === studyInstanceUid) {
+        if (studyUid === normalizedStudyInstanceUid) {
           return orthancStudyId;
         }
       } catch (error) {
@@ -212,6 +238,17 @@ export const getOrthancStudyId = async (studyInstanceUid: string) => {
   } catch (error) {
     console.error('Error fetching study ID:', error);
     return null;
+  }
+  })();
+
+  orthancStudyIdInFlight.set(normalizedStudyInstanceUid, lookupPromise);
+
+  try {
+    const resolvedStudyId = await lookupPromise;
+    orthancStudyIdCache.set(normalizedStudyInstanceUid, resolvedStudyId);
+    return resolvedStudyId;
+  } finally {
+    orthancStudyIdInFlight.delete(normalizedStudyInstanceUid);
   }
 };
 

@@ -20,8 +20,11 @@ const Login = () => {
           credentials: 'include',
         });
 
+        const payload = await response.json().catch(() => null);
+        const authenticated = Boolean(payload && payload.authenticated);
+
         if (!cancelled) {
-          setIsLoggedIn(response.ok);
+          setIsLoggedIn(authenticated);
         }
       } catch {
         if (!cancelled) {

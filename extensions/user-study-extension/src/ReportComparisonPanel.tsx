@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { FieldPath, doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
-import { useNavigate } from 'react-router-dom';
+import { doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   getMetadataFromOrthancStudyIdByKeys,
   getMetadataFromStudyByKeys,
@@ -8,6 +8,9 @@ import {
 } from '../../../platform/app/src/components/dicom_helpers';
 import { auth, db } from '../../../platform/app/src/firebase';
 import { JUDGING_CRITERIA } from './JudgingCriteriaPanel';
+import { recordCompletedModeCaseCount } from './studyViewCounts';
+import StudyLoadingOverlay from './StudyLoadingOverlay';
+import { useStudyViewportImagesReady } from './studyViewportReadiness';
 
 type ReportItem = {
   mammoReport: string;
@@ -57,6 +60,35 @@ const writeModeProgress = (progress: ModeProgress) => {
     getModeProgressKey(progress.participantCode, progress.modeId),
     JSON.stringify(progress)
   );
+};
+
+const getModeCaseProgressLabel = ({
+  participantCode,
+  modeId,
+  currentStudyUID,
+}: {
+  participantCode: string | null;
+  modeId: 'participant' | 'judge';
+  currentStudyUID: string | null;
+}): string | null => {
+  if (!participantCode) {
+    return null;
+  }
+
+  const progress = readModeProgress(participantCode, modeId);
+  if (!progress || !progress.targetCount) {
+    return null;
+  }
+
+  const total = Math.max(1, progress.targetCount);
+  const completedSet = new Set(progress.completedStudyUIDs || []);
+  const isCurrentAlreadyCompleted = currentStudyUID ? completedSet.has(currentStudyUID) : false;
+  const current = Math.max(
+    1,
+    Math.min(total, completedSet.size + (isCurrentAlreadyCompleted ? 0 : 1))
+  );
+
+  return `${current}/${total}`;
 };
 
 const getParticipantCodeFromContext = (): string | null => {
@@ -170,86 +202,77 @@ const fetchStudyMetadataValueByUid = async (
   return getMetadataFromStudyByKeys(studyInstanceUID, metadataKeys);
 };
 
+const normalizeReviewedStudyParticipantId = (value: string | null): string | null => {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return null;
+  }
+  return normalized;
+};
+
 const getReviewedStudyParticipantId = async (studyInstanceUID: string | null): Promise<string | null> => {
   if (!studyInstanceUID) {
     return null;
   }
 
   const patientIdFromDicom = await getPatientIdFromStudyInstanceUid(studyInstanceUID);
-  if (patientIdFromDicom) {
-    return patientIdFromDicom;
+  const normalizedPatientIdFromDicom = normalizeReviewedStudyParticipantId(patientIdFromDicom);
+  if (normalizedPatientIdFromDicom) {
+    return normalizedPatientIdFromDicom;
   }
 
   const metadataKeys = ['participantID', 'participantId', 'participant_id'];
   const value = await getMetadataFromStudyByKeys(studyInstanceUID, metadataKeys);
-  const normalized = value?.trim();
-  return normalized || null;
+  return normalizeReviewedStudyParticipantId(value);
 };
+
+const toSafeMapKey = (value: string): string => encodeURIComponent(value.trim()).replace(/\./g, '%2E');
 
 const isMissingOrNan = (value: string | undefined): boolean => {
   const normalizedValue = value?.trim();
   return !normalizedValue || normalizedValue.toLowerCase() === 'nan';
 };
 
-const formatJudgeMetadataValue = (value: string | undefined): string => {
-  if (isMissingOrNan(value)) {
-    return 'False';
-  }
-
-  const normalizedValue = value!.trim();
-  if (normalizedValue === '1') {
-    return 'True';
-  }
-
-  if (normalizedValue === '0') {
-    return 'False';
-  }
-
-  return normalizedValue;
-};
-
 const formatJudgeExplanationValue = (value: string | undefined): string => {
   if (isMissingOrNan(value)) {
     return 'Nothing to report';
   }
-  return value!.trim();
+
+  const normalizeLine = (line: string): string =>
+    line
+      .trim()
+      .replace(/^(true|false|yes|no)\b\s*[:.)-]?\s*/i, '')
+      .replace(/^\(?\d+\)?\s*[:.)-]\s*/, '')
+      .trim();
+
+  const normalizedValue = value!
+    .split(/\s*\|\s*|\r?\n/)
+    .map(normalizeLine)
+    .filter(Boolean)
+    .join('\n');
+
+  return normalizedValue || 'Nothing to report';
 };
 
 const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesManager }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { uiNotificationService } = servicesManager?.services ?? {};
   const [reportItems, setReportItems] = useState<ReportItem[]>([]);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState('');
   const [currentReportIndex, setCurrentReportIndex] = useState(0);
-  const [displaySetVersion, setDisplaySetVersion] = useState(0);
   const [criterionFeedback, setCriterionFeedback] = useState<FeedbackByReport>({});
   const [isSubmittingJudgeReport, setIsSubmittingJudgeReport] = useState(false);
   const totalReports = reportItems.length;
   const isJudgeMode = window.location.pathname.includes('/judge-mode');
+  const imagesReady = useStudyViewportImagesReady(servicesManager, `${location.search}:${isJudgeMode}`);
+  const shouldGateOnImages = !isJudgeMode;
+  const showImageLoadingOverlay = shouldGateOnImages && !imagesReady && !reportError;
   const comparisonReportKey = isJudgeMode ? 'groundTruthReport' : 'medGemmaReport';
   const comparisonReportKeys = isJudgeMode
     ? ['groundTruthReport', 'groundtruthReport']
     : ['medGemmaReport', 'medgemmaReport'];
-
-  useEffect(() => {
-    const displaySetService = servicesManager?.services?.displaySetService;
-    if (!displaySetService?.subscribe) {
-      return;
-    }
-
-    const eventNames = [
-      displaySetService.EVENTS?.DISPLAY_SETS_ADDED,
-      displaySetService.EVENTS?.DISPLAY_SETS_CHANGED,
-      displaySetService.EVENTS?.DISPLAY_SET_SERIES_METADATA_INVALIDATED,
-    ].filter(Boolean);
-
-    const subs = eventNames.map(eventName =>
-      displaySetService.subscribe(eventName, () => setDisplaySetVersion(v => v + 1))
-    );
-
-    return () => subs.forEach(sub => sub?.unsubscribe?.());
-  }, [servicesManager]);
 
   useEffect(() => {
     let cancelled = false;
@@ -287,23 +310,34 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
           getByKeys(comparisonReportKeys),
           isJudgeMode
             ? Promise.all(
-                JUDGING_CRITERIA.flatMap(criterion => [
-                  (async () =>
-                    [
-                      criterion.metadataKey,
-                      (await getByKeys([criterion.metadataKey])) ?? 'No data available',
-                    ] as [string, string])(),
+                JUDGING_CRITERIA.map(criterion =>
                   (async () =>
                     [
                       criterion.explanationMetadataKey,
                       (await getByKeys([criterion.explanationMetadataKey])) ?? 'No data available',
                     ] as [string, string])(),
-                ])
+                )
               )
             : Promise.resolve([] as [string, string][]),
         ]);
 
         if (!cancelled && (mammoReport || comparisonReport)) {
+          const caseStudyUIDForLog = activeStudyInstanceUID || urlStudyInstanceUID || null;
+          if (isJudgeMode) {
+            getReviewedStudyParticipantId(caseStudyUIDForLog)
+              .then(patientId => {
+                console.info('[JudgeMode] Loaded case', {
+                  studyInstanceUID: caseStudyUIDForLog,
+                  patientId: patientId || 'unknown',
+                });
+              })
+              .catch(error => {
+                console.warn('[JudgeMode] Could not resolve patient ID for loaded case', {
+                  studyInstanceUID: caseStudyUIDForLog,
+                  error,
+                });
+              });
+          }
           setReportItems([
             {
               mammoReport: mammoReport ?? '',
@@ -341,7 +375,7 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
     return () => {
       cancelled = true;
     };
-  }, [servicesManager, displaySetVersion]);
+  }, [servicesManager, location.search, isJudgeMode]);
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -358,7 +392,18 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
     document.addEventListener('reportAdvance', handler);
     return () => document.removeEventListener('reportAdvance', handler);
   }, [totalReports]);
-  const reportIndexLabel = totalReports > 0 ? `${currentReportIndex + 1}/${totalReports}` : '0/0';
+  const participantCodeForCaseProgress = getParticipantCodeFromContext();
+  const currentStudyUIDForCaseProgress = getUrlStudyInstanceUID() ?? getUrlOrthancStudyId();
+  const modeCaseProgressLabel = getModeCaseProgressLabel({
+    participantCode: participantCodeForCaseProgress,
+    modeId: isJudgeMode ? 'judge' : 'participant',
+    currentStudyUID: currentStudyUIDForCaseProgress,
+  });
+  const reportIndexLabel = modeCaseProgressLabel
+    ? `Case ${modeCaseProgressLabel.replace('/', ' of ')}`
+    : totalReports > 0
+      ? `Case ${currentReportIndex + 1} of ${totalReports}`
+      : 'Case 1 of 1';
   const currentMammoReport = reportItems[currentReportIndex]?.mammoReport || '';
   const currentComparisonReport = reportItems[currentReportIndex]?.comparisonReport || '';
   const currentJudgeMetadata = reportItems[currentReportIndex]?.judgeMetadata || {};
@@ -374,10 +419,10 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
   const canGoNext = !reportLoading && totalReports > 0 && currentReportIndex < totalReports - 1;
   const panelTitle = 'AI Report Comparison';
   const panelSubtitle = isJudgeMode
-    ? 'Review Report A (LLM-generated) against Report B (reference report) and judge whether the LLM assessment is correct.'
+    ? 'Review Report A (Candidate report) against Report B (reference report) and judge whether the candidate assessment is correct.'
     : 'Review AI-generated report (A) against AI-generated report (B).';
   const firstReportLabel = isJudgeMode
-    ? 'Report A (LLM-Generated Report)'
+    ? 'Report A (Candidate Report)'
     : 'AI-Generated Report (A)';
   const secondReportLabel = isJudgeMode
     ? 'Report B (Reference Report)'
@@ -475,24 +520,27 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
       const reviewedStudyInstanceUID = activeStudyInstanceUID || urlStudyInstanceUID;
       const reviewedStudyParticipantId =
         await getReviewedStudyParticipantId(reviewedStudyInstanceUID);
+      const participantCode = getParticipantCodeFromContext();
       const demographics = getParticipantDemographicsFromSession();
-      const judgingKey =
-        activeStudyInstanceUID || orthancStudyId || `judge-case-${currentReportIndex}`;
+      const judgingPatientKey = reviewedStudyParticipantId
+        ? toSafeMapKey(reviewedStudyParticipantId)
+        : null;
+
+      if (!judgingPatientKey) {
+        throw new Error('Reviewed study participant ID is required to save judging data.');
+      }
 
       const criteriaResponses = Object.fromEntries(
         JUDGING_CRITERIA.map(criterion => {
           const feedback = currentCriterionFeedback[criterion.metadataKey];
-          const rawJudgeValue = currentJudgeMetadata[criterion.metadataKey];
           const rawJudgeExplanation = currentJudgeMetadata[criterion.explanationMetadataKey];
-          const formattedJudgeValue = formatJudgeMetadataValue(rawJudgeValue);
           const formattedJudgeExplanation = formatJudgeExplanationValue(rawJudgeExplanation);
 
           return [
             criterion.metadataKey,
             {
               title: criterion.title,
-              llmJudgeValue: formattedJudgeValue,
-              llmJudgeExplanation: `${formattedJudgeValue}: ${formattedJudgeExplanation}`,
+              llmJudgeExplanation: formattedJudgeExplanation,
               status: feedback?.status ?? null,
               correction: feedback?.status === 'incorrect' ? feedback.correction.trim() : '',
             },
@@ -514,14 +562,13 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
 
       const evalDocRef = doc(db, 'mammogram-study', 'participant-eval');
       try {
-        const updates: any[] = [
-          new FieldPath('participants', participantId, 'judging', judgingKey),
-          judgingPayload,
-        ];
+        const updates: Record<string, any> = {
+          [`participants.${participantId}.judging.${judgingPatientKey}`]: judgingPayload,
+        };
         if (demographics) {
-          updates.push(new FieldPath('participants', participantId, 'demographics'), demographics);
+          updates[`participants.${participantId}.demographics`] = demographics;
         }
-        await updateDoc(evalDocRef, ...updates);
+        await updateDoc(evalDocRef, updates);
       } catch (updateError: any) {
         if (updateError?.code === 'not-found') {
           const payload = {
@@ -529,7 +576,7 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
               [participantId]: {
                 demographics: demographics || null,
                 judging: {
-                  [judgingKey]: judgingPayload,
+                  [judgingPatientKey]: judgingPayload,
                 },
               },
             },
@@ -539,17 +586,33 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
           throw updateError;
         }
       }
+      if (reviewedStudyParticipantId) {
+        await recordCompletedModeCaseCount({
+          participantId,
+          participantCode,
+          modeId: 'judge',
+          patientId: reviewedStudyParticipantId
+        });
+      }
+
+      console.info('[JudgeMode] Submit completed for case', {
+        participantId,
+        participantCode,
+        urlStudyInstanceUID,
+        activeStudyInstanceUID,
+        reviewedStudyInstanceUID,
+        reviewedStudyParticipantId: reviewedStudyParticipantId || 'unknown',
+      });
 
       uiNotificationService?.show?.({
         title: 'Judge Report Submitted',
-        message: 'Your LLM-as-a-Judge review has been saved.',
+        message: 'Your candidate-vs-reference review has been saved.',
         type: 'success',
         duration: 3000,
       });
 
       // Progress through assigned Judge studies for this participant.
-      const participantCode = getParticipantCodeFromContext();
-      const currentStudyUID = activeStudyInstanceUID || urlStudyInstanceUID;
+      const currentStudyUID = urlStudyInstanceUID || activeStudyInstanceUID;
       const progress = participantCode ? readModeProgress(participantCode, 'judge') : null;
 
       if (!participantCode || !progress) {
@@ -557,8 +620,12 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
       }
 
       const completedSet = new Set(progress.completedStudyUIDs);
-      if (currentStudyUID) {
-        completedSet.add(currentStudyUID);
+      const assignedCurrentStudyUID =
+        (currentStudyUID && progress.studyUIDs.includes(currentStudyUID) && currentStudyUID) ||
+        progress.studyUIDs.find(uid => !completedSet.has(uid)) ||
+        null;
+      if (assignedCurrentStudyUID) {
+        completedSet.add(assignedCurrentStudyUID);
       }
 
       const completedStudyUIDs = Array.from(completedSet);
@@ -570,6 +637,13 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
         updatedAt: new Date().toISOString(),
       };
       writeModeProgress(nextProgress);
+
+      console.info('[JudgeMode] Case progression', {
+        participantCode,
+        completedStudyUIDs,
+        nextStudyUID,
+        isComplete: nextProgress.isComplete,
+      });
 
       if (nextProgress.isComplete) {
         navigate(`/?participantCode=${encodeURIComponent(participantCode)}`);
@@ -598,6 +672,7 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
 
   return (
     <div className="shadow-primary-main/10 flex h-full min-h-0 flex-col rounded-2xl bg-[#050c24] p-4 text-white shadow-lg">
+      {showImageLoadingOverlay && <StudyLoadingOverlay />}
       <div className="flex flex-wrap items-start gap-3">
         <div>
           <p className="text-base font-semibold">{panelTitle}</p>
@@ -617,29 +692,7 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
         </div>
       </div>
 
-      <div className="mt-3 min-h-0 flex-1 overflow-hidden pb-2 pr-1">
-        {!isJudgeMode && (
-          <div className="rounded-2xl border-2 border-[#facc15] bg-[#1a1330] p-4 shadow-lg shadow-black/30">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#fde68a]">
-              Task Instructions
-            </p>
-            <div className="mt-3 space-y-2 text-sm leading-relaxed text-white">
-              <p>
-                <span className="font-semibold text-[#fde68a]">Same patient:</span> This case is
-                one patient, even if the images look different across views.
-              </p>
-              <p>
-                <span className="font-semibold text-[#fde68a]">What to judge now:</span> Compare
-                Report A and Report B only.
-              </p>
-              <p>
-                <span className="font-semibold text-[#fde68a]">Do not do:</span> Do not compare
-                the reports to the image in this section.
-              </p>
-            </div>
-          </div>
-        )}
-
+      <div className="ohif-scrollbar mt-3 min-h-0 flex-1 overflow-y-auto pb-2 pr-1">
         {reportError && (
           <div className="mt-3 rounded-xl border border-white/10 bg-[#0b1639] p-3 text-xs text-white/70">
             {reportError}
@@ -686,10 +739,10 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
             </div>
             {isJudgeMode && (
               <div className="rounded-2xl border border-white/10 bg-[#0b1639] p-4 shadow-inner shadow-black/30 xl:col-span-2">
-                <div className="max-h-[34rem] overflow-y-auto pb-12 pr-1">
+                <div className="pb-6 pr-1">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase tracking-wide text-white/60">
-                      <span>LLM-as-a-Judge Report</span>
+                      <span>Candidate-vs-Reference Review</span>
                       <span>{`${completedJudgeCriteriaCount}/${JUDGING_CRITERIA.length} Completed`}</span>
                       {remainingJudgeCriteriaCount > 0 && (
                         <span>{`${remainingJudgeCriteriaCount} remaining`}</span>
@@ -709,10 +762,16 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
                     </button>
                   </div>
                   <div className="mt-3 space-y-3">
+                    <p className="text-xs font-semibold text-white/70">
+                      For each criterion, judge whether you accept or reject the LLM&apos;s{' '}
+                      <span className="text-white/85">assessment and explanation</span>.
+                    </p>
                     {JUDGING_CRITERIA.map((criterion, index) => (
                       <div
                         key={`${criterion.title}-${index}`}
-                        className="rounded-xl border border-white/10 bg-[#091538] px-4 py-3"
+                        className={`rounded-xl border border-white/10 bg-[#091538] px-4 py-3 ${
+                          index === JUDGING_CRITERIA.length - 1 ? 'mb-8' : ''
+                        }`}
                       >
                         <div className="flex flex-wrap items-center gap-3">
                           <p className="text-sm font-semibold text-white/90">
@@ -735,7 +794,7 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
                                   : 'bg-[#0d1b46] text-white/80 hover:bg-[#12245a]'
                               }`}
                             >
-                              Correct
+                              Accept
                             </button>
                             <button
                               type="button"
@@ -753,14 +812,12 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
                                   : 'bg-[#0d1b46] text-white/80 hover:bg-[#12245a]'
                               }`}
                             >
-                              Incorrect
+                              Reject
                             </button>
                           </div>
                         </div>
                         <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-white/75">
-                          {`${formatJudgeMetadataValue(currentJudgeMetadata[criterion.metadataKey])}: ${formatJudgeExplanationValue(
-                            currentJudgeMetadata[criterion.explanationMetadataKey]
-                          )}`}
+                          {formatJudgeExplanationValue(currentJudgeMetadata[criterion.explanationMetadataKey])}
                         </p>
                         {currentCriterionFeedback[criterion.metadataKey]?.status ===
                           'incorrect' && (
@@ -777,7 +834,7 @@ const ReportComparisonPanel: React.FC<{ servicesManager?: any }> = ({ servicesMa
                               )
                             }
                             className="border-white/15 mt-3 min-h-[56px] w-full rounded-lg border bg-[#0d1b46] p-3 text-sm leading-relaxed text-white outline-none placeholder:text-white/40 focus:border-white/30"
-                            placeholder="Describe what is incorrect and provide the corrected assessment..."
+                            placeholder="Describe why you reject this and provide the corrected assessment..."
                           />
                         )}
                       </div>

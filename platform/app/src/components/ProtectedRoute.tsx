@@ -16,8 +16,11 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
           credentials: 'include',
         });
 
+        const payload = await response.json().catch(() => null);
+        const authenticated = Boolean(payload && payload.authenticated);
+
         if (!cancelled) {
-          setIsAuthenticated(response.ok);
+          setIsAuthenticated(authenticated);
         }
       } catch {
         if (!cancelled) {

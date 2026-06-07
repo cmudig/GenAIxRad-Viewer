@@ -149,6 +149,93 @@ function modeFactory({ modeConfiguration }) {
 
       let hasAppliedDefaultSlice = false;
 
+      const normalizeText = (value: unknown): string => {
+        if (typeof value === 'string') {
+          return value.trim();
+        }
+        if (Array.isArray(value)) {
+          return value
+            .map(item => (typeof item === 'string' ? item : ''))
+            .filter(Boolean)
+            .join(' ');
+        }
+        return '';
+      };
+
+      const detectLaterality = (displaySet: any): 'L' | 'R' | null => {
+        const firstInstance = displaySet?.instances?.[0];
+        const candidates = [
+          displaySet?.ImageLaterality,
+          displaySet?.Laterality,
+          displaySet?.metadata?.ImageLaterality,
+          displaySet?.metadata?.Laterality,
+          firstInstance?.ImageLaterality,
+          firstInstance?.Laterality,
+          firstInstance?.metadata?.ImageLaterality,
+          firstInstance?.metadata?.Laterality,
+        ];
+
+        for (const candidate of candidates) {
+          const text = normalizeText(candidate).toUpperCase();
+          if (text === 'L' || text.includes('LEFT')) {
+            return 'L';
+          }
+          if (text === 'R' || text.includes('RIGHT')) {
+            return 'R';
+          }
+        }
+
+        const seriesDescription = normalizeText(
+          displaySet?.SeriesDescription ??
+            displaySet?.seriesDescription ??
+            displaySet?.metadata?.SeriesDescription ??
+            firstInstance?.SeriesDescription ??
+            firstInstance?.metadata?.SeriesDescription
+        ).toUpperCase();
+
+        if (/\bL\b|\bLEFT\b/.test(seriesDescription)) {
+          return 'L';
+        }
+        if (/\bR\b|\bRIGHT\b/.test(seriesDescription)) {
+          return 'R';
+        }
+
+        return null;
+      };
+
+      const getViewportDisplaySetUID = (viewportEntry: any): string | null => {
+        const directUID = viewportEntry?.displaySetInstanceUIDs?.[0];
+        if (directUID) {
+          return directUID;
+        }
+
+        const optionUID = viewportEntry?.displaySetOptions?.[0]?.displaySetInstanceUID;
+        if (optionUID) {
+          return optionUID;
+        }
+
+        return null;
+      };
+
+      const getShouldFlipForViewport = (viewportEntry: any, index: number): boolean => {
+        const displaySetUID = getViewportDisplaySetUID(viewportEntry);
+        const displaySet = displaySetUID
+          ? displaySetService.getDisplaySetByUID?.(displaySetUID)
+          : null;
+        const laterality = detectLaterality(displaySet);
+
+        // Keep left view orientation as currently expected, and keep right views unflipped.
+        if (laterality === 'L') {
+          return false;
+        }
+        if (laterality === 'R') {
+          return false;
+        }
+
+        // Fallback when metadata is missing: assume right-side cells should mirror.
+        return index === 1 || index === 3;
+      };
+
       const enforceMammoHorizontalFlipByCell = () => {
         const state =
           viewportGridService.getState?.() || viewportGridService.getViewportGridState?.();
@@ -162,8 +249,7 @@ function modeFactory({ modeConfiguration }) {
           if (!viewportId) {
             continue;
           }
-          // Force the 2nd and 4th cells (indexes 1 and 3) to be flipped horizontally.
-          const shouldFlipHorizontal = index === 1 || index === 3;
+          const shouldFlipHorizontal = getShouldFlipForViewport(vp, index);
 
           const viewport = cornerstoneViewportService.getCornerstoneViewport?.(viewportId);
           if (!viewport?.getCamera || !viewport?.setCamera) {
@@ -221,8 +307,9 @@ function modeFactory({ modeConfiguration }) {
             continue;
           }
 
-          const maxIndex = Math.max(numberOfSlices - 1, 0);
-          const targetIndex = Math.min(128, maxIndex);
+          // Jumping deep into large stacks can delay first visible render.
+          // For user-study mode, prioritize fastest first paint.
+          const targetIndex = 0;
 
           jumpToSlice(viewport.element, { imageIndex: targetIndex });
           applied = true;

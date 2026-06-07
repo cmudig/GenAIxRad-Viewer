@@ -97,6 +97,77 @@ function getUpstreamUrl(req, baseUrl) {
   return `${normalizedBase}${upstreamPath}${incoming.search}`;
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isRetryableUpstreamStatus(status) {
+  return status === 429 || status === 502 || status === 503 || status === 504;
+}
+
+function isFrameOrInstanceDicomwebPath(pathname) {
+  return pathname.includes('/dicom-web/') && (pathname.includes('/frames/') || pathname.includes('/instances/'));
+}
+
+async function fetchWithRetries({
+  req,
+  upstreamUrl,
+  outgoingHeaders,
+  requestBody,
+  timeoutMs,
+  maxRetries,
+}) {
+  const method = req.method || 'GET';
+  const retryEligibleMethod = method === 'GET' || method === 'HEAD';
+  const retryEligiblePath = isFrameOrInstanceDicomwebPath(req.path || '');
+  const shouldRetry = retryEligibleMethod && retryEligiblePath;
+
+  const totalAttempts = shouldRetry ? maxRetries + 1 : 1;
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= totalAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const upstreamResponse = await fetch(upstreamUrl, {
+        method,
+        headers: outgoingHeaders,
+        body: requestBody,
+        redirect: 'manual',
+        signal: controller.signal,
+      });
+
+      if (!shouldRetry || !isRetryableUpstreamStatus(upstreamResponse.status) || attempt === totalAttempts) {
+        return upstreamResponse;
+      }
+
+      logger.warn(
+        `Retrying upstream request due to status ${upstreamResponse.status} (attempt ${attempt}/${totalAttempts}) ${method} ${req.path}`
+      );
+    } catch (error) {
+      lastError = error;
+      if (!shouldRetry || attempt === totalAttempts) {
+        throw error;
+      }
+      logger.warn(
+        `Retrying upstream request due to network/timeout error (attempt ${attempt}/${totalAttempts}) ${method} ${req.path}: ${error?.message || error}`
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    const backoffMs = 250 * attempt;
+    await sleep(backoffMs);
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  throw new Error('Upstream request failed without response.');
+}
+
 function validateSession(req, sessionSecret) {
   const cookies = parseCookies(req);
   const token = cookies[SESSION_COOKIE_NAME] || cookies[LEGACY_SESSION_COOKIE_NAME];
@@ -156,7 +227,9 @@ exports.apiProxy = onRequest(
       if (req.path === '/auth/session' && req.method === 'GET') {
         const session = validateSession(req, sessionSecret);
         if (!session) {
-          res.status(401).json({ authenticated: false });
+          // Session check endpoint is used for UI polling/guards.
+          // Return 200 with an explicit flag to avoid noisy 401s in the browser console.
+          res.status(200).json({ authenticated: false });
           return;
         }
 
@@ -222,20 +295,17 @@ exports.apiProxy = onRequest(
       );
 
       const isBodyMethod = !['GET', 'HEAD'].includes(req.method);
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30000);
-      let upstreamResponse;
-      try {
-        upstreamResponse = await fetch(upstreamUrl, {
-          method: req.method,
-          headers: outgoingHeaders,
-          body: isBodyMethod ? req.rawBody : undefined,
-          redirect: 'manual',
-          signal: controller.signal,
-        });
-      } finally {
-        clearTimeout(timeout);
-      }
+      const isFramePath = isFrameOrInstanceDicomwebPath(req.path || '');
+      const timeoutMs = isFramePath ? 90000 : 30000;
+      const maxRetries = isFramePath ? 2 : 0;
+      const upstreamResponse = await fetchWithRetries({
+        req,
+        upstreamUrl,
+        outgoingHeaders,
+        requestBody: isBodyMethod ? req.rawBody : undefined,
+        timeoutMs,
+        maxRetries,
+      });
 
       logger.info(`upstream status ${upstreamResponse.status} for ${req.method} ${req.path}`);
 

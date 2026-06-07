@@ -61,4 +61,9 @@ tests/playwright-report/
 /blob-report/
 /playwright/.cache/
 
-backend/upmc_joined_zs_mammo_clip_medgemma.csv
+backend/orthanc_study_metadata_test.ipynb
+backend/firebase-service-account.json
+backend/firebase_analysis.ipynb
+backend/orthanc_study_metadata_test.ipynb
+backend/patient_id_groups.json
+platform/app/public/participant_id_groups.json

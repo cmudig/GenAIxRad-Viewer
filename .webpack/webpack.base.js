@@ -60,6 +60,10 @@ module.exports = (env, argv, { SRC_DIR, ENTRY }) => {
   const mode = NODE_ENV === 'production' ? 'production' : 'development';
   const isProdBuild = NODE_ENV === 'production';
   const isQuickBuild = QUICK_BUILD === 'true';
+  const isDevServer =
+    process.env.WEBPACK_SERVE === 'true' ||
+    process.argv.some(arg => arg.includes('webpack-dev-server') || arg === 'serve');
+  const enableReactRefresh = !isProdBuild && isDevServer;
 
   const config = {
     mode: isProdBuild ? 'production' : 'development',
@@ -96,18 +100,18 @@ module.exports = (env, argv, { SRC_DIR, ENTRY }) => {
     module: {
       noParse: [/(dicomicc)/],
       rules: [
-        ...(isProdBuild
-          ? []
-          : [
+        ...(enableReactRefresh
+          ? [
               {
                 test: /\.[jt]sx?$/,
                 exclude: /node_modules/,
                 loader: 'babel-loader',
                 options: {
-                  plugins: isProdBuild ? [] : ['react-refresh/babel'],
+                  plugins: enableReactRefresh ? ['react-refresh/babel'] : [],
                 },
               },
-            ]),
+            ]
+          : []),
         {
           test: /\.svg?$/,
           oneOf: [
@@ -208,7 +212,7 @@ module.exports = (env, argv, { SRC_DIR, ENTRY }) => {
       new webpack.ProvidePlugin({
         Buffer: ['buffer', 'Buffer'],
       }),
-      ...(isProdBuild ? [] : [new ReactRefreshWebpackPlugin({ overlay: false })]),
+      ...(enableReactRefresh ? [new ReactRefreshWebpackPlugin({ overlay: false })] : []),
       // Uncomment to generate bundle analyzer
       // new BundleAnalyzerPlugin(),
     ],

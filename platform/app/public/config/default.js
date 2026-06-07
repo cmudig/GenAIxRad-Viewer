@@ -17,11 +17,19 @@ window.config = {
   strictZSpacingForVolumeViewport: true,
   groupEnabledModesFirst: true,
   maxNumRequests: {
-    interaction: 100,
-    thumbnail: 75,
+    // Lower concurrency to avoid saturating Orthanc/network during first-image load.
+    interaction: 20,
+    thumbnail: 12,
     // Prefetch number is dependent on the http protocol. For http 2 or
     // above, the number of requests can be go a lot higher.
-    prefetch: 25,
+    prefetch: 2,
+  },
+  studyPrefetcher: {
+    // Prioritize loading the current case first; do not background-prefetch.
+    enabled: false,
+    displaySetsCount: 2,
+    maxNumPrefetchRequests: 2,
+    order: 'closest',
   },
   gemini: {
     endpoint:
