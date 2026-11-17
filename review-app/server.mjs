@@ -8,16 +8,11 @@ import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { publicPrompt } from './prompts.mjs';
 import { createFirestoreStore } from './firestore-store.mjs';
+import { rubricVersion, clinicalDefinition, descriptionDefinition, rubric, createRubricAssessment, publicReview } from './rubric.mjs';
+
+export { rubricVersion, clinicalDefinition, descriptionDefinition, rubric } from './rubric.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-export const rubricVersion = 3;
-export const clinicalDefinition = 'Anatomically and pathologically plausible, without artifacts that materially mislead clinical interpretation';
-export const descriptionDefinition = 'Reflects the displayed series description’s findings: presence or absence, location, and severity. This is description matching, not a diagnostic assertion.';
-export const rubric = [
-  { id: 'description_match', text: 'Does this generated scan reflect the description?', definition: descriptionDefinition },
-  { id: 'clinically_accurate', text: 'Is this generated scan clinically accurate?', definition: clinicalDefinition },
-];
-export const choices = ['yes', 'no'];
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const fail = (status, message) => Object.assign(new Error(message), { status });
 
@@ -70,9 +65,8 @@ export async function startServer({ privateDir = process.env.REVIEW_PRIVATE_DIR 
   }
   let writeQueue = Promise.resolve();
   const evidence = new Map([...cases].map(([id]) => [id, { loaded: new Set(reviews.get(id)?.evidence?.loaded || []), errors: new Set(reviews.get(id)?.evidence?.errors || []), failures: new Set(reviews.get(id)?.evidence?.failures || []) }]));
-  // Legacy revisions remain untouched in the journal. Never reinterpret old
-  // answers (including v2's description-dependent clinical accuracy) as v3 answers.
-  const publicReview = r => !r ? null : r.rubricVersion === rubricVersion ? r : { revision: r.revision, rubricVersion: r.rubricVersion, status: 'legacy', answers: {}, comments: '', references: [], evidence: r.evidence };
+  // Legacy revisions remain untouched; publicReview exposes their snapshot
+  // separately without prefilling or converting any answers to rubric v4.
   const csrf = randomBytes(32).toString('hex');
   const python = process.env.REVIEW_PYTHON || path.join(os.homedir(), 'Downloads/.trajectory-dicom-venv/bin/python');
   const worker = spawn(python, [path.join(here, 'pixels.py'), '--worker', privateDir], { stdio: ['pipe', 'pipe', 'pipe'] });
@@ -103,19 +97,15 @@ export async function startServer({ privateDir = process.env.REVIEW_PRIVATE_DIR 
   function validateReview(body, c, previous) {
     if (!body || body.expectedRevision !== (previous?.revision || 0)) throw fail(409, 'Review changed in another tab. Reload before editing.');
     if (body.rubricVersion !== rubricVersion) throw fail(400, `This review requires rubric v${rubricVersion}; reload before answering`);
-    if (!['draft', 'final'].includes(body.status)) throw fail(400, 'Invalid status');
-    if (!body.answers || typeof body.answers !== 'object' || Array.isArray(body.answers) || Object.keys(body.answers).some(k => !rubric.some(r => r.id === k)) || Object.values(body.answers).some(v => !choices.includes(v))) throw fail(400, 'Invalid rubric response');
-    if (typeof body.comments !== 'string' || body.comments.length > 10000) throw fail(400, 'Comments must be at most 10,000 characters');
+    const rubricFields = createRubricAssessment(body, previous);
     if (!Array.isArray(body.references) || body.references.length > 100 || body.references.some(n => !Number.isInteger(n) || n < 1 || n > c.frames.length)) throw fail(400, 'Unknown slice reference');
     const e = evidence.get(c.id);
     if (body.references.some(n => !e.loaded.has(n - 1))) throw fail(400, 'Slice references must have loaded successfully');
     if (body.status === 'final') {
-      if (rubric.some(r => !choices.includes(body.answers[r.id]))) throw fail(400, 'Answer every rubric item; no answers are automatically filled');
       if (body.confirmed !== true) throw fail(400, 'Explicitly finalize this assessment');
-      if ((body.answers.description_match !== 'yes' || body.answers.clinically_accurate !== 'yes') && !body.comments.replace(/\bSlice\s+\d+\s*:/gi, '').trim()) throw fail(400, 'Comment required unless question 1 is Yes and question 2 is Plausible (Yes). Please say what is missing, extra, or unrealistic.');
       if (!e.loaded.size || e.failures.size) throw fail(400, 'Images unavailable or unresolved image load failure. Save a draft and skip this case, or retry successfully.');
     }
-    return { caseId: c.id, manifestHash, promptMetadataHash, rubricVersion, clinicalDefinition, descriptionDefinition, commentPolicyVersion: 1, displayedPrompt: publicPrompt(promptMetadata.get(c.id)), revision: (previous?.revision || 0) + 1, status: body.status, answers: body.answers, comments: body.comments, references: [...new Set(body.references)], confirmed: body.confirmed === true, evidence: { loaded: [...e.loaded].sort((a, b) => a - b), errors: [...e.errors].sort((a, b) => a - b), failures: [...e.failures].sort((a, b) => a - b), total: c.frames.length }, savedAt: new Date().toISOString() };
+    return { caseId: c.id, manifestHash, promptMetadataHash, ...rubricFields, displayedPrompt: publicPrompt(promptMetadata.get(c.id)), revision: (previous?.revision || 0) + 1, status: body.status, comments: body.comments, references: [...new Set(body.references)], confirmed: body.confirmed === true, evidence: { loaded: [...e.loaded].sort((a, b) => a - b), errors: [...e.errors].sort((a, b) => a - b), failures: [...e.failures].sort((a, b) => a - b), total: c.frames.length }, savedAt: new Date().toISOString() };
   }
   const server = http.createServer(async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
@@ -137,7 +127,7 @@ export async function startServer({ privateDir = process.env.REVIEW_PRIVATE_DIR 
       if (req.method === 'GET' && assets.has(url.pathname)) { const a = assets.get(url.pathname); res.writeHead(200, { 'Content-Type': a.type }); return res.end(a.body); }
       if (req.method === 'GET' && url.pathname === '/api/session') {
         if (store) reviews = await store.load();
-        return json(200, { csrf, manifestHash, storage, assessmentCollection: store ? 'afrooz-review' : null, rubricVersion, clinicalDefinition, descriptionDefinition, rubric, choices, counts: { targets: 29, matched: 28, unmatched: 1 }, cases: [...cases.values()].map(c => ({ id: c.id, title: c.title, frames: c.frames.length, ordering: c.ordering, prompt: publicPrompt(promptMetadata.get(c.id)), review: publicReview(reviews.get(c.id)) })) });
+        return json(200, { csrf, manifestHash, storage, assessmentCollection: store ? 'afrooz-review' : null, rubricVersion, clinicalDefinition, descriptionDefinition, rubric, counts: { targets: 29, matched: 28, unmatched: 1 }, cases: [...cases.values()].map(c => ({ id: c.id, title: c.title, frames: c.frames.length, ordering: c.ordering, prompt: publicPrompt(promptMetadata.get(c.id)), review: publicReview(reviews.get(c.id)) })) });
       }
       const frame = url.pathname.match(/^\/api\/frame\/(case-\d{3})\/(\d+)$/);
       if (req.method === 'GET' && frame) {

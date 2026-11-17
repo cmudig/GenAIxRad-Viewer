@@ -6,6 +6,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { chromium, expect } from '@playwright/test';
 import { startServer } from './server.mjs';
+import { rubric, clinicalDefinition, descriptionDefinition } from './rubric.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 test('browser viewer, stale frame protection, local saves, final/revise, reload, and errors', { timeout: 180000 }, async () => {
@@ -14,7 +15,7 @@ test('browser viewer, stale frame protection, local saves, final/revise, reload,
   for (const name of ['manifest.json', 'manifest.sha256', 'prompts.json', 'prompts.sha256']) await copyFile(path.join(here, '.private', name), path.join(privateDir, name));
   await mkdir(path.join(privateDir, 'ratings'));
   await writeFile(path.join(privateDir, 'ratings/revisions.ndjson'), JSON.stringify({ caseId: 'case-001', manifestHash: (await readFile(path.join(privateDir, 'manifest.sha256'), 'utf8')).trim(), rubricVersion: 2, revision: 1, status: 'final', answers: { clinically_accurate: 'yes' }, comments: 'Old rubric comment', references: [1] }) + '\n');
-  const app = await startServer({ privateDir, port: 0 });
+  const app = await startServer({ privateDir, port: 0, storage: 'local', remoteConfig: null });
   let browser;
   try {
     const systemChrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -31,13 +32,18 @@ test('browser viewer, stale frame protection, local saves, final/revise, reload,
     await page.waitForSelector('#image-message[hidden]', { state: 'attached' });
     assert.equal(await page.locator('#cases button').count(), 28);
     assert.equal(await page.locator('#rubric input:checked').count(), 0);
-    assert.equal(await page.locator('#rubric fieldset').count(), 2);
-    assert.equal(await page.locator('#rubric input').count(), 4);
-    await expect(page.locator('#rubric legend')).toHaveText(['Does this generated scan reflect the description?', 'Is this generated scan clinically accurate?']);
-    await expect(page.locator('#clinically_accurate-definition')).toHaveText('Anatomically and pathologically plausible, without artifacts that materially mislead clinical interpretation');
-    await expect(page.locator('#description_match-definition')).toContainText('not a diagnostic assertion');
-    await expect(page.locator('#case-status')).toHaveText('Needs v3 assessment');
-    await expect(page.locator('#save-status')).toContainText('answer both questions anew');
+    assert.equal(await page.locator('#rubric .rubric-item').count(), 2);
+    await expect(page.locator('#rubric input[type="radio"]')).toHaveCount(6);
+    await expect(page.locator('#rubric input[type="checkbox"]')).toHaveCount(12);
+    await expect(page.locator('#rubric .rubric-item > legend')).toHaveText(rubric.map(item => item.text));
+    for (const item of rubric) {
+      await expect(page.locator(`#issues-${item.id}`)).toBeHidden();
+      await expect(page.locator(`input[name="${item.issueField}"]:enabled`)).toHaveCount(0);
+    }
+    await expect(page.locator('#clinical_plausibility-definition')).toHaveText(clinicalDefinition);
+    await expect(page.locator('#description_match-definition')).toHaveText(descriptionDefinition);
+    await expect(page.locator('#case-status')).toHaveText('Needs v4 assessment');
+    await expect(page.locator('#save-status')).toBeEmpty();
     assert.equal(await page.locator('#references button').count(), 0);
     await expect(page.locator('#completion')).toContainText('0 / 28 final');
     assert.equal(await page.locator('#comments').inputValue(), '');
@@ -299,13 +305,13 @@ test('browser viewer, stale frame protection, local saves, final/revise, reload,
     assert.deepEqual(linkedReview.references, []);
     await setSlice(10); await waitSlice(10); await attach.click();
     await expect(comments).toHaveValue(linkedComment);
-    await page.check('input[name="clinically_accurate"][value="yes"]');
+    await page.check('input[name="clinical_plausibility"][value="plausible"]');
     await expect(page.locator('#finalize')).toBeDisabled();
     assert.equal(await page.locator('input[name="description_match"]:checked').count(), 0, 'Clinical answer never fills description match');
     await expect(page.locator('#save-status')).toContainText('saved locally');
     const partial = await (await page.request.get(app.origin + '/api/session')).json();
-    assert.deepEqual(partial.cases[0].review.answers, { clinically_accurate: 'yes' }, 'Partial draft leaves missing answer absent');
-    await page.check('input[name="description_match"][value="no"]');
+    assert.deepEqual(partial.cases[0].review.answers, { clinical_plausibility: 'plausible' }, 'Partial draft leaves missing answer absent');
+    await page.check('input[name="description_match"][value="does_not_match"]');
     await page.fill('#comments', 'Browser test: clinical plausibility assessment with slice reference.');
     await expect(page.locator('#save-status')).toContainText('saved locally');
     assert.equal(await page.locator('#finalize').isDisabled(), false);
@@ -322,8 +328,8 @@ test('browser viewer, stale frame protection, local saves, final/revise, reload,
     await page.reload(); await page.waitForSelector('#image-message[hidden]', { state: 'attached' });
     assert.equal(await page.locator('#comments').inputValue(), 'Revised after final.');
     assert.equal(await page.locator('#rubric input:checked').count(), 2);
-    await expect(page.locator('input[name="clinically_accurate"][value="yes"]')).toBeChecked();
-    await expect(page.locator('input[name="description_match"][value="no"]')).toBeChecked();
+    await expect(page.locator('input[name="clinical_plausibility"][value="plausible"]')).toBeChecked();
+    await expect(page.locator('input[name="description_match"][value="does_not_match"]')).toBeChecked();
     await page.route('**/api/frame/case-003/**', route => route.fulfill({ status: 422, contentType: 'application/json', body: JSON.stringify({ error: 'Test local image failure' }) }));
     await page.click('[data-case="case-003"]');
     await expect(page.locator('#image-message')).toContainText('IMAGE LOAD FAILED');
@@ -333,8 +339,8 @@ test('browser viewer, stale frame protection, local saves, final/revise, reload,
     await expect(attach).toHaveText('Attach slice');
     assert.match(await page.locator('#load-status').innerText(), /1 load errors/);
     assert.equal(await page.locator('#rubric input:checked').count(), 0);
-    await page.check('input[name="clinically_accurate"][value="no"]');
-    await page.check('input[name="description_match"][value="yes"]');
+    await page.check('input[name="clinical_plausibility"][value="not_plausible_overall"]');
+    await page.check('input[name="description_match"][value="matches"]');
     await expect(page.locator('#finalize')).toBeDisabled();
     await page.fill('#comments', 'The anatomy is unrealistic.');
     await expect(page.locator('#save-status')).toContainText('saved locally');

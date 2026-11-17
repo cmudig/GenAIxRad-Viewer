@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createFirestoreStore, validateMigrationRecords } from './firestore-store.mjs';
+import { createRubricAssessment, rubric } from './rubric.mjs';
 
 const manifestHash = 'a'.repeat(64);
 const caseIds = ['case-001', 'case-002'];
@@ -92,6 +93,36 @@ test('typed roundtrip preserves all assessment data and strips storage metadata'
   saved.answers.description_match = 'no';
   original.comments = 'Changed locally';
   assert.notDeepEqual(await f.store.get(caseIds[0]), original);
+});
+
+test('v4 questions, all answer combinations, issue tags and prior assessment roundtrip through Firestore latest and history', async () => {
+  const f = fixture();
+  const legacy = record();
+  await f.store.save(legacy, 0);
+  const oldHistory = clone(f.docs.get(history(1)));
+  let previous = legacy;
+  for (const description of rubric[0].choices) {
+    for (const clinical of rubric[1].choices) {
+      const body = {
+        status: 'final', answers: { description_match: description.value, clinical_plausibility: clinical.value },
+        descriptionIssues: rubric[0].issueWhen.includes(description.value) ? ['missing_finding', 'attenuation_or_tissue_appearance'] : [],
+        realismIssues: rubric[1].issueWhen.includes(clinical.value) ? ['anatomical_structure', 'across_slice_consistency'] : [],
+        comments: description.value === 'matches' && clinical.value === 'plausible' ? '' : 'Synthetic finding — Slice 2: tissue appearance',
+      };
+      const next = record(previous.revision + 1, { ...body, ...createRubricAssessment(body, previous), confirmed: true });
+      await f.store.save(next, previous.revision);
+      const reloaded = await createFirestoreStore(f.options).get(caseIds[0]);
+      assert.deepEqual(reloaded, next);
+      assert.deepEqual(reloaded.rubricSnapshot, rubric);
+      assert.deepEqual(reloaded.previousAssessment.answers, legacy.answers);
+      assert.equal(reloaded.previousAssessment.comments, legacy.comments);
+      assert.equal(reloaded.commentPolicyVersion, 2);
+      assert.deepEqual(f.docs.get(history(next.revision)).fields, f.docs.get(name()).fields);
+      previous = reloaded;
+    }
+  }
+  assert.deepEqual(f.docs.get(history(1)), oldHistory, 'Original assessment is never overwritten');
+  assert.equal(f.docs.size, 11, 'One latest document and ten immutable revisions');
 });
 
 test('canonical hashing is SHA256 with recursively sorted keys and retains array order', async () => {

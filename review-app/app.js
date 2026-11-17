@@ -65,12 +65,13 @@ function clearSession() {
 function completion() {
   const finals = session.cases.filter(c => c.review?.rubricVersion === session.rubricVersion && c.review?.status === 'final').length;
   const drafts = session.cases.filter(c => c.review?.rubricVersion === session.rubricVersion && c.review?.status === 'draft').length;
-  $('completion').textContent = `${finals} / ${session.cases.length} final · ${drafts} drafts · ${session.cases.length - finals - drafts} not started`;
+  const legacy = session.cases.filter(c => c.review?.status === 'legacy').length;
+  $('completion').textContent = `${finals} / ${session.cases.length} final · ${drafts} drafts · ${legacy} previous rubric · ${session.cases.length - finals - drafts - legacy} not started`;
   for (const c of session.cases) {
     const button = document.querySelector(`[data-case="${c.id}"]`);
     button.setAttribute('aria-current', String(c === current));
     button.dataset.status = c.review?.status || 'not-started';
-    button.querySelector('small').textContent = c.review?.status === 'legacy' ? `Needs v${session.rubricVersion}` : c.review?.status || '—';
+    button.querySelector('small').textContent = c.review?.status === 'legacy' ? `v${c.review.rubricVersion} ${c.review.previousAssessment?.status || 'saved'} · needs v${session.rubricVersion}` : c.review?.status || '—';
   }
 }
 function answers() {
@@ -80,6 +81,35 @@ function answers() {
   }));
 }
 function references() { return [...$('references').querySelectorAll('button')].map(b => Number(b.dataset.slice)); }
+function issueValues() {
+  return Object.fromEntries(session.rubric.filter(r => r.issueField).map(r => [r.issueField,
+    r.issueWhen.includes(answers()[r.id]) ? [...document.querySelectorAll(`input[name="${r.issueField}"]:checked`)].map(input => input.value) : [],
+  ]));
+}
+function syncIssues() {
+  for (const r of session.rubric.filter(r => r.issueField)) {
+    const group = $(`issues-${r.id}`), visible = r.issueWhen.includes(answers()[r.id]);
+    group.hidden = !visible;
+    group.querySelectorAll('input').forEach(input => { input.disabled = !visible; if (!visible) input.checked = false; });
+  }
+}
+function renderPrevious() {
+  const previous = current.review?.previousAssessment, panel = $('previous-assessment');
+  panel.replaceChildren(); panel.hidden = !previous;
+  if (!previous) return;
+  const summary = document.createElement('summary');
+  const heading = document.createElement('h3'); heading.textContent = 'Previous assessment'; summary.append(heading); panel.append(summary);
+  const info = document.createElement('p'); info.textContent = `Rubric v${previous.rubricVersion} · ${previous.status} · revision ${previous.revision} · saved ${previous.savedAt || 'time unavailable'}.`; panel.append(info);
+  for (const [key, value] of Object.entries(previous.answers || {})) {
+    const line = document.createElement('p'); line.className = 'previous-answer';
+    const title = key === 'description_match' ? 'Description match' : key === 'clinically_accurate' ? 'Clinical accuracy (previous wording)' : key;
+    const category = document.createElement('span'); category.textContent = `${title}: `;
+    const answer = document.createElement('strong'); answer.textContent = labels[value] || value;
+    line.append(category, answer); panel.append(line);
+  }
+  const comment = document.createElement('p'); comment.className = 'previous-comment'; comment.textContent = previous.comments || 'No previous comment recorded.'; panel.append(comment);
+  const refs = document.createElement('p'); refs.textContent = `Previous slice references: ${(previous.references || []).join(', ') || 'None'}`; panel.append(refs);
+}
 function addReference(number) {
   if (references().includes(number)) return;
   const button = document.createElement('button');
@@ -114,7 +144,7 @@ function attachSlice() {
 }
 function commentRequired() {
   const a = answers();
-  return a.description_match !== 'yes' || a.clinically_accurate !== 'yes';
+  return session.rubricVersion >= 4 ? a.description_match !== 'matches' || a.clinical_plausibility !== 'plausible' : a.description_match !== 'yes' || a.clinically_accurate !== 'yes';
 }
 function hasComment() { return !!$('comments').value.replace(/\bSlice\s+\d+\s*:/gi, '').trim(); }
 function canFinalize() {
@@ -123,9 +153,10 @@ function canFinalize() {
   return session.rubric.every(r => a[r.id]) && (!commentRequired() || hasComment()) && !!image && progress.get(current.id).loaded.size > 0 && progress.get(current.id).failures.size === 0;
 }
 function reviewUI() {
+  syncIssues();
   $('comments').required = commentRequired();
   $('comments').setAttribute('aria-required', String(commentRequired()));
-  $('comment-status').textContent = commentRequired() ? 'Comment required to finalize. Drafts may be saved without a comment.' : 'Comment optional for Yes / Plausible.';
+  $('comment-status').textContent = '';
   $('add-reference').disabled = !image || displayedIndex === null;
   $('add-reference').textContent = displayedIndex === null ? 'Attach slice' : `Attach slice ${displayedIndex + 1}`;
   $('finalize').disabled = !!saving || !canFinalize();
@@ -143,11 +174,12 @@ async function save(status) {
   if (saving) { await saving; if (status === 'draft' && !dirty) return; }
   if (status === 'draft' && !dirty) return;
   const c = current, version = changeNumber;
-  const body = { expectedRevision: c.review?.revision || 0, rubricVersion: session.rubricVersion, status, answers: answers(), comments: $('comments').value, references: references(), confirmed: status === 'final' };
+  const body = { expectedRevision: c.review?.revision || 0, rubricVersion: session.rubricVersion, status, answers: answers(), ...issueValues(), comments: $('comments').value, references: references(), confirmed: status === 'final' };
   $('save-status').textContent = `Saving ${saveDestination()}…`;
   saving = (async () => {
     const response = await request(`/api/review/${c.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Review-Token': session.csrf }, body: JSON.stringify(body) });
     c.review = await response.json();
+    renderPrevious();
     if (version === changeNumber) dirty = false;
     $('save-status').textContent = dirty ? 'New edits pending…' : `${status === 'final' ? 'Final review' : 'Draft'} saved ${saveDestination()} · revision ${c.review.revision}`;
     $('save-error').hidden = true;
@@ -339,10 +371,11 @@ async function selectCase(c) {
     $('case-title').textContent = c.title;
     renderPrompt(c.prompt);
     $('slice').max = c.frames; $('slice').value = sliceIndex + 1; $('slice-number').textContent = `${sliceIndex + 1} / ${c.frames}`;
-    document.querySelectorAll('#rubric input').forEach(input => { input.checked = c.review?.answers[input.name] === input.value; });
+    document.querySelectorAll('#rubric input').forEach(input => { input.checked = input.type === 'checkbox' ? (c.review?.[input.name] || []).includes(input.value) : c.review?.answers[input.name] === input.value; });
+    renderPrevious(); syncIssues();
     $('comments').value = c.review?.comments || ''; $('references').replaceChildren(); $('reference-group').hidden = true;
     for (const ref of c.review?.references || []) addReference(ref);
-    $('save-status').textContent = c.review?.status === 'legacy' ? 'Earlier review retained in audit history; answer both questions anew.' : c.review ? `Saved ${saveDestination()} · revision ${c.review.revision}` : '';
+    $('save-status').textContent = c.review && c.review.status !== 'legacy' ? `Saved ${saveDestination()} · revision ${c.review.revision}` : '';
     $('save-error').hidden = true;
     completion(); loadStatus();
     $('image-message').hidden = false; $('image-message').textContent = `Loading slice ${sliceIndex + 1}…`;
@@ -522,7 +555,7 @@ async function initialize(initialSession) {
   try {
     session = initialSession || await (await request('/api/session')).json();
     storageMessaging();
-    $('definition-detail').textContent = 'Answer the two questions independently. Neither assessment certifies diagnostic use or fidelity to a real patient.';
+    $('definition-detail').textContent = 'Answer the two questions independently. Optional issue tags mean reported concerns; unselected tags do not establish normality. Neither assessment certifies diagnostic use or fidelity to a real patient.';
     $('cohort-detail').textContent = `Frozen cohort, single reviewer: ${session.counts.targets} targets · ${session.counts.matched} ${remote ? 'matched series' : 'local matches'} · ${session.counts.unmatched} unmatched target excluded.`;
     for (const c of session.cases) {
       progress.set(c.id, { loaded: new Set(c.review?.evidence?.loaded || []), errors: new Set(c.review?.evidence?.errors || []), failures: new Set(c.review?.evidence?.failures || []) });
@@ -534,14 +567,25 @@ async function initialize(initialSession) {
       const field = document.createElement('fieldset'); field.className = 'rubric-item';
       const legend = document.createElement('legend'); legend.textContent = r.text; field.append(legend);
       const options = document.createElement('div'); options.className = 'choices';
-      for (const value of session.choices) {
+      for (const choice of r.choices || session.choices.map(value => ({ value, label: labels[value] }))) {
         const label = document.createElement('label'), input = document.createElement('input');
-        input.type = 'radio'; input.name = r.id; input.value = value; label.append(input, document.createTextNode(labels[value])); options.append(label);
+        input.type = 'radio'; input.name = r.id; input.value = choice.value; label.append(input, document.createTextNode(choice.label)); options.append(label);
       }
       const definition = document.createElement('p'); definition.id = `${r.id}-definition`;
       definition.className = 'rubric-definition'; definition.textContent = r.definition;
       field.setAttribute('aria-describedby', definition.id);
       field.append(definition, options); $('rubric').append(field);
+      if (r.issueField) {
+        const group = document.createElement('fieldset'); group.id = `issues-${r.id}`; group.className = 'issue-group'; group.hidden = true;
+        const legend = document.createElement('legend'); legend.textContent = r.issueQuestion; group.append(legend);
+        const help = document.createElement('p'); help.textContent = 'Optional · Select all that apply. Unselected means not reported, not normal.'; group.append(help);
+        for (const choice of r.issueOptions) {
+          const label = document.createElement('label'), input = document.createElement('input');
+          input.type = 'checkbox'; input.name = r.issueField; input.value = choice.value;
+          label.append(input, document.createTextNode(choice.label)); group.append(label);
+        }
+        $('rubric').append(group);
+      }
     }
     await selectCase(session.cases.find(c => c.review?.status !== 'final') || session.cases[0]);
   } catch (error) { $('fatal').hidden = false; $('fatal').textContent = `${remote ? 'Review server' : 'Local app'} unavailable: ${error.message}`; }
