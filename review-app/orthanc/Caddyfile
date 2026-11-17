@@ -1,0 +1,86 @@
+{
+	admin off
+	persist_config off
+	auto_https disable_redirects
+	email katelyncmorrison98@gmail.com
+	servers {
+		protocols h1 h2
+		strict_sni_host on
+		timeouts {
+			read_header 10s
+			idle 2m
+		}
+	}
+}
+
+orthanc.katelyncmorrison.com {
+	tls {
+		issuer acme {
+			disable_http_challenge
+		}
+	}
+	header {
+		Cache-Control "no-store"
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		-Server
+	}
+	route {
+		@reviewApi path /api/*
+		handle @reviewApi {
+			route {
+			@wrongOrigin not header Origin https://genai-radiology-verify.web.app
+			respond @wrongOrigin "Review frontend origin required." 403
+			header {
+				Access-Control-Allow-Origin https://genai-radiology-verify.web.app
+				Access-Control-Allow-Methods "GET, PUT, OPTIONS"
+				Access-Control-Allow-Headers "Authorization, Content-Type, X-Review-Token"
+				Access-Control-Expose-Headers X-Frame-Metadata
+				Vary Origin
+			}
+			@preflight method OPTIONS
+			respond @preflight "" 204
+			basic_auth argon2id "Orthanc review" {
+				import /run/secrets/orthanc-users
+			}
+			@session {
+				method GET
+				path /api/session
+			}
+			@frame {
+				method GET
+				path_regexp frame ^/api/frame/case-[0-9]{3}/[0-9]+$
+			}
+			@save {
+				method PUT
+				path_regexp save ^/api/review/case-[0-9]{3}$
+			}
+			handle @session {
+				import /run/secrets/review-upstream
+			}
+			handle @frame {
+				import /run/secrets/review-upstream
+			}
+			handle @save {
+				import /run/secrets/review-upstream
+			}
+			respond "Unknown review API route." 404
+			}
+		}
+		basic_auth argon2id "Orthanc review" {
+			import /run/secrets/orthanc-users
+		}
+		@write not method GET HEAD
+		respond @write "Remote access is read-only." 403
+		reverse_proxy frozen-review-orthanc-orthanc-1:8042 {
+			header_up -Authorization
+			header_up -Proxy-Authorization
+		}
+	}
+	handle_errors {
+		@reviewOrigin header Origin https://genai-radiology-verify.web.app
+		header @reviewOrigin Access-Control-Allow-Origin https://genai-radiology-verify.web.app
+		header Vary Origin
+		respond "{err.status_text}" {err.status_code}
+	}
+}

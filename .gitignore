@@ -61,3 +61,8 @@ tests/playwright-report/
 /blob-report/
 /playwright/.cache/
 
+# Local single-reviewer prototype: linkage, ratings, tests, and frozen inputs
+/review-app/.private/
+/review-app/.test-private/
+/review-app/test-results/
+/review-app/.hosting/

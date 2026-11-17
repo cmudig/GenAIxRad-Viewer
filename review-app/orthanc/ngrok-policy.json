@@ -1,0 +1,26 @@
+{
+  "on_http_request": [
+    {
+      "actions": [
+        {
+          "type": "oauth",
+          "config": {
+            "provider": "google",
+            "max_session_duration": "4h",
+            "idle_session_timeout": "30m"
+          }
+        }
+      ]
+    },
+    {
+      "expressions": [
+        "!(actions.ngrok.oauth.identity.email in ['katelyncmorrison98@gmail.com'])"
+      ],
+      "actions": [{ "type": "deny", "config": { "status_code": 403 } }]
+    },
+    {
+      "expressions": ["!(req.method in ['GET', 'HEAD'])"],
+      "actions": [{ "type": "deny", "config": { "status_code": 403 } }]
+    }
+  ]
+}

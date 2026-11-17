@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Assessment access is server-only via IAM-authenticated Firestore REST.
+    // Other top-level collections retain the project's previous public access.
+    match /{collection}/{document=**} {
+      allow read, write: if collection != 'afrooz-review';
+    }
+  }
+}

@@ -1,0 +1,35 @@
+name: frozen-review-orthanc
+
+services:
+  orthanc:
+    image: orthancteam/orthanc:26.11.0@sha256:06b8baab0c63cd58de5474a74b64096a82ea3f7eab2aa471e217cc48c9ae11bf
+    ports:
+      - "127.0.0.1:8043:8042"
+    environment:
+      DICOM_WEB_PLUGIN_ENABLED: "true"
+      VERBOSE_STARTUP: "false"
+    volumes:
+      - ./orthanc.json:/etc/orthanc/frozen-review.json:ro
+      - review-dicom:/var/lib/orthanc/db
+    networks:
+      - local-only
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "/probes/test-aliveness.py"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+volumes:
+  review-dicom:
+    name: frozen-review-orthanc-data
+
+networks:
+  local-only:
+    driver: bridge

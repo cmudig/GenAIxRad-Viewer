@@ -1,0 +1,38 @@
+name: frozen-review-https
+
+services:
+  https:
+    image: caddy:2-alpine@sha256:78bd35025c7ba85961dd149ae670315129954e77abe2383ac47c89106b35ade9
+    ports:
+      - "443:443/tcp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../.private/orthanc/https/users.caddy:/run/secrets/orthanc-users:ro
+      - ../.private/orthanc/https/review-upstream.caddy:/run/secrets/review-upstream:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - orthanc
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+networks:
+  orthanc:
+    external: true
+    name: frozen-review-orthanc_local-only
+
+volumes:
+  caddy-data:
+    name: frozen-review-https-caddy-data
+  caddy-config:
+    name: frozen-review-https-caddy-config

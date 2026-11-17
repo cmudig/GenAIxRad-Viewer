@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Local series review</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+<dialog id="sign-in" aria-labelledby="sign-in-title" aria-describedby="sign-in-description" hidden>
+  <form id="sign-in-form">
+    <h2 id="sign-in-title">Sign in to series review</h2>
+    <p id="sign-in-description">Password-protected remote session. Images are transmitted over HTTPS from researcher Mac; assessments stored in Firebase Firestore (afrooz-review). Credentials stay in memory for this tab only.</p>
+    <label for="review-username">Username</label>
+    <input id="review-username" name="username" value="reviewer" autocomplete="username" required autofocus>
+    <label for="review-password">Password</label>
+    <input id="review-password" name="password" type="password" autocomplete="current-password" required>
+    <p id="sign-in-error" role="alert" hidden></p>
+    <button id="sign-in-submit" type="submit">Sign in</button>
+    <button id="clear-session" type="button">Clear session</button>
+  </form>
+</dialog>
+<svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+  <symbol id="icon-stack" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></symbol>
+  <symbol id="icon-window" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v16"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="icon-pan" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/></symbol>
+  <symbol id="icon-zoom" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6M7 10h6M10 7v6"/></symbol>
+  <symbol id="icon-reset" viewBox="0 0 24 24"><path d="M4 10a8 8 0 1 1 1 7M4 4v6h6"/></symbol>
+  <symbol id="icon-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+  <symbol id="icon-left" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></symbol>
+  <symbol id="icon-right" viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/></symbol>
+  <symbol id="icon-review" viewBox="0 0 24 24"><path d="M9 4H5v17h14V4h-4M9 3h6v4H9zM8 14l3 3 5-6"/></symbol>
+  <symbol id="icon-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></symbol>
+</defs></svg>
+<header class="app-bar">
+  <h1>Series review</h1>
+  <div id="completion" role="status">Connecting locally…</div>
+  <button id="logout" type="button" hidden>Sign out / clear session</button>
+</header>
+<div class="privacy"><span id="privacy-summary">Research only · not for diagnosis · local session</span><details id="review-info"><summary>Help &amp; privacy</summary><div class="info-content"><h2 id="privacy-heading">Local access</h2><p id="privacy-detail">Images and ratings stay on this computer. There is no authentication: anyone with access to this session can review them. Do not expose this port, use a tunnel, or share the private folder.</p><h2>Viewer controls</h2><p id="viewer-help">Focus the image: wheel or arrow keys change slices; drag uses the selected tool. W / P / Z select window / level, pan, or zoom. + / − zoom; R resets. Presets: 1 soft tissue, 2 lung, 3 liver, 4 bone, 5 brain.</p><p id="renderer-detail">Local 2D canvas renderer, not the OHIF engine. Windowing and zoom apply to decoded pixels.</p><h2>Review guidance</h2><p id="definition-detail"></p><p id="save-guidance">Save a draft and skip if evidence is insufficient. Loaded slices are not necessarily inspected. Drafts autosave locally; final reviews can be revised and earlier revisions are retained. Finalizing confirms an assessment, not diagnostic suitability or inspection of every slice.</p><p id="cohort-detail"></p></div></details></div>
+<div id="fatal" role="alert" hidden></div>
+<div class="controls" role="group" aria-label="Imaging tools">
+  <div class="tool-buttons" role="group" aria-label="Drag tool shortcuts">
+    <button type="button" class="tool-button" data-tool="window" aria-pressed="true" title="Window / level (W in viewport)"><svg class="icon" aria-hidden="true"><use href="#icon-window"/></svg><span>Window / level</span></button>
+    <button type="button" class="tool-button" data-tool="pan" aria-pressed="false" title="Pan (P in viewport)"><svg class="icon" aria-hidden="true"><use href="#icon-pan"/></svg><span>Pan</span></button>
+    <button type="button" class="tool-button" data-tool="zoom" aria-pressed="false" title="Zoom (Z in viewport)"><svg class="icon" aria-hidden="true"><use href="#icon-zoom"/></svg><span>Zoom</span></button>
+  </div>
+  <div class="toolbar-divider" aria-hidden="true"></div>
+  <select id="tool" class="state-native" aria-label="Drag tool" aria-hidden="true" tabindex="-1"><option value="window">Window / level</option><option value="pan">Pan</option><option value="zoom">Zoom</option></select>
+  <div class="select-control preset-control">
+    <span id="preset-label">Window preset</span>
+    <select id="preset" class="preset-native" aria-hidden="true" aria-label="Window preset" tabindex="-1"><option value="dicom">DICOM default</option><option value="soft">Soft tissue · 1</option><option value="lung">Lung · 2</option><option value="liver">Liver · 3</option><option value="bone">Bone · 4</option><option value="brain">Brain · 5</option><option value="auto">Pixel range</option></select>
+    <button id="preset-button" class="preset-button" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="preset-listbox" aria-labelledby="preset-label preset-current"><span id="preset-current">DICOM default</span><span id="preset-shortcut" class="preset-shortcut" aria-hidden="true" hidden></span><svg class="preset-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg></button>
+    <ul id="preset-listbox" class="preset-listbox" role="listbox" tabindex="-1" aria-labelledby="preset-label" hidden></ul>
+  </div>
+  <div class="toolbar-divider" aria-hidden="true"></div>
+  <button id="zoom-out" class="icon-button" type="button" aria-label="Zoom out" title="Zoom out (−)"><svg class="icon" aria-hidden="true"><use href="#icon-minus"/></svg></button>
+  <button id="zoom-in" class="icon-button" type="button" aria-label="Zoom in" title="Zoom in (+)"><svg class="icon" aria-hidden="true"><use href="#icon-plus"/></svg></button>
+  <button id="reset" class="tool-button" type="button" title="Reset view (R in viewport)"><svg class="icon" aria-hidden="true"><use href="#icon-reset"/></svg><span>Reset view</span></button>
+  <button id="retry-image" class="retry-button" type="button" hidden>Retry slice</button>
+</div>
+<main>
+  <nav class="queue-panel" aria-label="Review cases">
+    <div class="panel-heading"><h2>Cases</h2></div>
+    <div id="cases"></div>
+  </nav>
+  <section class="workspace" aria-label="Image viewer">
+    <div class="case-header"><h2 id="case-title">Loading…</h2><span id="case-status">Not started</span></div>
+    <div id="viewport" tabindex="0" aria-label="Series viewport: wheel or arrow keys scroll slices; drag uses selected tool" aria-describedby="viewer-help"><canvas id="image" aria-label="Local grayscale DICOM slice"></canvas><div id="image-message" role="status">Loading image…</div><div id="image-overlay"></div></div>
+    <div class="slice-controls"><button id="previous-slice" class="icon-button" aria-label="Previous slice"><svg class="icon" aria-hidden="true"><use href="#icon-left"/></svg></button><label for="slice">Slice <output id="slice-number">—</output></label><input id="slice" aria-label="Slice" type="range" min="1" max="1" value="1"><button id="next-slice" class="icon-button" aria-label="Next slice"><svg class="icon" aria-hidden="true"><use href="#icon-right"/></svg></button></div>
+    <div class="viewer-footer"><div id="load-status" role="status"></div></div>
+  </section>
+  <aside class="review-panel" aria-label="Review form">
+    <div class="panel-heading"><h2>Assessment</h2></div>
+    <div class="review-content">
+      <section class="description-section" aria-labelledby="description-heading"><h2 id="description-heading">Series description</h2><div id="generation-description" class="generation-description"></div><div hidden><p id="prompt-provenance"></p><details id="prompt-detail"><summary id="prompt-summary">Logged inputs &amp; provenance</summary><p>These inputs selected an existing series; they are not verified original image-generation prompts.</p><ul id="logged-prompts"></ul><p id="prompt-count"></p></details></div></section>
+      <form id="review-form"><div id="rubric"></div><label class="comment-label" for="comments">3. Comment</label><p id="comment-help">Required unless question 1 is Yes and question 2 is Plausible. Please say what is missing, extra, or unrealistic.</p><p id="comment-choice-help">For question 2’s current Yes/No choices, Yes means Plausible.</p><textarea id="comments" rows="2" maxlength="10000" placeholder="What is missing, extra, or unrealistic?" aria-describedby="comment-help comment-choice-help comment-status reference-help"></textarea><p id="comment-status" role="status"></p><div id="reference-group" hidden><span id="reference-heading">Referenced slices</span><div id="references" role="group" aria-labelledby="reference-heading"></div></div><div class="reference-row"><button id="add-reference" type="button" aria-controls="comments references" disabled>Attach slice</button><p id="reference-help">Attach the displayed slice to your comment.</p></div><p id="confirm-text"></p><div class="save-actions"><button id="save-draft" type="button">Save draft</button><button id="finalize" type="submit" disabled>Finalize review</button></div><div id="save-status" role="status"></div><div id="save-error" role="alert" hidden></div></form>
+      <div class="case-navigation"><button id="previous-case" type="button"><svg class="icon" aria-hidden="true"><use href="#icon-left"/></svg>Previous</button><button id="next-case" type="button">Next / skip<svg class="icon" aria-hidden="true"><use href="#icon-right"/></svg></button></div>
+    </div>
+  </aside>
+</main>
+</body>
+</html>

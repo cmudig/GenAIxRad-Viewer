@@ -1,0 +1,6 @@
+﻿"pid","boundary_mode","study_alias","uid_fingerprint","clicks","tab_switches","repeat_clicks","observed_runs","first_click_utc","last_click_utc"
+"5","recording","Study 1","25992b75c6a5","0","0","0","0","",""
+"5","recording","Study 2","a8cb25217450","0","0","0","0","",""
+"5","recording","Study 3","6081d3e4ffd3","0","0","0","0","",""
+"5","recording","Study 4","85328111b272","8","3","5","1","2026-01-23T01:21:34.391Z","2026-01-23T01:47:33.724Z"
+"5","recording","Study 5","5475b3e2a5dd","5","4","1","1","2026-01-23T01:03:09.872Z","2026-01-23T01:05:32.963Z"

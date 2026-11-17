@@ -1,0 +1,23 @@
+{
+  "Name": "Frozen 28 review series (local only)",
+  "StorageDirectory": "/var/lib/orthanc/db",
+  "IndexDirectory": "/var/lib/orthanc/db",
+  "HttpServerEnabled": true,
+  "HttpPort": 8042,
+  "RemoteAccessAllowed": true,
+  "AuthenticationEnabled": false,
+  "DicomServerEnabled": false,
+  "OverwriteInstances": false,
+  "StoreDicom": true,
+  "StorageCompression": false,
+  "DicomWeb": {
+    "Enable": true,
+    "Root": "/dicom-web/",
+    "EnableWado": true,
+    "WadoRoot": "/wado"
+  },
+  "OrthancExplorer2": {
+    "Enable": true,
+    "IsDefaultOrthancUI": true
+  }
+}
